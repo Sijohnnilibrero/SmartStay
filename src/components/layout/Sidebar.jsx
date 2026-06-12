@@ -9,56 +9,70 @@ import { useAppStore } from '@/store/useAppStore'
 
 const NAV_ADMIN = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
-  { label: 'Manage', icon: Users, routes: [
-    { to: '/admin/users', label: 'Users' },
-    { to: '/admin/properties', label: 'Properties' },
-    { to: '/admin/reservations', label: 'Reservations' },
-  ]},
-  { label: 'Analytics', icon: BarChart3, routes: [
-    { to: '/admin/analytics', label: 'Reports' },
-  ]},
+  {
+    label: 'Manage', icon: Users, routes: [
+      { to: '/admin/users', label: 'Users' },
+      { to: '/admin/properties', label: 'Properties' },
+      { to: '/admin/reservations', label: 'Reservations' },
+    ]
+  },
+  {
+    label: 'Analytics', icon: BarChart3, routes: [
+      { to: '/admin/analytics', label: 'Reports' },
+    ]
+  },
 ]
 
 const NAV_OWNER = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/owner', label: 'Overview' }] },
-  { label: 'Manage', icon: Home, routes: [
-    { to: '/owner/properties', label: 'My Properties' },
-    { to: '/owner/reservations', label: 'Reservations' },
-  ]},
-  { label: 'People', icon: Users, routes: [
-    { to: '/owner/tenants', label: 'My Tenants' },
-  ]},
+  {
+    label: 'Manage', icon: Home, routes: [
+      { to: '/owner/properties', label: 'My Properties' },
+      { to: '/owner/reservations', label: 'Reservations' },
+    ]
+  },
+  {
+    label: 'People', icon: Users, routes: [
+      { to: '/owner/tenants', label: 'My Tenants' },
+    ]
+  },
 ]
 
 const NAV_TENANT = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/tenant', label: 'Overview' }] },
-  { label: 'Browse', icon: Home, routes: [
-    { to: '/tenant/search', label: 'Search' },
-  ]},
-  { label: 'My Activity', icon: CalendarCheck, routes: [
-    { to: '/tenant/room', label: 'My Room', icon: BedDouble },
-    { to: '/tenant/reservations', label: 'Reservations' },
-    { to: '/tenant/reviews', label: 'Reviews' },
-    { to: '/tenant/landlord', label: 'My Landlord', icon: User },
-  ]},
-  { label: 'Discover', icon: Sparkles, routes: [
-    { to: '/tenant/recommend', label: 'Recommendations' },
-    { to: '/tenant/map', label: 'Map', icon: Map },
-  ]},
+  {
+    label: 'Browse', icon: Home, routes: [
+      { to: '/tenant/search', label: 'Search' },
+    ]
+  },
+  {
+    label: 'My Activity', icon: CalendarCheck, routes: [
+      { to: '/tenant/room', label: 'My Room', icon: BedDouble },
+      { to: '/tenant/reservations', label: 'Reservations' },
+      { to: '/tenant/reviews', label: 'Reviews' },
+      { to: '/tenant/landlord', label: 'My Landlord', icon: User },
+    ]
+  },
+  {
+    label: 'Discover', icon: Sparkles, routes: [
+      { to: '/tenant/recommend', label: 'Recommendations' },
+      { to: '/tenant/map', label: 'Map', icon: Map },
+    ]
+  },
 ]
 
 const NAV_BY_ROLE = { admin: NAV_ADMIN, owner: NAV_OWNER, tenant: NAV_TENANT }
-const ROLE_LABEL  = { admin: 'Administrator', owner: 'Homeowner', tenant: 'Tenant' }
+const ROLE_LABEL = { admin: 'Administrator', owner: 'Homeowner', tenant: 'Tenant' }
 const ROLE_COLORS = {
-  admin:  { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
-  owner:  { bg: '#E1F5EE', text: '#0F6E56', accent: '#0F6E56' },
+  admin: { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
+  owner: { bg: '#E1F5EE', text: '#0F6E56', accent: '#0F6E56' },
   tenant: { bg: '#FAEEDA', text: '#BA7517', accent: '#BA7517' },
 }
 
 // Sidebar gradient backgrounds per role
 const HEADER_GRADIENTS = {
-  admin:  'linear-gradient(135deg, #534AB7 0%, #7C3AED 100%)',
-  owner:  'linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%)',
+  admin: 'linear-gradient(135deg, #534AB7 0%, #7C3AED 100%)',
+  owner: 'linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%)',
   tenant: 'linear-gradient(135deg, #BA7517 0%, #D97706 100%)',
 }
 
@@ -72,13 +86,13 @@ function isActiveRoute(to, pathname) {
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = { pathname: typeof window !== 'undefined' ? window.location.pathname : '/' }
-  const user     = useAuthStore((s) => s.user)
-  const logout   = useAuthStore((s) => s.logout)
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
 
-  const nav     = NAV_BY_ROLE[user?.role] || NAV_TENANT
-  const colors  = ROLE_COLORS[user?.role] || ROLE_COLORS.admin
+  const nav = NAV_BY_ROLE[user?.role] || NAV_TENANT
+  const colors = ROLE_COLORS[user?.role] || ROLE_COLORS.admin
   const gradient = HEADER_GRADIENTS[user?.role] || HEADER_GRADIENTS.admin
 
   const handleLogout = () => {
