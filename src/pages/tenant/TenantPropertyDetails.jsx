@@ -399,7 +399,7 @@ export default function TenantPropertyDetails() {
               key={fullScreenImgIdx} 
               src={selectedRoom.image_urls[fullScreenImgIdx]} 
               alt="Room Fullscreen" 
-              className="max-w-full max-h-[80vh] object-contain sm:rounded-lg pointer-events-none animate-in fade-in zoom-in-[0.98] duration-200" 
+              className="max-w-full max-h-[80vh] object-contain sm:rounded-lg pointer-events-none quick-fade" 
             />
             
             {selectedRoom.image_urls.length > 1 && (
