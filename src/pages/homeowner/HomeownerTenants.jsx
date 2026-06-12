@@ -91,8 +91,8 @@ export default function HomeownerTenants() {
         <Button variant="ghost" size="sm" onClick={function() { navigate('/owner') }}>← Back to Dashboard</Button>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="relative w-full sm:flex-1 sm:max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
@@ -102,14 +102,14 @@ export default function HomeownerTenants() {
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar">
           {['All', 'Student', 'Professional', 'Government Employee', 'Visitor'].map(function(f) {
             var val = f === 'All' ? 'All' : f === 'Student' ? 'student' : f === 'Professional' ? 'professional' : f === 'Government Employee' ? 'government_employee' : 'visitor'
             return (
               <button
                 key={f}
                 onClick={function() { setFilter(val) }}
-                className={'px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all ' + (filter === val ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300')}
+                className={'flex-shrink-0 snap-start px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium border transition-all ' + (filter === val ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300')}
               >
                 {f}
               </button>
@@ -136,45 +136,47 @@ export default function HomeownerTenants() {
             <p className="text-sm text-stone-400 mt-1">Tenants with approved reservations will appear here.</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-stone-100">
-                {['Tenant', 'Type', 'Municipality', 'Joined'].map(function(h) {
-                  return <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] sm:min-w-0">
+              <thead>
+                <tr className="border-b border-stone-100">
+                  {['Tenant', 'Type', 'Municipality', 'Joined'].map(function(h) {
+                    return <th key={h} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(function(t) {
+                  return (
+                    <tr key={t.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                      <td className="px-3 py-2 sm:px-4 sm:py-3">
+                        <div className="flex items-center gap-2 sm:gap-2.5">
+                          <div
+                            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-semibold bg-stone-50"
+                          >
+                            {(t.full_name || '??').split(' ').map(function(n) { return n[0] }).slice(0, 2).join('').toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-[10px] sm:text-[12px] font-medium text-stone-800 truncate max-w-[80px] sm:max-w-none">{t.full_name}</p>
+                            <p className="text-[8px] sm:text-[10px] text-stone-400">{t.id ? t.id.substring(0, 8) : ''}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3">
+                        <span className="text-[9px] sm:text-[11px] px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md sm:rounded-full font-medium bg-stone-100 text-stone-600 whitespace-nowrap">
+                          {TYPE_LABELS[t.tenant_type] || t.tenant_type || 'Tenant'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{t.municipality || '—'}</td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">
+                        {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
+                      </td>
+                    </tr>
+                  )
                 })}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(function(t) {
-                return (
-                  <tr key={t.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold bg-stone-50"
-                        >
-                          {(t.full_name || '??').split(' ').map(function(n) { return n[0] }).slice(0, 2).join('').toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-medium text-stone-800">{t.full_name}</p>
-                          <p className="text-[10px] text-stone-400">{t.id ? t.id.substring(0, 8) : ''}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] px-2 py-1 rounded-full font-medium bg-stone-100 text-stone-600">
-                        {TYPE_LABELS[t.tenant_type] || t.tenant_type || 'Tenant'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[12px] text-stone-600">{t.municipality || '—'}</td>
-                    <td className="px-4 py-3 text-[12px] text-stone-600">
-                      {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

@@ -221,7 +221,7 @@ export default function HomeownerRooms() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: 'Total Rooms', value: totalRooms,              accent: '#0F6E56', bg: '#E1F5EE' },
           { label: 'Available',   value: availableRooms,          accent: '#1D9E75', bg: '#D1FAE5' },
@@ -266,7 +266,7 @@ export default function HomeownerRooms() {
             />
 
             {/* Fields grid */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Room #</label>
                 <Input value={form.room_number}
@@ -343,7 +343,7 @@ export default function HomeownerRooms() {
 
       {/* Room Cards */}
       {loading ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[1, 2].map((i) => (
             <div key={i} className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
               <div className="h-36 shimmer" />
@@ -363,7 +363,7 @@ export default function HomeownerRooms() {
           <p className="text-sm mt-1">Add individual rooms with their own pricing, photos, and amenities.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rooms.map((r) => (
             <div key={r.id} className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md transition-all group">
               {/* Room image or placeholder */}

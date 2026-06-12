@@ -169,18 +169,18 @@ export default function Tenants() {
 
       <div className="p-6 space-y-5">
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="flex overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar gap-2 sm:gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-5">
           {STAT_ITEMS.map(function (s) {
             return (
               <div key={s.label}
-                className="bg-white rounded-2xl border border-stone-200 p-4 flex items-center gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="flex-shrink-0 w-[140px] sm:w-auto snap-start bg-white rounded-xl sm:rounded-2xl border border-stone-200 p-3 sm:p-4 flex items-center gap-2 sm:gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: s.bg, color: s.accent }}>
                   {s.icon}
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 leading-tight">{s.label}</p>
-                  <p className="font-bold text-2xl leading-tight" style={{ color: s.accent }}>{s.value}</p>
+                <div className="min-w-0">
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 leading-tight truncate">{s.label}</p>
+                  <p className="font-bold text-lg sm:text-2xl leading-tight truncate" style={{ color: s.accent }}>{s.value}</p>
                 </div>
               </div>
             )
@@ -188,19 +188,19 @@ export default function Tenants() {
         </div>
 
         {/* Search + Filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative w-64">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
+          <div className="relative w-full sm:w-64 flex-shrink-0">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input className="pl-9" placeholder="Search tenants…" value={query}
+            <Input className="w-full pl-9" placeholder="Search tenants…" value={query}
               onChange={(e) => setQuery(e.target.value)} />
           </div>
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
             {FILTERS.map(function (f) {
               return (
                 <button
                   key={f.val}
                   onClick={() => setFilter(f.val)}
-                  className={'px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all duration-150 ' +
+                  className={'flex-shrink-0 snap-start px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium border transition-all duration-150 ' +
                     (filter === f.val
                       ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300'
                       : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:text-stone-700')}
@@ -210,12 +210,12 @@ export default function Tenants() {
               )
             })}
           </div>
-          <p className="text-[11px] text-stone-400 ml-auto">{filtered.length} tenant{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filtered.length} tenant{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Cards */}
         {loading ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-white rounded-2xl border border-stone-200 p-5 space-y-3">
                 <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export default function Tenants() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map(function (t) {
               return <TenantCard key={t.id} t={t} />
             })}

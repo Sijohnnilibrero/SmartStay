@@ -128,8 +128,8 @@ export default function TenantPropertyDetails() {
   var occupancyPct = Math.round(((property.total_rooms - (property.available_rooms || 0)) / property.total_rooms) * 100)
 
   return (
-    <div className="page-enter p-6 grid grid-cols-3 gap-5">
-      <div className="col-span-2 space-y-4">
+    <div className="page-enter p-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="lg:col-span-2 space-y-4">
         <div className="h-52 rounded-2xl flex items-center justify-center text-7xl bg-[#E1F5EE]">🏠</div>
 
         <Card>
@@ -151,7 +151,7 @@ export default function TenantPropertyDetails() {
         {property.amenities && property.amenities.length > 0 && (
           <Card>
             <div className="p-4 border-b border-stone-100"><h3 className="font-semibold text-stone-800">Amenities & Features</h3></div>
-            <div className="p-4 grid grid-cols-3 gap-2">
+            <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
               {property.amenities.map(function(a) {
                 return (
                   <div key={a} className="flex items-center gap-2 text-[12px] text-stone-600">
@@ -170,7 +170,7 @@ export default function TenantPropertyDetails() {
             {rooms.length === 0 ? (
               <p className="text-sm text-stone-400">No rooms are currently available for this property.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {rooms.map(function(r) {
                   return (
                     <div key={r.id} className="border border-stone-100 rounded-xl overflow-hidden cursor-pointer hover:border-teal-300 hover:shadow-md transition-all group" onClick={function() { setSelectedRoom(r) }}>
@@ -329,7 +329,7 @@ export default function TenantPropertyDetails() {
                   <p className="text-[11px] text-stone-500">{property.address}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-stone-50 rounded-lg">
                   <p className="text-[10px] uppercase tracking-wider text-stone-400">Room</p>
                   <p className="text-[14px] font-semibold text-stone-800">Room {selectedRoom.room_number}</p>

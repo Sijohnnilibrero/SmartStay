@@ -89,42 +89,42 @@ export default function MyRoom() {
           {/* Room Card */}
           {room && (
             <Card className="p-0 overflow-hidden">
-              <div className="p-5 border-b border-stone-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-[#E1F5EE] flex items-center justify-center">
-                    <BedDouble size={22} className="text-[#0F6E56]" />
+              <div className="p-3 sm:p-5 border-b border-stone-100 flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-[#E1F5EE] flex items-center justify-center">
+                    <BedDouble className="w-[18px] h-[18px] sm:w-[22px] sm:h-[22px] text-[#0F6E56]" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-xl text-stone-800">Room {room.room_number}</h2>
-                    <p className="text-[12px] text-stone-400">Floor {room.floor}</p>
+                    <h2 className="font-bold text-lg sm:text-xl text-stone-800">Room {room.room_number}</h2>
+                    <p className="text-[10px] sm:text-[12px] text-stone-400">Floor {room.floor}</p>
                   </div>
                 </div>
                 <Badge variant="teal">Active</Badge>
               </div>
 
-              <div className="p-5 grid grid-cols-3 gap-4">
-                <div className="p-3 bg-stone-50 rounded-xl">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Monthly Rent</p>
-                  <p className="text-lg font-bold text-[--teal]">{formatCurrency(room.price_monthly)}</p>
+              <div className="p-3 sm:p-5 grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
+                  <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Rent</p>
+                  <p className="text-sm sm:text-lg font-bold text-[--teal]">{formatCurrency(room.price_monthly)}</p>
                 </div>
-                <div className="p-3 bg-stone-50 rounded-xl">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Move-in Date</p>
-                  <p className="text-[14px] font-semibold text-stone-800">{reservation.check_in || '—'}</p>
+                <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
+                  <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Move-in</p>
+                  <p className="text-[11px] sm:text-[14px] font-semibold text-stone-800 truncate">{reservation.check_in || '—'}</p>
                 </div>
-                <div className="p-3 bg-stone-50 rounded-xl">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Duration</p>
-                  <p className="text-[14px] font-semibold text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</p>
+                <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
+                  <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Duration</p>
+                  <p className="text-[11px] sm:text-[14px] font-semibold text-stone-800 truncate">{reservation.duration_months || 1} mo</p>
                 </div>
               </div>
 
               {room.amenities && room.amenities.length > 0 && (
-                <div className="px-5 pb-5">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-2">Room Amenities</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="px-3 pb-3 sm:px-5 sm:pb-5">
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-1.5 sm:mb-2">Room Amenities</p>
+                  <div className="flex flex-wrap gap-1 sm:gap-2">
                     {room.amenities.map(function(a) {
                       return (
-                        <span key={a} className="text-[11px] px-2.5 py-1 bg-[#E1F5EE] text-[#0F6E56] rounded-full flex items-center gap-1">
-                          <CheckCircle2 size={11} /> {a}
+                        <span key={a} className="text-[9px] sm:text-[11px] px-2 py-0.5 sm:px-2.5 sm:py-1 bg-[#E1F5EE] text-[#0F6E56] rounded-md sm:rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-[10px] h-[10px] sm:w-[11px] sm:h-[11px]" /> {a}
                         </span>
                       )
                     })}
@@ -144,21 +144,21 @@ export default function MyRoom() {
           {/* Property Info */}
           {property && (
             <Card className="p-0 overflow-hidden">
-              <div className="p-5 border-b border-stone-100">
-                <h3 className="font-semibold text-stone-800 text-[14px]">Property Details</h3>
+              <div className="p-3 sm:p-5 border-b border-stone-100">
+                <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">Property Details</h3>
               </div>
-              <div className="p-5">
-                <div className="flex items-center gap-4 p-3 bg-stone-50 border border-stone-200/60 rounded-xl">
-                  <div className="w-12 h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-2xl flex-shrink-0">🏠</div>
+              <div className="p-3 sm:p-5">
+                <div className="flex items-center gap-3 sm:gap-4 p-2 sm:p-3 bg-stone-50 border border-stone-200/60 rounded-lg sm:rounded-xl">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">🏠</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
-                    <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
-                      <MapPin size={11} className="text-stone-400 flex-shrink-0" />
+                    <p className="text-[12px] sm:text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
+                    <p className="text-[9px] sm:text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
+                      <MapPin className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-stone-400 flex-shrink-0" />
                       {property.address}, {property.municipality}, {property.island} Island
                     </p>
                   </div>
-                  <Button variant="default" size="sm" onClick={() => navigate('/tenant/property/' + property.id)} className="flex-shrink-0">
-                    View Property
+                  <Button variant="default" size="sm" onClick={() => navigate('/tenant/property/' + property.id)} className="flex-shrink-0 px-2 sm:px-3 text-[10px] sm:text-sm">
+                    View
                   </Button>
                 </div>
               </div>
@@ -167,33 +167,33 @@ export default function MyRoom() {
 
           {/* Lease Summary */}
           <Card className="p-0 overflow-hidden">
-            <div className="p-5 border-b border-stone-100">
-              <h3 className="font-semibold text-stone-800 text-[14px]">Lease Summary</h3>
+            <div className="p-3 sm:p-5 border-b border-stone-100">
+              <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">Lease Summary</h3>
             </div>
-            <div className="p-5 space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-stone-50">
-                <div className="flex items-center gap-2 text-[12px] text-stone-500">
-                  <Calendar size={13} /> Check-in Date
+            <div className="p-3 sm:p-5 space-y-1 sm:space-y-3">
+              <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                  <Calendar className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Check-in Date
                 </div>
-                <span className="text-[12px] font-medium text-stone-800">{reservation.check_in || '—'}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{reservation.check_in || '—'}</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-stone-50">
-                <div className="flex items-center gap-2 text-[12px] text-stone-500">
-                  <Calendar size={13} /> Duration
+              <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                  <Calendar className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Duration
                 </div>
-                <span className="text-[12px] font-medium text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-stone-50">
-                <div className="flex items-center gap-2 text-[12px] text-stone-500">
-                  <CreditCard size={13} /> Monthly Rent
+              <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                  <CreditCard className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Monthly Rent
                 </div>
-                <span className="text-[12px] font-medium text-stone-800">{formatCurrency(room ? room.price_monthly : property.price_monthly)}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{formatCurrency(room ? room.price_monthly : property.price_monthly)}</span>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2 text-[12px] text-stone-500">
-                  <CreditCard size={13} /> Total Amount
+              <div className="flex items-center justify-between py-1.5 sm:py-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                  <CreditCard className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Total Amount
                 </div>
-                <span className="text-[13px] font-semibold text-[--teal]">{formatCurrency(reservation.amount_total)}</span>
+                <span className="text-[12px] sm:text-[13px] font-semibold text-[--teal]">{formatCurrency(reservation.amount_total)}</span>
               </div>
             </div>
           </Card>

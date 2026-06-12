@@ -119,7 +119,7 @@ export default function TenantSearch() {
             <p className="text-sm mt-1">Try adjusting your search or filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map(function(p, idx) {
               return <PropertyCard key={p.id} property={p} idx={idx} onClick={function() { navigate(`/tenant/property/${p.id}`) }} onClickRooms={function() { navigate(`/tenant/property/${p.id}#rooms`) }} />
             })}

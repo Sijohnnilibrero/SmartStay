@@ -45,45 +45,47 @@ export default function TenantDashboard() {
       </div>
 
       <div className="p-6 space-y-5">
-        <div className="grid grid-cols-4 gap-4">
-          <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-wider text-stone-400 mb-1">Active Reservations</p>
-            <p className="font-bold text-3xl" style={{ color: '#0F6E56' }}>{stats.reservations}</p>
-            <p className="text-[11px] text-stone-400 mt-1">View your bookings</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <Card className="p-3 sm:p-4">
+            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Active Reservations</p>
+            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#0F6E56' }}>{stats.reservations}</p>
+            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">View your bookings</p>
           </Card>
-          <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-wider text-stone-400 mb-1">Saved Properties</p>
-            <p className="font-bold text-3xl" style={{ color: '#BA7517' }}>{stats.favorites}</p>
-            <p className="text-[11px] text-stone-400 mt-1">Favorite listings</p>
+          <Card className="p-3 sm:p-4">
+            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Saved Properties</p>
+            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#BA7517' }}>{stats.favorites}</p>
+            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">Favorite listings</p>
           </Card>
-          <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-wider text-stone-400 mb-1">Recommended</p>
-            <p className="font-bold text-3xl" style={{ color: '#1D9E75' }}>{stats.recommended.length}</p>
-            <p className="text-[11px] text-stone-400 mt-1">For you</p>
+          <Card className="p-3 sm:p-4">
+            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Recommended</p>
+            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#1D9E75' }}>{stats.recommended.length}</p>
+            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">For you</p>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          <Card>
-            <div className="p-4 border-b border-stone-100">
-              <h3 className="font-semibold text-stone-800">Recent Activity</h3>
+          <Card className="p-0 overflow-hidden">
+            <div className="p-3 sm:p-4 border-b border-stone-100">
+              <h3 className="font-semibold text-[13px] sm:text-base text-stone-800">Recent Activity</h3>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
               {recentActivity.map(function(a) {
                 return (
-                  <div key={a.id} className="flex items-center gap-2.5 py-2 border-b border-stone-50 last:border-0">
-                    <div className="w-7 h-7 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[10px] font-semibold text-[#0F6E56]">
+                  <div key={a.id} className="flex items-center gap-2 sm:gap-2.5 py-1.5 sm:py-2 border-b border-stone-50 last:border-0">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[9px] sm:text-[10px] font-semibold text-[#0F6E56]">
                       {(a.property_id || '??').substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium text-stone-800 truncate">Reservation</p>
-                      <p className="text-[10px] text-stone-400 truncate">{a.property_id ? a.property_id.substring(0, 8) : '—'}</p>
+                      <p className="text-[11px] sm:text-[12px] font-medium text-stone-800 truncate">Reservation</p>
+                      <p className="text-[9px] sm:text-[10px] text-stone-400 truncate">{a.property_id ? a.property_id.substring(0, 8) : '—'}</p>
                     </div>
-                    <Badge variant={a.status === 'pending' ? 'amber' : a.status === 'confirmed' ? 'teal' : 'gray'}>{a.status}</Badge>
+                    <Badge variant={a.status === 'pending' ? 'amber' : a.status === 'confirmed' ? 'teal' : 'gray'} className="text-[9px] sm:text-[11px]">
+                      {a.status}
+                    </Badge>
                   </div>
                 )
               })}
-              {recentActivity.length === 0 && <p className="text-sm text-stone-400 text-center py-8">No recent activity</p>}
+              {recentActivity.length === 0 && <p className="text-xs sm:text-sm text-stone-400 text-center py-6 sm:py-8">No recent activity</p>}
             </div>
           </Card>
         </div>

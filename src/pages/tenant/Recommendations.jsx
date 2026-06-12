@@ -74,7 +74,7 @@ export default function Recommendations() {
   }, [generated, allProperties, budget, island, amenityPrefs])
 
   return (
-    <div className="page-enter p-6 grid grid-cols-3 gap-5">
+    <div className="page-enter p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <div>
         <Card>
           <div className="p-4 border-b border-stone-100"><h3 className="font-semibold text-stone-800">Tenant Preferences</h3></div>
@@ -115,7 +115,7 @@ export default function Recommendations() {
         </Card>
       </div>
 
-      <div className="col-span-2">
+      <div className="lg:col-span-2">
         {!generated ? (
           <div className="flex flex-col items-center justify-center h-64 text-stone-400">
             <Sparkles size={32} className="mb-3 text-stone-300" />
@@ -136,32 +136,32 @@ export default function Recommendations() {
             {results.map(function(p, i) {
               var scoreColor = p.score >= 80 ? '#1D9E75' : p.score >= 60 ? '#BA7517' : '#D85A30'
               return (
-                <Card key={p.id} className="flex items-center gap-4">
-                  <div className="text-2xl font-bold text-stone-200 w-6 flex-shrink-0 text-center">{i + 1}</div>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 bg-stone-50">🏠</div>
+                <Card key={p.id} className="flex flex-row items-center gap-2 sm:gap-4 p-2.5 sm:p-4">
+                  <div className="text-sm sm:text-2xl font-bold text-stone-200 w-4 sm:w-6 flex-shrink-0 text-center">{i + 1}</div>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center text-lg sm:text-2xl flex-shrink-0 bg-stone-50">🏠</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-stone-800 mb-0.5 truncate">{p.name}</p>
-                    <p className="text-[11px] text-stone-400 flex items-center gap-1 mb-1.5">
-                      <MapPin size={10} /> {p.municipality} · {formatCurrency(p.price_monthly)}/mo
+                    <p className="text-[12px] sm:text-[13px] font-semibold text-stone-800 mb-0.5 truncate">{p.name}</p>
+                    <p className="text-[9px] sm:text-[11px] text-stone-400 flex items-center gap-1 mb-1 sm:mb-1.5 truncate">
+                      <MapPin className="w-[9px] h-[9px] sm:w-[10px] sm:h-[10px]" /> {p.municipality} · {formatCurrency(p.price_monthly)}/mo
                     </p>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={p.rating || 0} size={10} />
-                      <span className="text-[10px] text-stone-400">{p.available_rooms || 0} rooms available</span>
+                    <div className="flex items-center gap-1.5 sm:gap-3">
+                      <div className="hidden xs:block"><StarRating rating={p.rating || 0} size={10} /></div>
+                      <span className="text-[9px] sm:text-[10px] text-stone-400 truncate">{p.available_rooms || 0} rooms</span>
                     </div>
                     {p.amenities && p.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {p.amenities.slice(0, 5).map(function(a) {
-                          return <span key={a} className="text-[10px] px-1.5 py-0.5 bg-[#E1F5EE] text-[#0F6E56] rounded-md">{a}</span>
+                      <div className="flex flex-wrap gap-1 mt-1 sm:mt-1.5 h-[14px] sm:h-auto overflow-hidden">
+                        {p.amenities.slice(0, 3).map(function(a) {
+                          return <span key={a} className="text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-[1px] sm:py-0.5 bg-[#E1F5EE] text-[#0F6E56] rounded-sm sm:rounded-md whitespace-nowrap">{a}</span>
                         })}
                       </div>
                     )}
                   </div>
-                  <div className="text-center flex-shrink-0 w-20">
-                    <p className="font-bold text-2xl" style={{ color: scoreColor }}>{p.score}%</p>
-                    <p className="text-[10px] text-stone-400">match</p>
+                  <div className="text-center flex-shrink-0 w-10 sm:w-20">
+                    <p className="font-bold text-lg sm:text-2xl leading-none" style={{ color: scoreColor }}>{p.score}%</p>
+                    <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5">match</p>
                   </div>
-                  <button className="px-3 py-1.5 rounded-lg bg-[--teal] text-white text-sm" onClick={function() { navigate('/tenant/property/' + p.id) }}>
-                    <ArrowRight size={13} />
+                  <button className="px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg bg-[--teal] text-white flex-shrink-0 ml-1 sm:ml-0 hover:bg-teal-700 transition-colors" onClick={function() { navigate('/tenant/property/' + p.id) }}>
+                    <ArrowRight className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
                   </button>
                 </Card>
               )

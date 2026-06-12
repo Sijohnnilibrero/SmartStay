@@ -362,7 +362,7 @@ export default function AddProperty() {
                   </div>
 
                   {/* Location & Rooms */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Municipality *</label>
                       <select value={form.municipality} onChange={function(e) { set('municipality', e.target.value) }} className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30">
@@ -458,7 +458,7 @@ export default function AddProperty() {
                         {/* Room Photos */}
                         <div className="md:col-span-4">
                           <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Room Photos</label>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {(draft.imagePreviews || []).map((previewUrl, iIdx) => (
                               <div key={iIdx} className="relative rounded-lg overflow-hidden group h-16 bg-stone-100 border border-stone-200">
                                 <img src={previewUrl} alt="" className="w-full h-full object-cover" />
@@ -476,7 +476,7 @@ export default function AddProperty() {
 
                         {/* Room Form Fields */}
                         <div className="md:col-span-8 space-y-4">
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                             <div>
                               <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Room # *</label>
                               <Input value={draft.room_number} onChange={(e) => updateRoomDraft(idx, 'room_number', e.target.value)} placeholder="101" required className="bg-stone-50 focus:bg-white" />

@@ -133,18 +133,18 @@ export default function Properties() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="flex overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar gap-2 sm:gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
           {STAT_ITEMS.map(function (s) {
             return (
               <div key={s.label}
-                className="bg-white rounded-2xl border border-stone-200 p-4 flex items-center gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="flex-shrink-0 w-[140px] sm:w-auto snap-start bg-white rounded-xl sm:rounded-2xl border border-stone-200 p-3 sm:p-4 flex items-center gap-2 sm:gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: s.bg, color: s.accent }}>
                   {s.icon}
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400">{s.label}</p>
-                  <p className="font-bold text-2xl leading-tight" style={{ color: s.accent }}>{s.value}</p>
+                <div className="min-w-0">
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">{s.label}</p>
+                  <p className="font-bold text-lg sm:text-2xl leading-tight truncate" style={{ color: s.accent }}>{s.value}</p>
                 </div>
               </div>
             )
@@ -152,22 +152,22 @@ export default function Properties() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="relative w-full sm:flex-1 sm:max-w-sm flex-shrink-0">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input className="pl-9" placeholder="Search by name or address…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Input className="w-full pl-9" placeholder="Search by name or address…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
             {['All', 'Batan', 'Sabtang', 'Itbayat'].map(function (i) {
-              return <FilterChip key={i} label={i} active={island === i} onClick={() => setIsland(i)} />
+              return <div key={i} className="flex-shrink-0 snap-start"><FilterChip label={i} active={island === i} onClick={() => setIsland(i)} /></div>
             })}
           </div>
-          <p className="text-[11px] text-stone-400 ml-auto">{filteredList.length} propert{filteredList.length !== 1 ? 'ies' : 'y'}</p>
+          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filteredList.length} propert{filteredList.length !== 1 ? 'ies' : 'y'}</p>
         </div>
 
         {/* Property Cards */}
         {loading ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
                 <div className="h-44 shimmer" />
@@ -188,7 +188,7 @@ export default function Properties() {
             {!isAdmin && <p className="text-sm mt-1">Click "Add Property" to create one.</p>}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredList.map(function (p, idx) {
               const imgSrc = p.image_url || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]
               const occupied = p.total_rooms - (p.available_rooms || 0)

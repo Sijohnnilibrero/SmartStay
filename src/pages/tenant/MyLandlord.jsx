@@ -114,51 +114,51 @@ export default function MyLandlord() {
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Left Column - Landlord Contact Card & Quick Message */}
-          <div className="md:col-span-1 space-y-6">
-            <Card className="p-6 text-center flex flex-col items-center">
-              <Avatar initials={landlordInitials} size="lg" className="w-16 h-16 text-lg mb-4 bg-[#E1F5EE] text-[#0F6E56]" />
-              <h2 className="text-[15px] font-bold text-stone-800 mb-0.5">{landlord.full_name}</h2>
-              <Badge variant="teal" className="mb-6">Homeowner</Badge>
+          <div className="md:col-span-1 space-y-4 sm:space-y-6">
+            <Card className="p-4 sm:p-6 text-center flex flex-col items-center">
+              <Avatar initials={landlordInitials} size="lg" className="w-12 h-12 sm:w-16 sm:h-16 text-base sm:text-lg mb-3 sm:mb-4 bg-[#E1F5EE] text-[#0F6E56]" />
+              <h2 className="text-[14px] sm:text-[15px] font-bold text-stone-800 mb-0.5">{landlord.full_name}</h2>
+              <Badge variant="teal" className="mb-4 sm:mb-6">Homeowner</Badge>
 
-              <div className="w-full space-y-4 text-left border-t border-stone-100 pt-4">
-                <div className="flex items-start gap-3">
-                  <Phone size={15} className="text-stone-400 mt-0.5" />
+              <div className="w-full space-y-3 sm:space-y-4 text-left border-t border-stone-100 pt-4">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <Phone className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px] text-stone-400 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400">Phone</p>
-                    <a href={`tel:${landlord.contact || ''}`} className="text-sm font-medium text-stone-700 hover:text-[--teal] transition-colors break-words">
+                    <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400">Phone</p>
+                    <a href={`tel:${landlord.contact || ''}`} className="text-[12px] sm:text-sm font-medium text-stone-700 hover:text-[--teal] transition-colors break-words">
                       {landlord.contact || 'No phone provided'}
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <Mail size={15} className="text-stone-400 mt-0.5" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <Mail className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px] text-stone-400 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400">Email Address</p>
-                    <a href={`mailto:${landlord.email}`} className="text-sm font-medium text-stone-700 hover:text-[--teal] transition-colors break-all">
+                    <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400">Email Address</p>
+                    <a href={`mailto:${landlord.email}`} className="text-[12px] sm:text-sm font-medium text-stone-700 hover:text-[--teal] transition-colors break-all">
                       {landlord.email}
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <MapPin size={15} className="text-stone-400 mt-0.5" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <MapPin className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px] text-stone-400 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400">Municipality</p>
-                    <p className="text-sm font-medium text-stone-700">{landlord.municipality || 'Basco'}</p>
+                    <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400">Municipality</p>
+                    <p className="text-[12px] sm:text-sm font-medium text-stone-700">{landlord.municipality || 'Basco'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 w-full mt-6">
+              <div className="grid grid-cols-2 gap-2 w-full mt-4 sm:mt-6">
                 <a href={`tel:${landlord.contact || ''}`} className="flex-1">
-                  <Button variant="default" size="sm" className="w-full justify-center">
-                    <Phone size={13} /> Call
+                  <Button variant="default" size="sm" className="w-full justify-center px-2 py-1.5 sm:px-3 sm:py-2">
+                    <Phone className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] mr-1.5" /> Call
                   </Button>
                 </a>
                 <a href={`mailto:${landlord.email}`} className="flex-1">
-                  <Button variant="default" size="sm" className="w-full justify-center">
-                    <Mail size={13} /> Email
+                  <Button variant="default" size="sm" className="w-full justify-center px-2 py-1.5 sm:px-3 sm:py-2">
+                    <Mail className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] mr-1.5" /> Email
                   </Button>
                 </a>
               </div>
@@ -187,56 +187,56 @@ export default function MyLandlord() {
           </div>
 
           {/* Right Column - Tenancy & Property details */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-2 space-y-4 sm:space-y-6">
             <Card className="p-0 overflow-hidden">
-              <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+              <div className="p-3 sm:p-5 border-b border-stone-100 flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-stone-800 text-[14px]">My Tenancy</h3>
-                  <p className="text-[11px] text-stone-400 mt-0.5">Lease details & property info</p>
+                  <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">My Tenancy</h3>
+                  <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5">Lease details & property info</p>
                 </div>
-                <Badge variant={reservation.status === 'confirmed' ? 'teal' : reservation.status === 'pending' ? 'amber' : 'gray'}>
-                  {reservation.status === 'confirmed' ? 'Active Residency' : reservation.status === 'pending' ? 'Pending Approval' : reservation.status}
+                <Badge variant={reservation.status === 'confirmed' ? 'teal' : reservation.status === 'pending' ? 'amber' : 'gray'} className="text-[9px] sm:text-[11px]">
+                  {reservation.status === 'confirmed' ? 'Active' : reservation.status === 'pending' ? 'Pending Approval' : reservation.status}
                 </Badge>
               </div>
 
-              <div className="p-5 grid grid-cols-2 gap-4 border-b border-stone-100 bg-stone-50/30">
-                <div className="flex gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
-                    <Calendar size={16} className="text-[--teal]" />
+              <div className="p-3 sm:p-5 grid grid-cols-2 gap-2 sm:gap-4 border-b border-stone-100 bg-stone-50/30">
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
+                    <Calendar className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-[--teal]" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400">Move-in Date</p>
-                    <p className="text-sm font-semibold text-stone-700">{reservation.check_in || '—'}</p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">Duration: {reservation.duration_months || 1} {reservation.duration_months === 1 ? 'month' : 'months'}</p>
+                    <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Move-in Date</p>
+                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{reservation.check_in || '—'}</p>
+                    <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Duration: {reservation.duration_months || 1} mo</p>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
-                    <CreditCard size={16} className="text-[#BA7517]" />
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
+                    <CreditCard className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-[#BA7517]" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400">Monthly Rent</p>
-                    <p className="text-sm font-semibold text-stone-700">{formatCurrency(property.price_monthly)}</p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">Total: {formatCurrency(reservation.amount_total)}</p>
+                    <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Monthly Rent</p>
+                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{formatCurrency(property.price_monthly)}</p>
+                    <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Total: {formatCurrency(reservation.amount_total)}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 space-y-4">
+              <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-2">Rented Property</p>
-                  <div className="flex items-center gap-4 p-3 bg-stone-50 border border-stone-200/60 rounded-xl">
-                    <div className="w-12 h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-2xl flex-shrink-0">🏠</div>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-1.5 sm:mb-2">Rented Property</p>
+                  <div className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-stone-50 border border-stone-200/60 rounded-lg sm:rounded-xl">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">🏠</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
-                      <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
-                        <MapPin size={11} className="text-stone-400 flex-shrink-0" />
-                        {property.address}, {property.municipality}, {property.island} Island
+                      <p className="text-[12px] sm:text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
+                      <p className="text-[9px] sm:text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
+                        <MapPin className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-stone-400 flex-shrink-0" />
+                        {property.address}, {property.municipality}
                       </p>
                     </div>
-                    <Button variant="default" size="sm" onClick={() => navigate(`/tenant/property/${property.id}`)} className="flex-shrink-0">
-                      View details
+                    <Button variant="default" size="sm" onClick={() => navigate(`/tenant/property/${property.id}`)} className="flex-shrink-0 px-2 sm:px-3 text-[10px] sm:text-sm">
+                      View
                     </Button>
                   </div>
                 </div>

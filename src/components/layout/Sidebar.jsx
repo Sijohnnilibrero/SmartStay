@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 
 const NAV_ADMIN = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
@@ -73,6 +74,8 @@ export default function Sidebar() {
   const location = { pathname: typeof window !== 'undefined' ? window.location.pathname : '/' }
   const user     = useAuthStore((s) => s.user)
   const logout   = useAuthStore((s) => s.logout)
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
 
   const nav     = NAV_BY_ROLE[user?.role] || NAV_TENANT
   const colors  = ROLE_COLORS[user?.role] || ROLE_COLORS.admin
@@ -83,8 +86,14 @@ export default function Sidebar() {
     navigate('/login')
   }
 
+  const handleNavClick = () => {
+    if (window.innerWidth < 768 && sidebarOpen) {
+      toggleSidebar()
+    }
+  }
+
   return (
-    <aside className="flex flex-col w-[220px] flex-shrink-0 bg-white border-r border-stone-200 h-screen sticky top-0">
+    <aside className="flex flex-col w-full md:w-[220px] flex-shrink-0 bg-white md:border-r border-stone-200 h-screen sticky top-0">
       {/* Brand Header */}
       <div className="px-5 py-5 relative overflow-hidden" style={{ background: gradient }}>
         {/* Decorative circle */}
@@ -124,6 +133,7 @@ export default function Sidebar() {
                   <NavLink
                     key={route.to + route.label}
                     to={route.to}
+                    onClick={handleNavClick}
                     end={route.to === '/admin' || route.to === '/owner' || route.to === '/tenant'}
                     className={cn(
                       'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm mb-0.5 transition-all duration-150',

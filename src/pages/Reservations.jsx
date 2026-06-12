@@ -120,13 +120,14 @@ export default function Reservations() {
       <Topbar title="Reservations" />
 
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-5 gap-3">
+        {/* Hide scrollbar utility class can be added inline or in css */}
+        <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 snap-x" style={{ scrollbarWidth: 'none' }}>
           {STATUSES.map(function (s) {
             return (
               <div key={s} onClick={function () { setFilter(s) }}
-                className={'p-3 rounded-xl border cursor-pointer transition-all ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
-                <p className="text-[11px] text-stone-400 mb-1">{s}</p>
-                <p className={'text-xl font-bold ' + (filter === s ? 'text-[#0F6E56]' : 'text-stone-800')}>{totals[s]}</p>
+                className={'flex-shrink-0 w-[28%] sm:w-auto p-2 sm:p-3 rounded-lg sm:rounded-xl border cursor-pointer transition-all snap-start ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
+                <p className="text-[9px] sm:text-[11px] text-stone-400 mb-0.5 sm:mb-1">{s}</p>
+                <p className={'text-base sm:text-xl font-bold leading-tight ' + (filter === s ? 'text-[#0F6E56]' : 'text-stone-800')}>{totals[s]}</p>
               </div>
             )
           })}
@@ -141,68 +142,70 @@ export default function Reservations() {
               <p className="text-sm">No reservations found</p>
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-stone-100">
-                  {['Tenant', 'Property', 'Check-in', 'Duration', 'Amount', 'Status'].map(function (h) {
-                    return <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
-                  })}
-                  {(isAdmin || isOwner) && <th className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-stone-400 font-medium">Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {list.map(function (r) {
-                  return (
-                    <tr key={r.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar initials={(r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" />
-                          <span className="text-[12px] font-medium text-stone-800">{r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-[12px] text-stone-600">{getPropName(r.property_id)}</td>
-                      <td className="px-4 py-3 text-[12px] text-stone-600">{r.check_in}</td>
-                      <td className="px-4 py-3 text-[12px] text-stone-600">{r.duration_months} mo.</td>
-                      <td className="px-4 py-3 text-[12px] font-semibold text-[--teal]">{formatCurrency(r.amount_total)}</td>
-                      <td className="px-4 py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'}>{r.status}</Badge></td>
-                      {(isAdmin || isOwner) && (
-                        <td className="px-4 py-3">
-                          {r.status === 'pending' ? (
-                            <div className="flex gap-1">
-                              <button className="p-1.5 rounded-lg text-[#0F6E56] hover:bg-[#E1F5EE] disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'confirmed') }}>
-                                <CheckCircle size={13} />
-                              </button>
-                              <button className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }}>
-                                <XCircle size={13} />
-                              </button>
-                            </div>
-                          ) : r.status === 'confirmed' ? (
-                            <div className="flex gap-1">
-                              {(isOwner || isAdmin) && (
-                                <button className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Cancel Reservation">
-                                  <XCircle size={13} />
-                                </button>
-                              )}
-                              {(isOwner || isAdmin) && (
-                                <button className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            (isOwner || isAdmin) && (
-                              <button className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }}>
-                                <Trash2 size={13} />
-                              </button>
-                            )
-                          )}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] sm:min-w-0">
+                <thead>
+                  <tr className="border-b border-stone-100">
+                    {['Tenant', 'Property', 'Check-in', 'Duration', 'Amount', 'Status'].map(function (h) {
+                      return <th key={h} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
+                    })}
+                    {(isAdmin || isOwner) && <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map(function (r) {
+                    return (
+                      <tr key={r.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="hidden xs:block"><Avatar initials={(r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" /></div>
+                            <span className="text-[10px] sm:text-[12px] font-medium text-stone-800">{r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown'}</span>
+                          </div>
                         </td>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{getPropName(r.property_id)}</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.check_in}</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.duration_months} mo.</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'}>{r.status}</Badge></td>
+                        {(isAdmin || isOwner) && (
+                          <td className="px-3 py-2 sm:px-4 sm:py-3">
+                            {r.status === 'pending' ? (
+                              <div className="flex gap-1">
+                                <button className="p-1 sm:p-1.5 rounded-lg text-[#0F6E56] hover:bg-[#E1F5EE] disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'confirmed') }}>
+                                  <CheckCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                </button>
+                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }}>
+                                  <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                </button>
+                              </div>
+                            ) : r.status === 'confirmed' ? (
+                              <div className="flex gap-1">
+                                {(isOwner || isAdmin) && (
+                                  <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Cancel Reservation">
+                                    <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                  </button>
+                                )}
+                                {(isOwner || isAdmin) && (
+                                  <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
+                                    <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              (isOwner || isAdmin) && (
+                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }}>
+                                  <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                </button>
+                              )
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

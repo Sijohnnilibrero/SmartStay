@@ -83,7 +83,7 @@ export default function Reviews() {
           <div className="text-center py-16 text-stone-400">Loading reviews…</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <div className="p-4 border-b border-stone-100"><h3 className="font-semibold text-stone-800">Overall Rating</h3></div>
                 <div className="p-4 flex items-center gap-6">
@@ -119,7 +119,7 @@ export default function Reviews() {
                 <p>No reviews yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reviews.map(function(r, i) {
                   return (
                     <Card key={r.id}>
