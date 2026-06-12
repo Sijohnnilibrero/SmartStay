@@ -1,0 +1,13 @@
+node_modules/
+
+dist/
+build/
+
+.env
+.env.local  
+supabase_add_image_upload.sql
+supabase_add_room_images.sql
+supabase_drop_all.sql
+supabase_fix_rooms.sql
+supabase_migrate_room_images.sql
+supabase_schema.sql

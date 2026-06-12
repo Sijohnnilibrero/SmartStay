@@ -1,0 +1,182 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Badge, Button } from '@/components/ui'
+import { useAuthStore } from '@/store/useAuthStore'
+import { Users, Search } from 'lucide-react'
+
+const TYPE_COLORS = {
+  student: 'bg-purple-100 text-purple-700',
+  professional: 'bg-teal-100 text-teal-700',
+  government_employee: 'bg-amber-100 text-amber-700',
+  visitor: 'bg-stone-100 text-stone-600',
+}
+const TYPE_LABELS = {
+  student: 'Student',
+  professional: 'Professional',
+  government_employee: 'Government Employee',
+  visitor: 'Visitor',
+}
+
+export default function HomeownerTenants() {
+  var user = useAuthStore(function(s) { return s.user })
+  var fetchTenants = useAuthStore(function(s) { return s.fetchTenants })
+  var fetchReservations = useAuthStore(function(s) { return s.fetchReservations })
+  var fetchProperties = useAuthStore(function(s) { return s.fetchProperties })
+  var navigate = useNavigate()
+
+  var queryState = useState('')
+  var query = queryState[0], setQuery = queryState[1]
+  var filterState = useState('All')
+  var filter = filterState[0], setFilter = filterState[1]
+  var tenantsState = useState([])
+  var tenants = tenantsState[0], setTenants = tenantsState[1]
+  var loadingState = useState(true)
+  var loading = loadingState[0], setLoading = loadingState[1]
+  var errorState = useState(null)
+  var errorMsg = errorState[0], setErrorMsg = errorState[1]
+  var wasHiddenRef = useRef(false)
+
+  var loadTenants = useCallback(function() {
+    setLoading(true)
+    setErrorMsg(null)
+    Promise.all([
+      fetchProperties({ ownerId: user?.id }),
+      fetchReservations(),
+    ]).then(function(results) {
+      var props = results[0] || []
+      var reservations = results[1] || []
+      var myPropIds = props.map(function(p) { return p.id })
+      var confirmedRes = reservations.filter(function(r) {
+        return myPropIds.indexOf(r.property_id) !== -1 && (r.status === 'confirmed' || r.status === 'approved')
+      })
+      var myResIds = confirmedRes.map(function(r) { return r.tenant_id })
+      return fetchTenants().then(function(allTenants) {
+        var myTenants = allTenants.filter(function(t) { return myResIds.indexOf(t.id) !== -1 })
+        setTenants(myTenants)
+        setLoading(false)
+      })
+    }).catch(function(err) {
+      console.error('Failed to load tenants:', err)
+      setErrorMsg(err.message || 'An unknown error occurred')
+      setLoading(false)
+    })
+  }, [user?.id, fetchProperties, fetchReservations, fetchTenants])
+
+  useEffect(function() { loadTenants() }, [loadTenants])
+
+  useEffect(function() {
+    function handleVisibility() {
+      if (document.hidden) {
+        wasHiddenRef.current = true
+      } else if (wasHiddenRef.current) {
+        wasHiddenRef.current = false
+        loadTenants()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return function() { document.removeEventListener('visibilitychange', handleVisibility) }
+  }, [loadTenants])
+
+  var filtered = tenants.filter(function(t) {
+    var q = query.toLowerCase()
+    if (q && !(t.full_name || '').toLowerCase().includes(q)) return false
+    if (filter !== 'All' && (t.tenant_type || '').toLowerCase() !== filter.toLowerCase()) return false
+    return true
+  })
+
+  return (
+    <div className="page-enter p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="font-bold text-xl text-stone-800">My Tenants</h1>
+        <Button variant="ghost" size="sm" onClick={function() { navigate('/owner') }}>← Back to Dashboard</Button>
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input
+            type="text"
+            placeholder="Search tenants…"
+            value={query}
+            onChange={function(e) { setQuery(e.target.value) }}
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30"
+          />
+        </div>
+        <div className="flex gap-2">
+          {['All', 'Student', 'Professional', 'Government Employee', 'Visitor'].map(function(f) {
+            var val = f === 'All' ? 'All' : f === 'Student' ? 'student' : f === 'Professional' ? 'professional' : f === 'Government Employee' ? 'government_employee' : 'visitor'
+            return (
+              <button
+                key={f}
+                onClick={function() { setFilter(val) }}
+                className={'px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all ' + (filter === val ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300')}
+              >
+                {f}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <Card>
+        {errorMsg ? (
+          <div className="bg-red-50 p-6 rounded-2xl border border-red-100 flex flex-col items-center justify-center text-center text-red-500 min-h-[300px]">
+            <Users size={48} className="text-red-300 mb-4" />
+            <p className="font-semibold mb-1">Error Loading Tenants</p>
+            <p className="text-sm max-w-md">{errorMsg}</p>
+          </div>
+        ) : loading ? (
+          <div className="flex justify-center p-12 text-stone-400">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--teal]" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <Users size={32} className="mx-auto text-stone-300 mb-3" />
+            <p className="text-stone-600 font-medium">No tenants found</p>
+            <p className="text-sm text-stone-400 mt-1">Tenants with approved reservations will appear here.</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-stone-100">
+                {['Tenant', 'Type', 'Municipality', 'Joined'].map(function(h) {
+                  return <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(function(t) {
+                return (
+                  <tr key={t.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold bg-stone-50"
+                        >
+                          {(t.full_name || '??').split(' ').map(function(n) { return n[0] }).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-[12px] font-medium text-stone-800">{t.full_name}</p>
+                          <p className="text-[10px] text-stone-400">{t.id ? t.id.substring(0, 8) : ''}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] px-2 py-1 rounded-full font-medium bg-stone-100 text-stone-600">
+                        {TYPE_LABELS[t.tenant_type] || t.tenant_type || 'Tenant'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-stone-600">{t.municipality || '—'}</td>
+                    <td className="px-4 py-3 text-[12px] text-stone-600">
+                      {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  )
+}

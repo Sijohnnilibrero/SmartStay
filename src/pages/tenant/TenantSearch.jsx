@@ -1,0 +1,207 @@
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button, Badge, FilterChip, Input, StarRating } from '@/components/ui'
+import { formatCurrency } from '@/lib/utils'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useFocusRefresh } from '@/hooks/useFocusRefresh'
+import { Search, SlidersHorizontal, MapPin, BedDouble } from 'lucide-react'
+
+const PROPERTY_IMAGES = [
+  '/images/property_1.png',
+  '/images/property_2.png',
+  '/images/property_3.png',
+]
+
+const ISLANDS  = ['All', 'Batan', 'Sabtang', 'Itbayat']
+const BUDGETS  = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
+const AMENITIES = ['WiFi', 'Meals', 'Parking', 'Laundry', 'Kitchen', 'Security']
+
+function budgetMatch(price, budget) {
+  if (budget === 'All')       return true
+  if (budget === '₱1k–₱2k') return price >= 1000 && price <= 2000
+  if (budget === '₱2k–₱3k') return price > 2000 && price <= 3000
+  if (budget === '₱3k+')     return price > 3000
+  return true
+}
+
+export default function TenantSearch() {
+  const navigate = useNavigate()
+  const { fetchProperties } = useAuthStore()
+  const [allProperties, setAllProperties] = useState([])
+  const [query,     setQuery]     = useState('')
+  const [island,    setIsland]    = useState('All')
+  const [budget,    setBudget]    = useState('All')
+  const [amenities, setAmenities] = useState([])
+  const [sortBy,    setSortBy]    = useState('rating')
+
+  var loadProperties = useCallback(function() {
+    fetchProperties({ status: 'active' }).then(function(data) {
+      setAllProperties(data)
+    }).catch(function(err) {
+      console.error('Failed to load properties:', err)
+    })
+  }, [fetchProperties])
+
+  useFocusRefresh(loadProperties, [fetchProperties])
+
+  const toggleAmenity = function(a) {
+    setAmenities(function(prev) { return prev.includes(a) ? prev.filter(function(x) { return x !== a }) : [...prev, a] })
+  }
+
+  const filtered = useMemo(function() {
+    var list = allProperties.filter(function(p) {
+      var q = query.toLowerCase()
+      if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q)) return false
+      if (island !== 'All' && p.island !== island) return false
+      if (!budgetMatch(p.price_monthly, budget)) return false
+      if (amenities.length && !amenities.every(function(a) { return (p.amenities || []).includes(a) })) return false
+      return true
+    })
+    if (sortBy === 'rating')    list.sort(function(a, b) { return (b.rating || 0) - (a.rating || 0) })
+    if (sortBy === 'price-asc') list.sort(function(a, b) { return a.price_monthly - b.price_monthly })
+    if (sortBy === 'price-desc')list.sort(function(a, b) { return b.price_monthly - a.price_monthly })
+    if (sortBy === 'occupancy') list.sort(function(a, b) { return ((a.available_rooms || 0)) - ((b.available_rooms || 0)) })
+    return list
+  }, [allProperties, query, island, budget, amenities, sortBy])
+
+  return (
+    <div className="page-enter">
+      <div className="px-6 pt-5 pb-1">
+        <p className="font-bold text-2xl text-stone-800">Browse Boarding Houses</p>
+        <p className="text-sm text-stone-400 mt-0.5">{filtered.length} properties found</p>
+      </div>
+
+      <div className="p-6">
+        <div className="flex gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Input
+              className="pl-9"
+              placeholder="Search by name, barangay, or municipality…"
+              value={query}
+              onChange={function(e) { setQuery(e.target.value) }}
+            />
+          </div>
+          <select
+            className="px-3 py-2 text-sm rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
+            value={sortBy}
+            onChange={function(e) { setSortBy(e.target.value) }}
+          >
+            <option value="rating">Sort: Best Rated</option>
+            <option value="price-asc">Sort: Price Low–High</option>
+            <option value="price-desc">Sort: Price High–Low</option>
+            <option value="occupancy">Sort: Most Available</option>
+          </select>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          <div className="flex items-center gap-1.5 mr-2">
+            <SlidersHorizontal size={13} className="text-stone-400" />
+            <span className="text-[11px] text-stone-400 font-medium">Island:</span>
+          </div>
+          {ISLANDS.map(function(i) {
+            return <FilterChip key={i} label={i} active={island === i} onClick={function() { setIsland(i) }} />
+          })}
+          <div className="w-px bg-stone-200 mx-1" />
+          {BUDGETS.map(function(b) {
+            return <FilterChip key={b} label={b} active={budget === b} onClick={function() { setBudget(b) }} />
+          })}
+          <div className="w-px bg-stone-200 mx-1" />
+          {AMENITIES.map(function(a) {
+            return <FilterChip key={a} label={a} active={amenities.includes(a)} onClick={function() { toggleAmenity(a) }} />
+          })}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-stone-400">
+            <p className="text-4xl mb-3">🏠</p>
+            <p className="font-medium">No properties match your filters</p>
+            <p className="text-sm mt-1">Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-4">
+            {filtered.map(function(p, idx) {
+              return <PropertyCard key={p.id} property={p} idx={idx} onClick={function() { navigate(`/tenant/property/${p.id}`) }} onClickRooms={function() { navigate(`/tenant/property/${p.id}#rooms`) }} />
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PropertyCard({ property: p, idx = 0, onClick, onClickRooms }) {
+  var availColor = (p.available_rooms || 0) === 0 ? 'coral' : (p.available_rooms || 0) <= 2 ? 'amber' : 'teal'
+  var availLabel = (p.available_rooms || 0) === 0 ? 'Fully Booked' : (p.available_rooms || 0) + ' rooms left'
+  var imgSrc = p.image_url || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl border border-stone-200 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group"
+    >
+      {/* Image with overlay */}
+      <div className="relative h-44 overflow-hidden">
+        <img
+          src={imgSrc}
+          alt={p.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        {/* Availability badge top-right */}
+        <div className="absolute top-3 right-3">
+          <Badge variant={availColor}>{availLabel}</Badge>
+        </div>
+        {/* Island badge bottom-left */}
+        {p.island && (
+          <div className="absolute bottom-3 left-3">
+            <span className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+              {p.island}
+            </span>
+          </div>
+        )}
+        {/* Price bottom-right */}
+        <div className="absolute bottom-3 right-3">
+          <span className="bg-white/95 backdrop-blur-sm text-[--teal] font-bold text-[12px] px-2.5 py-1 rounded-full shadow-sm">
+            Prices vary
+          </span>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <p className="text-[14px] font-semibold text-stone-800 mb-0.5 group-hover:text-[--teal] transition-colors truncate">
+          {p.name}
+        </p>
+        <p className="text-[11px] text-stone-400 flex items-center gap-1 mb-3">
+          <MapPin size={10} className="flex-shrink-0" /> {p.address}
+        </p>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <StarRating rating={p.rating || 0} size={10} />
+            <span className="text-[10px] text-stone-400">{p.review_count || 0} reviews</span>
+          </div>
+          {p.municipality && (
+            <span className="text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">{p.municipality}</span>
+          )}
+        </div>
+        {/* Amenity chips */}
+        {(p.amenities || []).length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {(p.amenities || []).slice(0, 3).map(function(a) {
+              return <span key={a} className="text-[10px] px-2 py-0.5 bg-stone-50 text-stone-500 rounded-full border border-stone-100">{a}</span>
+            })}
+            {(p.amenities || []).length > 3 && (
+              <span className="text-[10px] px-2 py-0.5 bg-stone-50 text-stone-400 rounded-full">+{p.amenities.length - 3}</span>
+            )}
+          </div>
+        )}
+        <button
+          onClick={function(e) { e.stopPropagation(); if (onClickRooms) onClickRooms(); else onClick(e); }}
+          className="mt-1 w-full text-[11px] text-[#0F6E56] font-medium flex items-center justify-center gap-1 py-2 rounded-xl bg-[#E1F5EE] hover:bg-[#d0ebe0] transition-colors"
+        >
+          <BedDouble size={11} /> View available rooms →
+        </button>
+      </div>
+    </div>
+  )
+}

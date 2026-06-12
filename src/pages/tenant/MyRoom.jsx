@@ -1,0 +1,226 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/useAuthStore'
+import { Card, Badge, Button, Avatar } from '@/components/ui'
+import Topbar from '@/components/layout/Topbar'
+import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+
+export default function MyRoom() {
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
+  const wasHiddenRef = useRef(false)
+
+  const loadRoom = useCallback(function() {
+    if (!user?.id) return
+    setLoading(true)
+    useAuthStore.getState().fetchMyRoom(user.id).then(function(res) {
+      setData(res)
+      setLoading(false)
+    }).catch(function(err) {
+      console.error('Failed to load room:', err)
+      setLoading(false)
+    })
+  }, [user?.id])
+
+  useEffect(function() { loadRoom() }, [loadRoom])
+
+  useEffect(function() {
+    function handleVisibility() {
+      if (document.hidden) {
+        wasHiddenRef.current = true
+      } else if (wasHiddenRef.current) {
+        wasHiddenRef.current = false
+        loadRoom()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return function() { document.removeEventListener('visibilitychange', handleVisibility) }
+  }, [loadRoom])
+
+  if (loading) {
+    return (
+      <div className="page-enter flex flex-col h-screen">
+        <Topbar title="My Room" />
+        <div className="flex-1 flex items-center justify-center text-stone-400">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--teal] mx-auto mb-4" />
+            <p className="text-sm">Loading your room...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data || !data.reservation) {
+    return (
+      <div className="page-enter flex flex-col h-screen">
+        <Topbar title="My Room" />
+        <div className="flex-1 flex items-center justify-center p-6 bg-stone-50/50">
+          <div className="max-w-md w-full text-center p-8 bg-white border border-stone-200 rounded-2xl shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-stone-50 flex items-center justify-center text-3xl mb-4 mx-auto border border-stone-100">
+              🚪
+            </div>
+            <h2 className="font-bold text-lg text-stone-800 font-semibold mb-1.5">No Active Room</h2>
+            <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+              You don't have an approved room reservation yet. Browse properties and reserve a room, then wait for the homeowner to approve your request.
+            </p>
+            <Button variant="primary" className="w-full flex items-center justify-center gap-2" onClick={() => navigate('/tenant/search')}>
+              Find a Place to Stay <ArrowRight size={15} />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const { room, property, reservation } = data
+
+  return (
+    <div className="page-enter flex flex-col h-screen">
+      <Topbar title="My Room" />
+
+      <div className="flex-1 overflow-y-auto p-6 bg-stone-50/50">
+        <div className="max-w-4xl mx-auto space-y-6">
+
+          {/* Room Card */}
+          {room && (
+            <Card className="p-0 overflow-hidden">
+              <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-[#E1F5EE] flex items-center justify-center">
+                    <BedDouble size={22} className="text-[#0F6E56]" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-xl text-stone-800">Room {room.room_number}</h2>
+                    <p className="text-[12px] text-stone-400">Floor {room.floor}</p>
+                  </div>
+                </div>
+                <Badge variant="teal">Active</Badge>
+              </div>
+
+              <div className="p-5 grid grid-cols-3 gap-4">
+                <div className="p-3 bg-stone-50 rounded-xl">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Monthly Rent</p>
+                  <p className="text-lg font-bold text-[--teal]">{formatCurrency(room.price_monthly)}</p>
+                </div>
+                <div className="p-3 bg-stone-50 rounded-xl">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Move-in Date</p>
+                  <p className="text-[14px] font-semibold text-stone-800">{reservation.check_in || '—'}</p>
+                </div>
+                <div className="p-3 bg-stone-50 rounded-xl">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Duration</p>
+                  <p className="text-[14px] font-semibold text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</p>
+                </div>
+              </div>
+
+              {room.amenities && room.amenities.length > 0 && (
+                <div className="px-5 pb-5">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-2">Room Amenities</p>
+                  <div className="flex flex-wrap gap-2">
+                    {room.amenities.map(function(a) {
+                      return (
+                        <span key={a} className="text-[11px] px-2.5 py-1 bg-[#E1F5EE] text-[#0F6E56] rounded-full flex items-center gap-1">
+                          <CheckCircle2 size={11} /> {a}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {room.notes && (
+                <div className="px-5 pb-5">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Notes</p>
+                  <p className="text-[12px] text-stone-600 italic">{room.notes}</p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Property Info */}
+          {property && (
+            <Card className="p-0 overflow-hidden">
+              <div className="p-5 border-b border-stone-100">
+                <h3 className="font-semibold text-stone-800 text-[14px]">Property Details</h3>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center gap-4 p-3 bg-stone-50 border border-stone-200/60 rounded-xl">
+                  <div className="w-12 h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-2xl flex-shrink-0">🏠</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
+                    <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
+                      <MapPin size={11} className="text-stone-400 flex-shrink-0" />
+                      {property.address}, {property.municipality}, {property.island} Island
+                    </p>
+                  </div>
+                  <Button variant="default" size="sm" onClick={() => navigate('/tenant/property/' + property.id)} className="flex-shrink-0">
+                    View Property
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Lease Summary */}
+          <Card className="p-0 overflow-hidden">
+            <div className="p-5 border-b border-stone-100">
+              <h3 className="font-semibold text-stone-800 text-[14px]">Lease Summary</h3>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-stone-50">
+                <div className="flex items-center gap-2 text-[12px] text-stone-500">
+                  <Calendar size={13} /> Check-in Date
+                </div>
+                <span className="text-[12px] font-medium text-stone-800">{reservation.check_in || '—'}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-stone-50">
+                <div className="flex items-center gap-2 text-[12px] text-stone-500">
+                  <Calendar size={13} /> Duration
+                </div>
+                <span className="text-[12px] font-medium text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-stone-50">
+                <div className="flex items-center gap-2 text-[12px] text-stone-500">
+                  <CreditCard size={13} /> Monthly Rent
+                </div>
+                <span className="text-[12px] font-medium text-stone-800">{formatCurrency(room ? room.price_monthly : property.price_monthly)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2 text-[12px] text-stone-500">
+                  <CreditCard size={13} /> Total Amount
+                </div>
+                <span className="text-[13px] font-semibold text-[--teal]">{formatCurrency(reservation.amount_total)}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="p-4 border-l-4 border-l-teal-400">
+              <h4 className="text-[12px] font-semibold text-stone-800 mb-1">Need Help?</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Contact your landlord directly through the My Landlord tab for any concerns about your room or the property.
+              </p>
+              <Button variant="ghost" size="sm" className="mt-2 px-0" onClick={() => navigate('/tenant/landlord')}>
+                Go to My Landlord <ArrowRight size={12} />
+              </Button>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-amber-400">
+              <h4 className="text-[12px] font-semibold text-stone-800 mb-1">Payments</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Track your rent payments and payment history under the Reservations tab.
+              </p>
+              <Button variant="ghost" size="sm" className="mt-2 px-0" onClick={() => navigate('/tenant/reservations')}>
+                View Reservations <ArrowRight size={12} />
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
