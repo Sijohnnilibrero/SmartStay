@@ -11,3 +11,6 @@ supabase_drop_all.sql
 supabase_fix_rooms.sql
 supabase_migrate_room_images.sql
 supabase_schema.sql
+
+# Local Netlify folder
+.netlify
