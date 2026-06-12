@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, Badge, StarRating, OccupancyBar, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
@@ -33,6 +34,8 @@ export default function TenantPropertyDetails() {
   var [popupImgIdx, setPopupImgIdx] = useState(0)
   var [fullScreenImgIdx, setFullScreenImgIdx] = useState(null)
   var wasHiddenRef = useRef(false)
+  var touchStartX = useRef(0)
+  var touchEndX = useRef(0)
 
   var loadProperty = useCallback(function() {
     setLoading(true)
@@ -370,23 +373,38 @@ export default function TenantPropertyDetails() {
         </div>
       )}
       {/* Lightbox / Full screen gallery */}
-      {selectedRoom && fullScreenImgIdx !== null && selectedRoom.image_urls && (
-        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[60]" onClick={() => setFullScreenImgIdx(null)}>
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all" onClick={() => setFullScreenImgIdx(null)}>
+      {selectedRoom && fullScreenImgIdx !== null && selectedRoom.image_urls && createPortal(
+        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[100]" onClick={() => setFullScreenImgIdx(null)}>
+          <button className="absolute top-4 sm:top-8 right-4 sm:right-8 text-white/70 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all z-10" onClick={() => setFullScreenImgIdx(null)}>
             <X size={24} />
           </button>
           
-          <div className="relative w-full max-w-5xl px-12 h-[80vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
-            <img src={selectedRoom.image_urls[fullScreenImgIdx]} alt="Room Fullscreen" className="max-w-full max-h-full object-contain rounded-lg" />
+          <div className="relative w-full max-w-5xl px-0 sm:px-12 h-[100vh] flex items-center justify-center" 
+            onClick={e => e.stopPropagation()}
+            onTouchStart={e => touchStartX.current = e.targetTouches[0].clientX}
+            onTouchMove={e => touchEndX.current = e.targetTouches[0].clientX}
+            onTouchEnd={e => {
+              if (!touchStartX.current || !touchEndX.current) return
+              const distance = touchStartX.current - touchEndX.current
+              if (distance > 50) {
+                setFullScreenImgIdx(i => (i + 1) % selectedRoom.image_urls.length)
+              } else if (distance < -50) {
+                setFullScreenImgIdx(i => i === 0 ? selectedRoom.image_urls.length - 1 : i - 1)
+              }
+              touchStartX.current = 0
+              touchEndX.current = 0
+            }}
+          >
+            <img src={selectedRoom.image_urls[fullScreenImgIdx]} alt="Room Fullscreen" className="max-w-full max-h-[80vh] object-contain sm:rounded-lg pointer-events-none" />
             
             {selectedRoom.image_urls.length > 1 && (
               <>
                 <button type="button" onClick={(e) => { e.stopPropagation(); setFullScreenImgIdx(i => i === 0 ? selectedRoom.image_urls.length - 1 : i - 1) }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-sm">
+                  className="hidden sm:block absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
                 <button type="button" onClick={(e) => { e.stopPropagation(); setFullScreenImgIdx(i => (i + 1) % selectedRoom.image_urls.length) }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-sm">
+                  className="hidden sm:block absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                 </button>
               </>
@@ -394,7 +412,7 @@ export default function TenantPropertyDetails() {
           </div>
           
           {selectedRoom.image_urls.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[90vw] px-4 py-2" onClick={e => e.stopPropagation()}>
+            <div className="absolute bottom-6 sm:bottom-12 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[90vw] px-4 py-2 pointer-events-auto" onClick={e => e.stopPropagation()}>
               {selectedRoom.image_urls.map((url, i) => (
                 <button key={i} onClick={() => setFullScreenImgIdx(i)}
                   className={`relative h-16 w-24 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${i === fullScreenImgIdx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-50 hover:opacity-80'}`}>
@@ -403,7 +421,8 @@ export default function TenantPropertyDetails() {
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
