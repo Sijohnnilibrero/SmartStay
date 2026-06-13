@@ -61,6 +61,7 @@ export const useAuthStore = create(
             avatar: profile.avatar_url,
             municipality: profile.municipality,
             tenant_type: profile.tenant_type,
+            contact: profile.contact || '',
           }
           set({ user, isLoading: false, authError: null })
           return { success: true, user }
@@ -140,6 +141,39 @@ export const useAuthStore = create(
             avatar: profile.avatar_url,
             municipality: profile.municipality,
             tenant_type: profile.tenant_type,
+            contact: profile.contact || '',
+          },
+        })
+      },
+
+      // ── Update Profile ───────────────────────────────────────────────────
+      updateProfile: async ({ full_name, contact, municipality, email }) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+
+        // 1. Update profiles table (name, contact, municipality)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ full_name, contact, municipality })
+          .eq('id', user.id)
+
+        if (profileError) throw new Error('Profile update failed: ' + profileError.message)
+
+        // 2. If email changed, update via Supabase Auth
+        if (email && email !== user.email) {
+          const { error: emailError } = await supabase.auth.updateUser({ email })
+          if (emailError) throw new Error('Email update failed: ' + emailError.message)
+        }
+
+        // 3. Refresh in-memory user state
+        set({
+          user: {
+            ...user,
+            name: full_name,
+            initials: toInitials(full_name),
+            contact,
+            municipality,
+            email: email || user.email,
           },
         })
       },

@@ -18,6 +18,7 @@ import TenantBrowseRooms from '@/pages/tenant/TenantBrowseRooms'
 import HomeownerDashboard from '@/pages/homeowner/HomeownerDashboard'
 import HomeownerTenants from '@/pages/homeowner/HomeownerTenants'
 import HomeownerRooms from '@/pages/homeowner/HomeownerRooms'
+import HomeownerProfile from '@/pages/homeowner/HomeownerProfile'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="rooms/:propertyId" element={<HomeownerRooms />} />
             <Route path="tenants" element={<HomeownerTenants />} />
             <Route path="reservations" element={<Reservations />} />
+            <Route path="profile" element={<HomeownerProfile />} />
           </Route>
 
           {/* Admin routes - view only */}

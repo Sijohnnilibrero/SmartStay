@@ -36,6 +36,11 @@ const NAV_OWNER = [
       { to: '/owner/tenants', label: 'My Tenants' },
     ]
   },
+  {
+    label: 'Account', icon: User, routes: [
+      { to: '/owner/profile', label: 'My Profile' },
+    ]
+  },
 ]
 
 const NAV_TENANT = [
