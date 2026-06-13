@@ -52,6 +52,16 @@ export const useAuthStore = create(
             set({ isLoading: false, authError: 'Profile not found. Contact admin.' })
             return { success: false, authError: 'Profile not found. Contact admin.' }
           }
+          if (profile.status === 'banned') {
+            await supabase.auth.signOut()
+            set({ isLoading: false, authError: 'Your account has been banned. Contact administration.' })
+            return { success: false, authError: 'Your account has been banned. Contact administration.' }
+          }
+          if (profile.status === 'suspended') {
+            await supabase.auth.signOut()
+            set({ isLoading: false, authError: 'Your account is temporarily suspended. Contact administration.' })
+            return { success: false, authError: 'Your account is temporarily suspended. Contact administration.' }
+          }
           const user = {
             id: profile.id,
             email: data.user.email,
@@ -131,6 +141,10 @@ export const useAuthStore = create(
           .eq('id', data.session.user.id)
           .single()
         if (!profile) return
+        if (profile.status === 'banned' || profile.status === 'suspended') {
+          await supabase.auth.signOut()
+          return
+        }
         set({
           user: {
             id: profile.id,
@@ -151,21 +165,15 @@ export const useAuthStore = create(
         const user = get().user
         if (!user) throw new Error('Not authenticated')
 
-        // 1. Update profiles table (name, contact, municipality)
+        // Update profiles table (name, contact, municipality, email)
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ full_name, contact, municipality })
+          .update({ full_name, contact, municipality, email })
           .eq('id', user.id)
 
         if (profileError) throw new Error('Profile update failed: ' + profileError.message)
 
-        // 2. If email changed, update via Supabase Auth
-        if (email && email !== user.email) {
-          const { error: emailError } = await supabase.auth.updateUser({ email })
-          if (emailError) throw new Error('Email update failed: ' + emailError.message)
-        }
-
-        // 3. Refresh in-memory user state
+        // Refresh in-memory user state
         set({
           user: {
             ...user,
@@ -400,7 +408,11 @@ export const useAuthStore = create(
       },
 
       updateReservationStatus: async (id, status) => {
-        const { data, error } = await supabase.from('reservations').update({ status }).eq('id', id).select().single()
+        const updateData = { status }
+        if (status === 'completed') {
+          updateData.ended_at = new Date().toISOString()
+        }
+        const { data, error } = await supabase.from('reservations').update(updateData).eq('id', id).select().single()
         if (error) throw error
         
         if (data.room_id) {
@@ -451,8 +463,25 @@ export const useAuthStore = create(
       // ── Tenants (admin view) ────────────────────────────────────────────────
       fetchTenants: async () => {
         const { data, error } = await supabase.from('profiles').select('*').eq('role', 'tenant').order('created_at', { ascending: false })
-        if (error) throw error
+        if (error) throw new Error('Profile update failed: ' + error.message)
         return data || []
+      },
+
+      // ── All Users (admin view) ─────────────────────────────────────────────
+      fetchAllUsers: async () => {
+        const { data, error } = await supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false })
+        if (error) throw new Error('Failed to fetch users: ' + error.message)
+        return data || []
+      },
+
+      // ── Update User Status (Admin) ───────────────────────────────────────
+      updateUserStatus: async (userId, status) => {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ status })
+          .eq('id', userId)
+
+        if (error) throw new Error('Failed to update user status: ' + error.message)
       },
 
       // ── Stats ──────────────────────────────────────────────────────────────
@@ -507,12 +536,12 @@ export const useAuthStore = create(
           }
         }
 
-        // 1. Get the most recent confirmed or completed reservation
+        // 1. Get the most recent active reservation
         const { data: reservations, error: resError } = await supabase
           .from('reservations')
           .select('*')
           .eq('tenant_id', tenantId)
-          .in('status', ['confirmed', 'completed'])
+          .eq('status', 'confirmed')
           .order('created_at', { ascending: false })
 
         if (resError) {
@@ -583,7 +612,7 @@ export const useAuthStore = create(
           .from('reservations')
           .select('*')
           .eq('tenant_id', tenantId)
-          .in('status', ['confirmed', 'completed'])
+          .eq('status', 'confirmed')
           .order('created_at', { ascending: false })
 
         if (resError) throw resError
@@ -616,6 +645,145 @@ export const useAuthStore = create(
           property: property,
           reservation: resObj
         }
+      },
+
+      // ── Messaging ──────────────────────────────────────────────────────────
+      fetchConversations: async () => {
+        const user = get().user
+        if (!user) return []
+
+        // Fetch all messages where this user is sender or receiver
+        const { data: msgs, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+
+        if (error) { console.error('fetchConversations error:', error); return [] }
+        if (!msgs || msgs.length === 0) return []
+
+        // Get unique IDs of the OTHER person in each message
+        const otherIds = [...new Set(msgs.map((m) =>
+          m.sender_id === user.id ? m.receiver_id : m.sender_id
+        ))]
+
+        // Fetch profiles for those IDs
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('id', otherIds)
+        const profileMap = {}
+        ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
+
+        // Group into one conversation object per other person
+        const convMap = {}
+        msgs.forEach((m) => {
+          const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id
+          if (!convMap[otherId]) {
+            convMap[otherId] = {
+              otherId,
+              otherProfile: profileMap[otherId] || null,
+              latestMessage: m,
+              unreadCount: 0,
+            }
+          }
+          if (m.receiver_id === user.id && !m.is_read) {
+            convMap[otherId].unreadCount++
+          }
+        })
+
+        return Object.values(convMap).sort(
+          (a, b) => new Date(b.latestMessage.created_at) - new Date(a.latestMessage.created_at)
+        )
+      },
+
+      sendMessage: async ({ owner_id, property_id, body }) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        const { data, error } = await supabase.from('messages').insert({
+          sender_id: user.id,
+          receiver_id: owner_id,
+          property_id: property_id || null,
+          body: body.trim(),
+          is_read: false,
+        }).select().single()
+        if (error) throw error
+        return data
+      },
+
+      fetchNotifications: async () => {
+        const user = get().user
+        if (!user) return []
+        // Step 1: fetch raw messages
+        const { data: msgs, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('receiver_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        if (error) {
+          console.error('fetchNotifications error:', error)
+          return []
+        }
+        if (!msgs || msgs.length === 0) return []
+
+        // Step 2: fetch sender names from public.profiles
+        const senderIds = [...new Set(msgs.map((m) => m.sender_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('id', senderIds)
+        const profileMap = {}
+        ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
+
+        // Merge
+        return msgs.map((m) => ({ ...m, sender: profileMap[m.sender_id] || null }))
+      },
+
+      markNotificationRead: async (id) => {
+        const { error } = await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('id', id)
+        if (error) console.error('markNotificationRead error:', error)
+      },
+
+      markAllNotificationsRead: async () => {
+        const user = get().user
+        if (!user) return
+        const { error } = await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('receiver_id', user.id)
+          .eq('is_read', false)
+        if (error) console.error('markAllNotificationsRead error:', error)
+      },
+
+      fetchMessages: async (otherUserId) => {
+        const user = get().user
+        if (!user) return []
+        // Step 1: fetch thread
+        const { data: msgs, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: true })
+        if (error) {
+          console.error('fetchMessages error:', error)
+          return []
+        }
+        if (!msgs || msgs.length === 0) return []
+
+        // Step 2: fetch sender names
+        const senderIds = [...new Set(msgs.map((m) => m.sender_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', senderIds)
+        const profileMap = {}
+        ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
+
+        return msgs.map((m) => ({ ...m, sender: profileMap[m.sender_id] || null }))
       },
     }),
     {

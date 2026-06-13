@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react'
+import NotificationBell from './NotificationBell'
 
 export default function Topbar({ title, children }) {
   return (
@@ -6,10 +6,7 @@ export default function Topbar({ title, children }) {
       <h1 className="font-bold text-lg md:text-xl text-stone-900">{title}</h1>
       <div className="flex items-center gap-2 md:gap-3">
         {children}
-        <button className="relative p-2 rounded-lg hover:bg-stone-50 text-stone-400 transition-colors">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[--coral] rounded-full" />
-        </button>
+        <NotificationBell />
       </div>
     </header>
   )

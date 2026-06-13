@@ -292,7 +292,7 @@ export default function Properties() {
                       {isAdmin && (
                         <div className="flex gap-1.5">
                           <Button size="sm" variant="ghost" className="flex-1 text-[11px]"
-                            onClick={() => navigate('/tenant/property/' + p.id)}>
+                            onClick={() => navigate('/admin/property/' + p.id)}>
                             <Eye size={12} /> View
                           </Button>
                           <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-50"

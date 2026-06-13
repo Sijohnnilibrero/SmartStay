@@ -92,7 +92,7 @@ export default function PropertyMap({
     markersRef.current = []
 
     if (lat && lng) {
-      const marker = L.marker([lat, lng], { icon: makeIcon('#1D9E75') })
+      const marker = L.marker([lat, lng], { icon: makeIcon('#1D9E75'), zIndexOffset: 1000 })
         .addTo(mapRef.current)
       markersRef.current.push(marker)
       mapRef.current.setView([lat, lng], 15)
@@ -100,6 +100,32 @@ export default function PropertyMap({
       mapRef.current.setView(BATANES_CENTER, DEFAULT_ZOOM)
     }
   }, [mode, lat, lng])
+
+  // ── 'view' mode: background properties ───────────────────────────
+  useEffect(() => {
+    if (mode !== 'view' || !mapRef.current) return
+    bgMarkersRef.current.forEach((m) => m.remove())
+    bgMarkersRef.current = []
+
+    if (properties && properties.length > 0) {
+      const pinned = properties.filter((p) => p.latitude && p.longitude && (p.latitude !== lat || p.longitude !== lng))
+      pinned.forEach((p) => {
+        const icon = makeIcon('#A8A29E') // stone-400
+        const popup = L.popup({ className: 'ss-popup-mini', closeButton: false }).setContent(`
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;padding:2px;font-size:11px;font-weight:600;color:#57534E;text-align:center;">
+            ${p.name}
+          </div>
+        `)
+        
+        const marker = L.marker([p.latitude, p.longitude], { icon, opacity: 0.8 })
+          .bindPopup(popup)
+          .on('mouseover', function() { this.openPopup() })
+          .on('mouseout', function() { this.closePopup() })
+          .addTo(mapRef.current)
+        bgMarkersRef.current.push(marker)
+      })
+    }
+  }, [mode, properties, lat, lng])
 
   // ── 'browse' mode: multi-pin with popups ─────────────────────────
   useEffect(() => {

@@ -22,7 +22,7 @@ const TYPE_ICONS = {
   visitor:             <Globe size={14} />,
 }
 
-function TenantCard({ t }) {
+function TenantCard({ t, isAdmin, onAction }) {
   const color = TYPE_COLORS[t.tenant_type] || { bg: '#F5F4F0', text: '#78716C', label: t.tenant_type || 'Tenant' }
   const icon  = TYPE_ICONS[t.tenant_type] || <Users size={14} />
   const initials = (t.full_name || '??').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -39,14 +39,18 @@ function TenantCard({ t }) {
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-stone-800 text-[14px] truncate">{t.full_name}</p>
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span
               className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
               style={{ background: color.bg, color: color.text }}
             >
-              {icon}
-              {color.label}
+              {isAdmin ? (t.role === 'owner' ? 'Homeowner' : 'Tenant') : color.label}
             </span>
+            {isAdmin && t.status && t.status !== 'active' && (
+              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${t.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                {t.status.toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -78,6 +82,26 @@ function TenantCard({ t }) {
       <div className="text-[10px] text-stone-300 font-mono bg-stone-50 rounded-lg px-2 py-1 truncate">
         ID: {t.id ? t.id.substring(0, 12) : '—'}
       </div>
+
+      {/* Admin Actions */}
+      {isAdmin && (
+        <div className="mt-1 pt-3 border-t border-stone-100 flex gap-2">
+          {t.status !== 'active' ? (
+            <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-[#0F6E56] hover:bg-[#E1F5EE]" onClick={() => onAction(t, 'active')}>
+              Activate
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-amber-600 hover:bg-amber-50" onClick={() => onAction(t, 'suspended')}>
+              Suspend
+            </Button>
+          )}
+          {t.status !== 'banned' && (
+            <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-red-600 hover:bg-red-50" onClick={() => onAction(t, 'banned')}>
+              Ban
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -88,6 +112,8 @@ export default function Tenants() {
   var isOwner = useAuthStore(function (s) { return s.isOwner })
 
   var fetchTenants = useAuthStore(function (s) { return s.fetchTenants })
+  var fetchAllUsers = useAuthStore(function (s) { return s.fetchAllUsers })
+  var updateUserStatus = useAuthStore(function (s) { return s.updateUserStatus })
   var fetchReservations = useAuthStore(function (s) { return s.fetchReservations })
   var fetchProperties = useAuthStore(function (s) { return s.fetchProperties })
 
@@ -95,12 +121,13 @@ export default function Tenants() {
   const [filter, setFilter] = useState('All')
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [actionUser, setActionUser] = useState(null)
   const wasHiddenRef = useRef(false)
 
   var loadTenants = useCallback(function () {
     setLoading(true)
     Promise.all([
-      fetchTenants.apply(null, isAdmin ? [] : [user.id]),
+      isAdmin ? fetchAllUsers() : fetchTenants(),
       fetchReservations(),
       fetchProperties(),
     ]).then(function (results) {
@@ -115,10 +142,9 @@ export default function Tenants() {
       }
       setLoading(false)
     }).catch(function (err) {
-      console.error('Failed to load tenants:', err)
       setLoading(false)
     })
-  }, [isAdmin, user, fetchTenants, fetchReservations, fetchProperties])
+  }, [isAdmin, user, fetchTenants, fetchAllUsers, fetchReservations, fetchProperties])
 
   useEffect(function () { loadTenants() }, [loadTenants])
   useEffect(function () {
@@ -132,7 +158,11 @@ export default function Tenants() {
 
   if (!user || (!isAdmin && !isOwner)) return <Navigate to="/login" replace />
 
-  const FILTERS = [
+  const FILTERS = isAdmin ? [
+    { label: 'All Users',          val: 'All' },
+    { label: 'Tenants',            val: 'tenant' },
+    { label: 'Homeowners',         val: 'owner' },
+  ] : [
     { label: 'All',                val: 'All' },
     { label: 'Students',           val: 'student' },
     { label: 'Professionals',      val: 'professional' },
@@ -143,11 +173,18 @@ export default function Tenants() {
   var filtered = tenants.filter(function (t) {
     var q = query.toLowerCase()
     if (q && !(t.full_name || '').toLowerCase().includes(q) && !(t.email || '').toLowerCase().includes(q)) return false
-    if (filter !== 'All' && (t.tenant_type || '') !== filter) return false
+    if (filter !== 'All') {
+      if (isAdmin && t.role !== filter) return false
+      if (!isAdmin && (t.tenant_type || '') !== filter) return false
+    }
     return true
   })
 
-  const counts = {
+  const counts = isAdmin ? {
+    total: tenants.length,
+    tenant: tenants.filter((t) => t.role === 'tenant').length,
+    owner: tenants.filter((t) => t.role === 'owner').length,
+  } : {
     total:   tenants.length,
     student: tenants.filter((t) => t.tenant_type === 'student').length,
     professional: tenants.filter((t) => t.tenant_type === 'professional').length,
@@ -155,7 +192,11 @@ export default function Tenants() {
     visitor: tenants.filter((t) => t.tenant_type === 'visitor').length,
   }
 
-  const STAT_ITEMS = [
+  const STAT_ITEMS = isAdmin ? [
+    { label: 'Total Users', value: counts.total,  accent: '#0F6E56', bg: '#E1F5EE', icon: <Users size={16} /> },
+    { label: 'Tenants',     value: counts.tenant, accent: '#3B82F6', bg: '#EFF6FF', icon: <Users size={16} /> },
+    { label: 'Homeowners',  value: counts.owner,  accent: '#F59E0B', bg: '#FEF3C7', icon: <Building2 size={16} /> },
+  ] : [
     { label: 'Total Tenants',   value: counts.total,               accent: '#0F6E56', bg: '#E1F5EE', icon: <Users size={16} /> },
     { label: 'Students',        value: counts.student,             accent: '#7C3AED', bg: '#EDE9FE', icon: <GraduationCap size={16} /> },
     { label: 'Professionals',   value: counts.professional,        accent: '#0F6E56', bg: '#E1F5EE', icon: <Briefcase size={16} /> },
@@ -165,7 +206,7 @@ export default function Tenants() {
 
   return (
     <div className="page-enter">
-      <Topbar title={isAdmin ? 'Tenant Management' : 'My Tenants'} />
+      <Topbar title={isAdmin ? 'User Management' : 'My Tenants'} />
 
       <div className="p-6 space-y-5">
         {/* Stats */}
@@ -191,7 +232,7 @@ export default function Tenants() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
           <div className="relative w-full sm:w-64 flex-shrink-0">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input className="w-full pl-9" placeholder="Search tenants…" value={query}
+            <Input className="w-full pl-9" placeholder={isAdmin ? "Search users…" : "Search tenants…"} value={query}
               onChange={(e) => setQuery(e.target.value)} />
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
@@ -210,7 +251,7 @@ export default function Tenants() {
               )
             })}
           </div>
-          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filtered.length} tenant{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filtered.length} {isAdmin ? 'user' : 'tenant'}{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Cards */}
@@ -246,11 +287,41 @@ export default function Tenants() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map(function (t) {
-              return <TenantCard key={t.id} t={t} />
+              return <TenantCard key={t.id} t={t} isAdmin={isAdmin} onAction={(u, st) => setActionUser({ user: u, status: st })} />
             })}
           </div>
         )}
       </div>
+
+      {/* Admin Action Modal */}
+      {actionUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setActionUser(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg text-stone-800 mb-2">
+              {actionUser.status === 'banned' ? 'Ban User?' : actionUser.status === 'suspended' ? 'Suspend User?' : 'Activate User?'}
+            </h3>
+            <p className="text-sm text-stone-600 mb-6">
+              Are you sure you want to change the status of <strong>{actionUser.user.full_name}</strong> to {actionUser.status}?
+            </p>
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1 border border-stone-200" onClick={() => setActionUser(null)}>Cancel</Button>
+              <Button 
+                className="flex-1 text-white" 
+                style={{ background: actionUser.status === 'active' ? '#0F6E56' : actionUser.status === 'suspended' ? '#D97706' : '#DC2626' }}
+                onClick={() => {
+                  setLoading(true)
+                  updateUserStatus(actionUser.user.id, actionUser.status).then(() => {
+                    setActionUser(null)
+                    loadTenants()
+                  })
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

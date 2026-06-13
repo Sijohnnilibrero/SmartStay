@@ -10,7 +10,7 @@ const ROLE_META = {
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, loginDemo, isLoading, authError, clearError } = useAuthStore()
+  const { login, isLoading, authError, clearError } = useAuthStore()
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')

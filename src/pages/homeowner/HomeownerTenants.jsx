@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Badge, Button } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Users, Search } from 'lucide-react'
-
+import { Users, Search, MessageSquare, X, AlertTriangle } from 'lucide-react'
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
   professional: 'bg-teal-100 text-teal-700',
@@ -30,6 +29,9 @@ export default function HomeownerTenants() {
   var filter = filterState[0], setFilter = filterState[1]
   var tenantsState = useState([])
   var tenants = tenantsState[0], setTenants = tenantsState[1]
+  var [activeTab, setActiveTab] = useState('active')
+  var [endingTenant, setEndingTenant] = useState(null)
+  var updateReservationStatus = useAuthStore(function(s) { return s.updateReservationStatus })
   var loadingState = useState(true)
   var loading = loadingState[0], setLoading = loadingState[1]
   var errorState = useState(null)
@@ -46,12 +48,26 @@ export default function HomeownerTenants() {
       var props = results[0] || []
       var reservations = results[1] || []
       var myPropIds = props.map(function(p) { return p.id })
-      var confirmedRes = reservations.filter(function(r) {
-        return myPropIds.indexOf(r.property_id) !== -1 && (r.status === 'confirmed' || r.status === 'approved')
+      var validRes = reservations.filter(function(r) {
+        return myPropIds.indexOf(r.property_id) !== -1 && (r.status === 'confirmed' || r.status === 'approved' || r.status === 'completed')
       })
-      var myResIds = confirmedRes.map(function(r) { return r.tenant_id })
+      
       return fetchTenants().then(function(allTenants) {
-        var myTenants = allTenants.filter(function(t) { return myResIds.indexOf(t.id) !== -1 })
+        var myTenants = []
+        validRes.forEach(function(r) {
+          var t = allTenants.find(function(x) { return x.id === r.tenant_id })
+          if (t) {
+            var propName = props.find(function(p) { return p.id === r.property_id })?.name || 'Unknown Property'
+            myTenants.push({
+              ...t,
+              reservation_id: r.id,
+              reservation_status: r.status,
+              ended_at: r.ended_at,
+              property_name: propName,
+              reservation_created: r.created_at
+            })
+          }
+        })
         setTenants(myTenants)
         setLoading(false)
       })
@@ -77,7 +93,24 @@ export default function HomeownerTenants() {
     return function() { document.removeEventListener('visibilitychange', handleVisibility) }
   }, [loadTenants])
 
-  var filtered = tenants.filter(function(t) {
+  function handleEndContract() {
+    if (!endingTenant) return;
+    setLoading(true)
+    updateReservationStatus(endingTenant.reservation_id, 'completed').then(function() {
+      setEndingTenant(null)
+      loadTenants()
+    }).catch(function(err) {
+      alert('Failed to end contract: ' + err.message)
+      setLoading(false)
+    })
+  }
+
+  var currentTenants = tenants.filter(function(t) {
+    if (activeTab === 'active') return t.reservation_status !== 'completed'
+    return t.reservation_status === 'completed'
+  })
+
+  var filtered = currentTenants.filter(function(t) {
     var q = query.toLowerCase()
     if (q && !(t.full_name || '').toLowerCase().includes(q)) return false
     if (filter !== 'All' && (t.tenant_type || '').toLowerCase() !== filter.toLowerCase()) return false
@@ -89,6 +122,23 @@ export default function HomeownerTenants() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-bold text-xl text-stone-800">My Tenants</h1>
         <Button variant="ghost" size="sm" onClick={function() { navigate('/owner') }}>← Back to Dashboard</Button>
+      </div>
+
+      <div className="flex border-b border-stone-200 mb-6">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'active' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
+        >
+          Active Tenants
+          {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
+        </button>
+        <button
+          onClick={() => setActiveTab('past')}
+          className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'past' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
+        >
+          Past Tenants
+          {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
@@ -140,9 +190,13 @@ export default function HomeownerTenants() {
             <table className="w-full min-w-[500px] sm:min-w-0">
               <thead>
                 <tr className="border-b border-stone-100">
-                  {['Tenant', 'Type', 'Municipality', 'Joined'].map(function(h) {
-                    return <th key={h} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
+                  {['Tenant', 'Type', 'Property', 'Joined'].map(function(h, idx) {
+                    return <th key={h || idx} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
                   })}
+                  {activeTab === 'past' && (
+                    <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Ended On</th>
+                  )}
+                  <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -167,9 +221,40 @@ export default function HomeownerTenants() {
                           {TYPE_LABELS[t.tenant_type] || t.tenant_type || 'Tenant'}
                         </span>
                       </td>
-                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{t.municipality || '—'}</td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{t.property_name || '—'}</td>
                       <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">
-                        {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
+                        {t.reservation_created ? new Date(t.reservation_created).toLocaleDateString() : '—'}
+                      </td>
+                      {activeTab === 'past' && (
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">
+                          {t.ended_at ? new Date(t.ended_at).toLocaleDateString() : '—'}
+                        </td>
+                      )}
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="px-2 py-1 h-auto text-[--teal] hover:bg-teal-50"
+                            onClick={() => navigate('/owner/messages', { 
+                              state: { autoSelectUser: { id: t.id, full_name: t.full_name, role: 'tenant' } } 
+                            })}
+                          >
+                            <MessageSquare size={14} className="sm:mr-1.5" />
+                            <span className="hidden sm:inline">Message</span>
+                          </Button>
+                          {activeTab === 'active' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="px-2 py-1 h-auto text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => setEndingTenant(t)}
+                            >
+                              <span className="hidden sm:inline">End Contract</span>
+                              <span className="sm:hidden">End</span>
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -179,6 +264,27 @@ export default function HomeownerTenants() {
           </div>
         )}
       </Card>
+
+      {endingTenant && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setEndingTenant(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mx-auto mb-4">
+              <AlertTriangle size={24} />
+            </div>
+            <h3 className="font-bold text-lg text-stone-800 mb-2">End Contract</h3>
+            <p className="text-sm text-stone-600 mb-6">
+              Are you sure you want to end the contract for <strong>{endingTenant.full_name}</strong> at <strong>{endingTenant.property_name}</strong>? 
+              This will free up the room for new bookings.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1 border border-stone-200" onClick={() => setEndingTenant(null)}>Cancel</Button>
+              <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleEndContract}>
+                Yes, End Contract
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

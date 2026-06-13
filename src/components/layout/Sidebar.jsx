@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Sparkles,
-  Users, Home, LogOut, BarChart3, Map, User, BedDouble,
+  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useState, useEffect } from 'react'
 
 const NAV_ADMIN = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
@@ -38,6 +39,7 @@ const NAV_OWNER = [
   },
   {
     label: 'Account', icon: User, routes: [
+      { to: '/owner/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
       { to: '/owner/profile', label: 'My Profile' },
     ]
   },
@@ -53,6 +55,7 @@ const NAV_TENANT = [
   {
     label: 'My Activity', icon: CalendarCheck, routes: [
       { to: '/tenant/room', label: 'My Room', icon: BedDouble },
+      { to: '/tenant/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
       { to: '/tenant/reservations', label: 'Reservations' },
       { to: '/tenant/reviews', label: 'Reviews' },
       { to: '/tenant/landlord', label: 'My Landlord', icon: User },
@@ -99,6 +102,19 @@ export default function Sidebar() {
   const nav = NAV_BY_ROLE[user?.role] || NAV_TENANT
   const colors = ROLE_COLORS[user?.role] || ROLE_COLORS.admin
   const gradient = HEADER_GRADIENTS[user?.role] || HEADER_GRADIENTS.admin
+
+  // Unread message count for badge
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  useEffect(() => {
+    if (user?.role !== 'owner' && user?.role !== 'tenant') return
+    const load = async () => {
+      const data = await useAuthStore.getState().fetchNotifications()
+      setUnreadMessages(data.filter((n) => !n.is_read).length)
+    }
+    load()
+    const id = setInterval(load, 30000)
+    return () => clearInterval(id)
+  }, [user?.role])
 
   const handleLogout = () => {
     logout()
@@ -166,7 +182,12 @@ export default function Sidebar() {
                       ? <route.icon size={15} className="flex-shrink-0" />
                       : <group.icon size={15} className="flex-shrink-0" />
                     }
-                    <span className="truncate">{route.label}</span>
+                    <span className="truncate flex-1">{route.label}</span>
+                    {route.badgeKey === 'messages' && unreadMessages > 0 && (
+                      <span className="min-w-[16px] h-4 px-1 bg-[--coral] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
+                      </span>
+                    )}
                   </NavLink>
                 )
               })}

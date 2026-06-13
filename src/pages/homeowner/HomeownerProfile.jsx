@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Card, Button } from '@/components/ui'
@@ -21,15 +22,22 @@ export default function HomeownerProfile() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      setForm({
-        full_name: user.name || '',
-        email: user.email || '',
-        contact: user.contact || '',
-        municipality: user.municipality || 'Basco',
+    if (!user?.id) return
+    // Fetch fresh profile data (including stored email) from the database
+    supabase
+      .from('profiles')
+      .select('full_name, contact, municipality, email')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        setForm({
+          full_name: data?.full_name || user.name || '',
+          email: data?.email || '',
+          contact: data?.contact || '',
+          municipality: data?.municipality || user.municipality || 'Basco',
+        })
       })
-    }
-  }, [user])
+  }, [user?.id])
 
   const initials = form.full_name
     ? form.full_name.trim().split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -126,7 +134,7 @@ export default function HomeownerProfile() {
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all"
               />
               <p className="text-[10px] text-stone-400 mt-1">
-                Changing your email will require a confirmation link sent to the new address.
+                This email is shown to tenants on their "My Landlord" page as a contact detail.
               </p>
             </div>
 

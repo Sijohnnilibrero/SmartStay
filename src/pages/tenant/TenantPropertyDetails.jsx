@@ -4,8 +4,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, Badge, StarRating, OccupancyBar, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { ArrowLeft, MapPin, CheckCircle2, BedDouble, X } from 'lucide-react'
+import { ArrowLeft, MapPin, CheckCircle2, BedDouble, X, MessageSquare, ExternalLink } from 'lucide-react'
 import PropertyMap from '@/components/map/PropertyMap'
+import { supabase } from '@/lib/supabase'
 
 export default function TenantPropertyDetails() {
   var idState = useParams()
@@ -21,6 +22,8 @@ export default function TenantPropertyDetails() {
 
   var propertyState = useState(null)
   var property = propertyState[0], setProperty = propertyState[1]
+  var ownerProfileState = useState(null)
+  var ownerProfile = ownerProfileState[0], setOwnerProfile = ownerProfileState[1]
   var reviewsState = useState([])
   var reviews = reviewsState[0], setReviews = reviewsState[1]
   var roomsState = useState([])
@@ -43,10 +46,17 @@ export default function TenantPropertyDetails() {
       fetchProperty(id),
       fetchReviews(id),
       fetchRooms(id),
-    ]).then(function(results) {
-      setProperty(results[0])
+    ]).then(async function(results) {
+      var prop = results[0]
+      setProperty(prop)
       setReviews(results[1])
       setRooms(results[2] || [])
+      
+      if (prop && prop.owner_id) {
+        var { data: owner } = await supabase.from('profiles').select('full_name, role').eq('id', prop.owner_id).single()
+        setOwnerProfile(owner)
+      }
+
       setLoading(false)
     }).catch(function(err) {
       console.error('Failed to load property:', err)
@@ -285,6 +295,29 @@ export default function TenantPropertyDetails() {
             )}
           </div>
         </Card>
+
+        {ownerProfile && (
+          <Card>
+            <div className="p-5 flex flex-col items-center justify-center text-center">
+              <div className="w-12 h-12 rounded-full bg-[#E1F5EE] text-[#0F6E56] font-bold text-lg flex items-center justify-center mb-2 shadow-sm">
+                {(ownerProfile.full_name || '??').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
+              <h3 className="font-semibold text-stone-800">Hosted by {ownerProfile.full_name}</h3>
+              <p className="text-[11px] text-stone-500 mb-4 px-2">Have a question before you book? Send the host a message.</p>
+              {storeUser?.role !== 'admin' && (
+                <Button 
+                  variant="primary" 
+                  className="w-full justify-center gap-1.5 shadow-sm hover:shadow-md transition-all"
+                  onClick={() => navigate('/tenant/messages', { 
+                    state: { autoSelectUser: { id: property.owner_id, full_name: ownerProfile.full_name, role: 'owner' } } 
+                  })}
+                >
+                  Contact Host <MessageSquare size={14} />
+                </Button>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
 
       {selectedRoom && (

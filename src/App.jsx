@@ -19,7 +19,9 @@ import HomeownerDashboard from '@/pages/homeowner/HomeownerDashboard'
 import HomeownerTenants from '@/pages/homeowner/HomeownerTenants'
 import HomeownerRooms from '@/pages/homeowner/HomeownerRooms'
 import HomeownerProfile from '@/pages/homeowner/HomeownerProfile'
+import Messages from '@/pages/Messages'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
@@ -61,6 +63,7 @@ export default function App() {
             <Route path="property/:id" element={<TenantPropertyDetails />} />
              <Route path="landlord" element={<MyLandlord />} />
              <Route path="room" element={<MyRoom />} />
+             <Route path="messages" element={<Messages />} />
           </Route>
 
           {/* Owner/Homeowner routes - owners can add properties */}
@@ -73,6 +76,7 @@ export default function App() {
             <Route path="tenants" element={<HomeownerTenants />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="profile" element={<HomeownerProfile />} />
+            <Route path="messages" element={<Messages />} />
           </Route>
 
           {/* Admin routes - view only */}
@@ -80,6 +84,7 @@ export default function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Tenants />} />
             <Route path="properties" element={<Properties />} />
+            <Route path="property/:id" element={<AdminPropertyDetails />} />
             <Route path="reservations" element={<Reservations />} />
           </Route>
         </Route>

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
-import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, Send, ArrowRight } from 'lucide-react'
+import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export default function MyLandlord() {
@@ -14,8 +14,6 @@ export default function MyLandlord() {
 
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
-  const [messageText, setMessageText] = useState('')
-  const [sending, setSending] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
   const wasHiddenRef = useRef(false)
 
@@ -48,16 +46,7 @@ export default function MyLandlord() {
     return function() { document.removeEventListener('visibilitychange', handleVisibility) }
   }, [loadLandlord])
 
-  const handleSendMessage = (e) => {
-    e.preventDefault()
-    if (!messageText.trim()) return
-    setSending(true)
-    setTimeout(() => {
-      addToast(`Message sent to ${data?.landlord?.full_name || 'Landlord'}!`, 'success')
-      setMessageText('')
-      setSending(false)
-    }, 800)
-  }
+
 
   if (loading) {
     return (
@@ -135,9 +124,9 @@ export default function MyLandlord() {
                   <Mail className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px] text-stone-400 mt-0.5" />
                   <div className="min-w-0">
                     <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400">Email Address</p>
-                    <a href={`mailto:${landlord.email}`} className="text-[12px] sm:text-sm font-medium text-stone-700 hover:text-[--teal] transition-colors break-all">
-                      {landlord.email}
-                    </a>
+                    <p className="text-[12px] sm:text-sm font-medium text-stone-700 break-all">
+                      {landlord.email || 'No email provided'}
+                    </p>
                   </div>
                 </div>
 
@@ -150,39 +139,27 @@ export default function MyLandlord() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 w-full mt-4 sm:mt-6">
-                <a href={`tel:${landlord.contact || ''}`} className="flex-1">
-                  <Button variant="default" size="sm" className="w-full justify-center px-2 py-1.5 sm:px-3 sm:py-2">
-                    <Phone className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] mr-1.5" /> Call
-                  </Button>
-                </a>
-                <a href={`mailto:${landlord.email}`} className="flex-1">
-                  <Button variant="default" size="sm" className="w-full justify-center px-2 py-1.5 sm:px-3 sm:py-2">
-                    <Mail className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] mr-1.5" /> Email
-                  </Button>
-                </a>
-              </div>
+
             </Card>
 
-            {/* Quick Contact Form */}
-            <Card className="p-4">
-              <h3 className="text-[12px] font-semibold text-stone-800 mb-3 flex items-center gap-1.5">
-                <MessageSquare size={13} className="text-[--teal]" />
-                Send Quick Message
-              </h3>
-              <form onSubmit={handleSendMessage} className="space-y-3">
-                <textarea
-                  placeholder={`Write a message to ${landlord.full_name.split(' ')[0]}...`}
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  rows={3}
-                  className="w-full text-xs p-2.5 rounded-lg border border-stone-200 bg-white placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all resize-none"
-                  required
-                />
-                <Button variant="primary" size="sm" className="w-full justify-center gap-1.5" type="submit" disabled={sending}>
-                  <Send size={12} /> {sending ? 'Sending...' : 'Send Message'}
-                </Button>
-              </form>
+            {/* Chat Action */}
+            <Card className="p-5 flex flex-col items-center justify-center text-center">
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center mb-3 text-[--teal]">
+                <MessageSquare size={20} />
+              </div>
+              <h3 className="text-[13px] font-bold text-stone-800 mb-1">Have a question?</h3>
+              <p className="text-[11px] text-stone-500 mb-4 px-2">
+                Use the messaging system to securely chat with {landlord.full_name?.split(' ')[0]}.
+              </p>
+              <Button 
+                variant="primary" 
+                className="w-full justify-center gap-1.5 shadow-sm hover:shadow-md transition-all"
+                onClick={() => navigate('/tenant/messages', { 
+                  state: { autoSelectUser: { id: landlord.id, full_name: landlord.full_name, role: 'owner' } } 
+                })}
+              >
+                Chat with Landlord <ExternalLink size={14} />
+              </Button>
             </Card>
           </div>
 
