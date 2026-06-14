@@ -315,7 +315,7 @@ const [registerError, setRegisterError] = useState('')
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle}>Municipality</label>
                   <select style={inputStyle(false)} value={form.municipality} onChange={(e) => set('municipality', e.target.value)}>
-                    {['Basco', 'Itbayat', 'Ivana', 'Mahatao', 'Sabtang', 'Uyugan'].map((m) => (
+                    {['Basco', 'Ivana', 'Mahatao', 'Uyugan'].map((m) => (
                       <option key={m}>{m}</option>
                     ))}
                   </select>

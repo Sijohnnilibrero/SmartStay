@@ -12,7 +12,7 @@ const PROPERTY_IMAGES = [
   '/images/property_3.png',
 ]
 
-const ISLANDS = ['All', 'Batan', 'Sabtang', 'Itbayat']
+const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
 const BUDGETS = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
 
 function budgetMatch(price, budget) {

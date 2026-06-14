@@ -6,8 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import PropertyMap from '@/components/map/PropertyMap'
 import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home } from 'lucide-react'
 
-const ISLANDS = ['Batan', 'Sabtang', 'Itbayat']
-const MUNICIPALITIES = ['Basco', 'Itbayat', 'Ivana', 'Mahatao', 'Sabtang', 'Uyugan']
+const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan']
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
 
 const PLACEHOLDER_IMAGES = [

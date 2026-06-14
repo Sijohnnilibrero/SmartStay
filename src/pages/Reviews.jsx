@@ -125,12 +125,12 @@ export default function Reviews() {
                     <Card key={r.id}>
                       <div className="p-4 flex items-start gap-3">
                         <div className="w-8 h-8 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[11px] font-semibold text-[#0F6E56] flex-shrink-0">
-                          {(r.tenant_id || '??').substring(0, 2).toUpperCase()}
+                          {r.reviewer?.full_name ? r.reviewer.full_name.trim().split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : (r.tenant_id || '??').substring(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="text-[12px] font-semibold text-stone-800">Tenant</p>
-                            <p className="text-[10px] text-stone-400">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</p>
+                            <p className="text-[12px] font-semibold text-stone-800 truncate">{r.reviewer?.full_name || 'Tenant'}</p>
+                            <p className="text-[10px] text-stone-400 flex-shrink-0 ml-2">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</p>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <StarRating rating={r.rating || 0} size={10} />

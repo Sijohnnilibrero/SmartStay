@@ -12,7 +12,7 @@ const PROPERTY_IMAGES = [
   '/images/property_3.png',
 ]
 
-const ISLANDS  = ['All', 'Batan', 'Sabtang', 'Itbayat']
+const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
 const BUDGETS  = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
 const AMENITIES = ['WiFi', 'Meals', 'Parking', 'Laundry', 'Kitchen', 'Security']
 
@@ -52,7 +52,6 @@ export default function TenantSearch() {
     var list = allProperties.filter(function(p) {
       var q = query.toLowerCase()
       if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q)) return false
-      if (island !== 'All' && p.island !== island) return false
       if (!budgetMatch(p.price_monthly, budget)) return false
       if (amenities.length && !amenities.every(function(a) { return (p.amenities || []).includes(a) })) return false
       return true
@@ -62,7 +61,7 @@ export default function TenantSearch() {
     if (sortBy === 'price-desc')list.sort(function(a, b) { return b.price_monthly - a.price_monthly })
     if (sortBy === 'occupancy') list.sort(function(a, b) { return ((a.available_rooms || 0)) - ((b.available_rooms || 0)) })
     return list
-  }, [allProperties, query, island, budget, amenities, sortBy])
+  }, [allProperties, query, budget, amenities, sortBy])
 
   return (
     <div className="page-enter">
@@ -97,12 +96,8 @@ export default function TenantSearch() {
         <div className="flex flex-wrap gap-2 mb-5">
           <div className="flex items-center gap-1.5 mr-2">
             <SlidersHorizontal size={13} className="text-stone-400" />
-            <span className="text-[11px] text-stone-400 font-medium">Island:</span>
+            <span className="text-[11px] text-stone-400 font-medium">Filters:</span>
           </div>
-          {ISLANDS.map(function(i) {
-            return <FilterChip key={i} label={i} active={island === i} onClick={function() { setIsland(i) }} />
-          })}
-          <div className="w-px bg-stone-200 mx-1" />
           {BUDGETS.map(function(b) {
             return <FilterChip key={b} label={b} active={budget === b} onClick={function() { setBudget(b) }} />
           })}

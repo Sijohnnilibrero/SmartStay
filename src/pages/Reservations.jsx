@@ -3,7 +3,8 @@ import Topbar from '@/components/layout/Topbar'
 import { Card, Badge, Avatar, FilterChip, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { CheckCircle, XCircle, Trash2, Star } from 'lucide-react'
+import AddReviewModal from '@/components/AddReviewModal'
 
 var STATUSES = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled']
 var STATUS_BADGE = { pending: 'amber', confirmed: 'teal', completed: 'gray', cancelled: 'coral' }
@@ -12,6 +13,7 @@ export default function Reservations() {
   var user = useAuthStore(function (s) { return s.user })
   var isAdmin = useAuthStore(function (s) { return s.isAdmin() })
   var isOwner = useAuthStore(function (s) { return s.isOwner() })
+  var isTenant = useAuthStore(function (s) { return s.isTenant() })
   var fetchReservations = useAuthStore(function (s) { return s.fetchReservations })
   var updateReservationStatus = useAuthStore(function (s) { return s.updateReservationStatus })
   var deleteReservation = useAuthStore(function (s) { return s.deleteReservation })
@@ -28,6 +30,9 @@ export default function Reservations() {
   var actioningState = useState(null)
   var actioning = actioningState[0], setActioning = actioningState[1]
   var wasHiddenRef = useRef(false)
+  
+  var reviewModalState = useState({ isOpen: false, propertyId: null, propertyName: '' })
+  var reviewModal = reviewModalState[0], setReviewModal = reviewModalState[1]
 
   var loadReservations = useCallback(function () {
     setLoading(true)
@@ -149,7 +154,7 @@ export default function Reservations() {
                     {['Tenant', 'Property', 'Check-in', 'Duration', 'Amount', 'Status'].map(function (h) {
                       return <th key={h} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
                     })}
-                    {(isAdmin || isOwner) && <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Actions</th>}
+                    <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -167,39 +172,43 @@ export default function Reservations() {
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.duration_months} mo.</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'}>{r.status}</Badge></td>
-                        {(isAdmin || isOwner) && (
-                          <td className="px-3 py-2 sm:px-4 sm:py-3">
-                            {r.status === 'pending' ? (
-                              <div className="flex gap-1">
-                                <button className="p-1 sm:p-1.5 rounded-lg text-[#0F6E56] hover:bg-[#E1F5EE] disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'confirmed') }}>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3">
+                          <div className="flex items-center gap-1">
+                            {(isAdmin || isOwner) && r.status === 'pending' && (
+                              <>
+                                <button className="p-1 sm:p-1.5 rounded-lg text-[#0F6E56] hover:bg-[#E1F5EE] disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'confirmed') }} title="Confirm">
                                   <CheckCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
                                 </button>
-                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }}>
+                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Reject">
                                   <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
                                 </button>
-                              </div>
-                            ) : r.status === 'confirmed' ? (
-                              <div className="flex gap-1">
-                                {(isOwner || isAdmin) && (
-                                  <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Cancel Reservation">
-                                    <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                  </button>
-                                )}
-                                {(isOwner || isAdmin) && (
-                                  <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
-                                    <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              (isOwner || isAdmin) && (
-                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }}>
+                              </>
+                            )}
+                            {(isAdmin || isOwner) && r.status === 'confirmed' && (
+                              <>
+                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Cancel Reservation">
+                                  <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                                </button>
+                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
                                   <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
                                 </button>
-                              )
+                              </>
                             )}
-                          </td>
-                        )}
+                            {(isAdmin || isOwner) && ['completed', 'cancelled'].includes(r.status) && (
+                              <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
+                                <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
+                              </button>
+                            )}
+                            {isTenant && (r.status === 'confirmed' || r.status === 'completed') && (
+                              <button 
+                                className="px-2 py-1 flex items-center gap-1 rounded bg-[#1D9E75] text-white text-[9px] hover:bg-[#0F6E56] transition-colors"
+                                onClick={() => setReviewModal({ isOpen: true, propertyId: r.property_id, propertyName: getPropName(r.property_id) })}
+                              >
+                                <Star size={10} fill="currentColor" /> Review
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     )
                   })}
@@ -209,6 +218,14 @@ export default function Reservations() {
           )}
         </Card>
       </div>
+
+      <AddReviewModal 
+        isOpen={reviewModal.isOpen} 
+        onClose={() => setReviewModal({ isOpen: false, propertyId: null, propertyName: '' })}
+        propertyId={reviewModal.propertyId}
+        propertyName={reviewModal.propertyName}
+        onReviewAdded={() => alert('Review added successfully!')}
+      />
     </div>
   )
 }

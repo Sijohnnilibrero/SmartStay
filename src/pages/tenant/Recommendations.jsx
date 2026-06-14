@@ -11,17 +11,17 @@ var BUDGETS = [
   { value: '2k-3.5k', label: '₱2,000–₱3,500', min: 2000, max: 3500 },
   { value: '3.5k+', label: '₱3,500+', min: 3500, max: 99999 },
 ]
-var ISLANDS = ['Any', 'Batan', 'Sabtang', 'Itbayat']
+var MUNICIPALITIES = ['Any', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
 var PREFS = ['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished']
 
 function scoreProperty(p, opts) {
   var score = 0
   var budget = opts.budget
-  var island = opts.island
+  var municipality = opts.municipality
   var amenityPrefs = opts.amenityPrefs
 
   if (p.price_monthly >= budget.min && p.price_monthly <= budget.max) score += 30
-  if (island === 'Any' || p.island === island) score += 25
+  if (municipality === 'Any' || p.municipality === municipality) score += 25
   score += Math.round(((p.rating || 0) / 5) * 20)
   amenityPrefs.forEach(function(pref) {
     if ((p.amenities || []).indexOf(pref) !== -1) score += 5
@@ -32,17 +32,22 @@ function scoreProperty(p, opts) {
 
 export default function Recommendations() {
   var navigate = useNavigate()
+  var user = useAuthStore(function(s) { return s.user })
   var fetchProperties = useAuthStore(function(s) { return s.fetchProperties })
 
   var allPropsState = useState([])
   var allProperties = allPropsState[0], setAllProperties = allPropsState[1]
-  var budgetState = useState('2k-3.5k')
+  
+  var budgetState = useState(user?.preferences?.budget || '2k-3.5k')
   var budget = budgetState[0], setBudget = budgetState[1]
-  var islandState = useState('Any')
-  var island = islandState[0], setIsland = islandState[1]
-  var amenityPrefsState = useState([])
+  
+  var municipalityState = useState(user?.preferences?.municipality || 'Any')
+  var municipality = municipalityState[0], setMunicipality = municipalityState[1]
+  
+  var amenityPrefsState = useState(user?.preferences?.amenityPrefs || [])
   var amenityPrefs = amenityPrefsState[0], setAmenityPrefs = amenityPrefsState[1]
-  var generatedState = useState(false)
+  
+  var generatedState = useState(!!user?.preferences)
   var generated = generatedState[0], setGenerated = generatedState[1]
 
   function togglePref(p) {
@@ -67,11 +72,11 @@ export default function Recommendations() {
     
     return allProperties
       .map(function(p) { 
-        return Object.assign({}, p, { score: scoreProperty(p, { budget: budgetObj, island: island, amenityPrefs: amenityPrefs }) }) 
+        return Object.assign({}, p, { score: scoreProperty(p, { budget: budgetObj, municipality: municipality, amenityPrefs: amenityPrefs }) }) 
       })
       .sort(function(a, b) { return b.score - a.score })
       .slice(0, 5)
-  }, [generated, allProperties, budget, island, amenityPrefs])
+  }, [generated, allProperties, budget, municipality, amenityPrefs])
 
   return (
     <div className="page-enter p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -87,10 +92,10 @@ export default function Recommendations() {
               </select>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-stone-400 block mb-1.5">Island Preference</label>
-              <select value={island} onChange={function(e) { setIsland(e.target.value); setGenerated(false) }}
+              <label className="text-[10px] uppercase tracking-wider text-stone-400 block mb-1.5">Municipality Preference</label>
+              <select value={municipality} onChange={function(e) { setMunicipality(e.target.value); setGenerated(false) }}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none">
-                {ISLANDS.map(function(i) { return <option key={i} value={i}>{i}</option> })}
+                {MUNICIPALITIES.map(function(m) { return <option key={m} value={m}>{m}</option> })}
               </select>
             </div>
             <div>

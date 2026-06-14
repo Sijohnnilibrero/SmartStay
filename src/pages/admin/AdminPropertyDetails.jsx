@@ -25,6 +25,7 @@ export default function AdminPropertyDetails() {
   const [loading, setLoading] = useState(true)
   const [actioning, setActioning] = useState(null)
   const [confirmAction, setConfirmAction] = useState(null)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
   const loadProperty = useCallback(() => {
     setLoading(true)
@@ -290,13 +291,15 @@ export default function AdminPropertyDetails() {
             <h3 className="font-bold text-xl text-stone-800 mb-2 text-center">
               {confirmAction === 'approve' ? 'Approve Property' : confirmAction === 'reject' ? 'Reject Property' : 'Delete Property'}
             </h3>
+            
             <p className="text-sm text-stone-600 mb-6 text-center">
               {confirmAction === 'approve' ? 'This property will go live and tenants can start booking.' :
                confirmAction === 'reject' ? 'This property will be hidden from tenants.' :
-               'Are you absolutely sure? This action cannot be undone.'}
+               'Are you sure you want to delete this property? All rooms and reservations will be permanently lost.'}
             </p>
+
             <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 bg-stone-100 text-stone-700" onClick={() => setConfirmAction(null)}>Cancel</Button>
+              <Button variant="ghost" className="flex-1 bg-stone-100 text-stone-700" onClick={() => { setConfirmAction(null); setDeleteConfirmText(''); }}>Cancel</Button>
               <Button 
                 className="flex-1 text-white"
                 style={{ background: confirmAction === 'approve' ? '#0F6E56' : '#DC2626' }}

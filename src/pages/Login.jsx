@@ -3,18 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 
 const ROLE_META = {
-  admin:  { color: '#534AB7', bg: '#EEEDFE', label: 'Administrator', initials: 'AD' },
-  owner:  { color: '#0F6E56', bg: '#E1F5EE', label: 'Homeowner',     initials: 'OW' },
-  tenant: { color: '#BA7517', bg: '#FAEEDA', label: 'Tenant',        initials: 'TN' },
+  admin: { color: '#534AB7', bg: '#EEEDFE', label: 'Administrator', initials: 'AD' },
+  owner: { color: '#0F6E56', bg: '#E1F5EE', label: 'Homeowner', initials: 'OW' },
+  tenant: { color: '#BA7517', bg: '#FAEEDA', label: 'Tenant', initials: 'TN' },
 }
 
 export default function Login() {
   const navigate = useNavigate()
   const { login, isLoading, authError, clearError } = useAuthStore()
 
-  const [email,    setEmail]    = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPw,   setShowPw]   = useState(false)
+  const [showPw, setShowPw] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()

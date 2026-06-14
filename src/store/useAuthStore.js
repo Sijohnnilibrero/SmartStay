@@ -72,6 +72,7 @@ export const useAuthStore = create(
             municipality: profile.municipality,
             tenant_type: profile.tenant_type,
             contact: profile.contact || '',
+            preferences: profile.preferences || null,
           }
           set({ user, isLoading: false, authError: null })
           return { success: true, user }
@@ -156,6 +157,7 @@ export const useAuthStore = create(
             municipality: profile.municipality,
             tenant_type: profile.tenant_type,
             contact: profile.contact || '',
+            preferences: profile.preferences || null,
           },
         })
       },
@@ -182,6 +184,25 @@ export const useAuthStore = create(
             contact,
             municipality,
             email: email || user.email,
+          },
+        })
+      },
+
+      saveTenantPreferences: async (preferences) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ preferences })
+          .eq('id', user.id)
+
+        if (profileError) throw new Error('Failed to save preferences: ' + profileError.message)
+
+        set({
+          user: {
+            ...user,
+            preferences,
           },
         })
       },
@@ -438,9 +459,28 @@ export const useAuthStore = create(
 
       // ── Reviews ────────────────────────────────────────────────────────────
       fetchReviews: async (propertyId) => {
-        const { data, error } = await supabase.from('reviews').select('*').eq('property_id', propertyId).order('created_at', { ascending: false })
+        let query = supabase.from('reviews').select('*').order('created_at', { ascending: false })
+        if (propertyId && propertyId !== 'all') {
+          query = query.eq('property_id', propertyId)
+        }
+        const { data, error } = await query
         if (error) throw error
-        return data || []
+
+        if (!data || data.length === 0) return []
+
+        const tenantIds = [...new Set(data.map(r => r.tenant_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', tenantIds)
+        
+        const profileMap = {}
+        ;(profiles || []).forEach(p => profileMap[p.id] = p)
+
+        return data.map(r => ({
+          ...r,
+          reviewer: profileMap[r.tenant_id] || null
+        }))
       },
 
       createReview: async (reviewData) => {
