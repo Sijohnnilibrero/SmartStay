@@ -352,7 +352,7 @@ const [registerError, setRegisterError] = useState('')
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa8a0', marginTop: 20 }}>
-          SmartStay · Batanes Island · Capstone Project 2025
+          © 2026 SmartStay
         </p>
       </div>
     </div>

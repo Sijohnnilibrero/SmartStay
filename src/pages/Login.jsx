@@ -156,7 +156,7 @@ export default function Login() {
         </p>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa8a0', marginTop: 24 }}>
-          SmartStay · Batanes Island · Capstone Project 2025
+          © 2026 SmartStay
         </p>
       </div>
     </div>
