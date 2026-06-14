@@ -17,23 +17,23 @@ export default function MyLandlord() {
   const [errorMsg, setErrorMsg] = useState(null)
   const wasHiddenRef = useRef(false)
 
-  const loadLandlord = useCallback(function() {
+  const loadLandlord = useCallback(function () {
     if (!user?.id) return
     setLoading(true)
     setErrorMsg(null)
-    useAuthStore.getState().fetchMyLandlord(user.id).then(function(res) {
+    useAuthStore.getState().fetchMyLandlord(user.id).then(function (res) {
       setData(res)
       setLoading(false)
-    }).catch(function(err) {
+    }).catch(function (err) {
       console.error('Failed to load landlord:', err)
       setErrorMsg(err.message || 'An unknown error occurred')
       setLoading(false)
     })
   }, [user?.id])
 
-  useEffect(function() { loadLandlord() }, [loadLandlord])
+  useEffect(function () { loadLandlord() }, [loadLandlord])
 
-  useEffect(function() {
+  useEffect(function () {
     function handleVisibility() {
       if (document.hidden) {
         wasHiddenRef.current = true
@@ -43,7 +43,7 @@ export default function MyLandlord() {
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return function() { document.removeEventListener('visibilitychange', handleVisibility) }
+    return function () { document.removeEventListener('visibilitychange', handleVisibility) }
   }, [loadLandlord])
 
 
@@ -101,7 +101,7 @@ export default function MyLandlord() {
 
       <div className="flex-1 overflow-y-auto p-6 bg-stone-50/50">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Left Column - Landlord Contact Card & Quick Message */}
           <div className="md:col-span-1 space-y-4 sm:space-y-6">
             <Card className="p-4 sm:p-6 text-center flex flex-col items-center">
@@ -151,11 +151,11 @@ export default function MyLandlord() {
               <p className="text-[11px] text-stone-500 mb-4 px-2">
                 Use the messaging system to securely chat with {landlord.full_name?.split(' ')[0]}.
               </p>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 className="w-full justify-center gap-1.5 shadow-sm hover:shadow-md transition-all"
-                onClick={() => navigate('/tenant/messages', { 
-                  state: { autoSelectUser: { id: landlord.id, full_name: landlord.full_name, role: 'owner' } } 
+                onClick={() => navigate('/tenant/messages', {
+                  state: { autoSelectUser: { id: landlord.id, full_name: landlord.full_name, role: 'owner' } }
                 })}
               >
                 Chat with Landlord <ExternalLink size={14} />
