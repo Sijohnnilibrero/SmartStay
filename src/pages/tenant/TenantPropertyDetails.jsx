@@ -258,7 +258,7 @@ export default function TenantPropertyDetails() {
             <p className="text-[11px] text-stone-400 mb-4">View available rooms to see pricing</p>
             <div className="flex items-center gap-2 p-3 bg-[#E1F5EE] rounded-lg mb-3">
               <BedDouble size={16} className="text-[#0F6E56]" />
-              <p className="text-[12px] text-[#0F6E56] font-medium">Click a room above to reserve it</p>
+              <p className="text-[12px] text-[#0F6E56] font-medium">Select an available room to reserve it</p>
             </div>
             <p className="text-[11px] text-stone-400">Select an available room from the list to submit a reservation request. The homeowner will review and approve your request.</p>
           </div>

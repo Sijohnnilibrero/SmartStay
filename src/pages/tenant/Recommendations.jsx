@@ -147,7 +147,7 @@ export default function Recommendations() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] sm:text-[13px] font-semibold text-stone-800 mb-0.5 truncate">{p.name}</p>
                     <p className="text-[9px] sm:text-[11px] text-stone-400 flex items-center gap-1 mb-1 sm:mb-1.5 truncate">
-                      <MapPin className="w-[9px] h-[9px] sm:w-[10px] sm:h-[10px]" /> {p.municipality} · {formatCurrency(p.price_monthly)}/mo
+                      <MapPin className="w-[9px] h-[9px] sm:w-[10px] sm:h-[10px]" /> {p.municipality}
                     </p>
                     <div className="flex items-center gap-1.5 sm:gap-3">
                       <div className="hidden xs:block"><StarRating rating={p.rating || 0} size={10} /></div>

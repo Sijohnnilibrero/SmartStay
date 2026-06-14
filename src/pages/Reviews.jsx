@@ -28,7 +28,7 @@ export default function Reviews() {
     setLoading(true)
     Promise.all([
       fetchProperties({ status: 'active' }),
-      selectedProperty === 'all' ? Promise.resolve([]) : fetchReviews(selectedProperty),
+      fetchReviews(selectedProperty === 'all' ? null : selectedProperty),
     ]).then(function(results) {
       setProperties(results[0])
       setReviews(results[1])

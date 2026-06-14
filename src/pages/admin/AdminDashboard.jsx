@@ -75,7 +75,7 @@ export default function AdminDashboard() {
                 return (
                   <div key={r.id} className="px-2 py-2 sm:px-4 sm:py-3.5 flex items-center justify-between">
                     <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-[11px] sm:text-sm font-medium text-stone-800 truncate">Res: <span className="font-semibold">Tenant</span> → <span className="font-semibold">Property</span></p>
+                      <p className="text-[11px] sm:text-sm font-medium text-stone-800 truncate">Res: <span className="font-semibold">{r.tenant_name || 'Tenant'}</span> → <span className="font-semibold">{r.property_name || 'Property'}</span></p>
                       <p className="text-[9px] sm:text-xs text-stone-400 mt-0.5">{new Date(r.created_at).toLocaleString()}</p>
                     </div>
                     <Badge variant={r.status === 'approved' || r.status === 'confirmed' ? 'teal' : r.status === 'pending' ? 'amber' : 'gray'} className="text-[9px] sm:text-[11px] flex-shrink-0">{r.status}</Badge>

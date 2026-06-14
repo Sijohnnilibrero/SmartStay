@@ -6,9 +6,31 @@ import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import { Plus, Download, Calendar, Star, TrendingUp, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
+var BUDGETS = [
+  { value: '1k-2k', label: '₱1,000–₱2,000', min: 1000, max: 2000 },
+  { value: '2k-3.5k', label: '₱2,000–₱3,500', min: 2000, max: 3500 },
+  { value: '3.5k+', label: '₱3,500+', min: 3500, max: 99999 },
+]
+
+function scoreProperty(p, opts) {
+  var score = 0
+  var budget = opts.budget
+  var municipality = opts.municipality
+  var amenityPrefs = opts.amenityPrefs
+
+  if (p.price_monthly >= budget.min && p.price_monthly <= budget.max) score += 30
+  if (municipality === 'Any' || p.municipality === municipality) score += 25
+  score += Math.round(((p.rating || 0) / 5) * 20)
+  amenityPrefs.forEach(function(pref) {
+    if ((p.amenities || []).indexOf(pref) !== -1) score += 5
+  })
+  if ((p.available_rooms || 0) > 0) score += 10
+  return Math.min(score, 100)
+}
+
 export default function TenantDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
-  const [stats, setStats] = useState({ reservations: 0, favorites: 0, recommended: [] })
+  const [stats, setStats] = useState({ reservations: 0, favorites: 0, recommendedCount: 0 })
   const [recentActivity, setRecentActivity] = useState([])
 
   var loadData = useCallback(function() {
@@ -17,14 +39,32 @@ export default function TenantDashboard() {
       useAuthStore.getState().fetchReservations({ tenantId: user.id }),
       useAuthStore.getState().fetchProperties({ status: 'active' }),
     ]).then(function(results) {
+      var allProps = results[1] || []
+      var recommendedCount = 0
+      
+      if (user?.preferences) {
+        var budgetVal = user.preferences.budget || '2k-3.5k'
+        var budgetObj = BUDGETS.find(function(b) { return b.value === budgetVal }) || BUDGETS[1]
+        var opts = {
+          budget: budgetObj,
+          municipality: user.preferences.municipality || 'Any',
+          amenityPrefs: user.preferences.amenityPrefs || []
+        }
+        recommendedCount = allProps
+          .map(function(p) { return scoreProperty(p, opts) })
+          .filter(function(score) { return score >= 50 }).length
+      } else {
+        recommendedCount = allProps.slice(0, 4).length
+      }
+
       setStats({
         reservations: results[0].length,
         favorites: 0,
-        recommended: results[1].slice(0, 4),
+        recommendedCount: recommendedCount,
       })
       setRecentActivity(results[0].slice(0, 5))
     })
-  }, [user?.id])
+  }, [user])
 
   useFocusRefresh(loadData, [user?.id])
 
@@ -58,7 +98,7 @@ export default function TenantDashboard() {
           </Card>
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Recommended</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#1D9E75' }}>{stats.recommended.length}</p>
+            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#1D9E75' }}>{stats.recommendedCount}</p>
             <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">For you</p>
           </Card>
         </div>

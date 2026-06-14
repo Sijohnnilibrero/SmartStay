@@ -96,7 +96,12 @@ export default function HomeownerDashboard() {
 
         <Card className="overflow-hidden">
           <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-stone-100">
-            <h3 className="font-semibold text-[13px] sm:text-[14px] text-stone-800 uppercase tracking-wide">Recent Requests</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-[13px] sm:text-[14px] text-stone-800 uppercase tracking-wide">Recent Requests</h3>
+              <Link to="/owner/reservations">
+                <Button variant="ghost" size="sm" className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs">Manage All →</Button>
+              </Link>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[400px] sm:min-w-0 divide-y divide-stone-200">
@@ -105,32 +110,19 @@ export default function HomeownerDashboard() {
                   <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase">Tenant</th>
                   <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase">Property</th>
                   <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase">Status</th>
-                  <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {recent.map(function(r) {
                   return (
                     <tr key={r.id} className="hover:bg-stone-50">
-                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[11px] sm:text-sm font-medium text-stone-800 truncate max-w-[80px] sm:max-w-none">Tenant {r.tenant_id ? r.tenant_id.substring(0, 6) : ''}</td>
-                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[11px] sm:text-sm text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_id ? r.property_id.substring(0, 8) : '-'}</td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[11px] sm:text-sm font-medium text-stone-800 truncate max-w-[80px] sm:max-w-none">{r.tenant_name || (r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown')}</td>
+                      <td className="px-3 py-2 sm:px-4 sm:py-3 text-[11px] sm:text-sm text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_name || (r.property_id ? r.property_id.substring(0, 8) : '-')}</td>
                       <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={r.status === 'confirmed' || r.status === 'approved' ? 'teal' : r.status === 'pending' ? 'amber' : 'gray'} className="text-[9px] sm:text-[11px]">{r.status}</Badge></td>
-                      <td className="px-3 py-2 sm:px-4 sm:py-3">
-                        {r.status === 'pending' ? (
-                          <div className="flex gap-1 sm:gap-2">
-                            <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="primary" disabled={actioningId === r.id} onClick={function() { handleStatusChange(r.id, 'confirmed') }}>
-                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Appr
-                            </Button>
-                            <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="ghost" disabled={actioningId === r.id} onClick={function() { handleStatusChange(r.id, 'cancelled') }}>
-                              <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Rej
-                            </Button>
-                          </div>
-                        ) : null}
-                      </td>
                     </tr>
                   )
                 })}
-                {recent.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-xs sm:text-sm text-stone-400">No recent reservations</td></tr>}
+                {recent.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-xs sm:text-sm text-stone-400">No recent reservations</td></tr>}
               </tbody>
             </table>
           </div>

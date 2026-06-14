@@ -237,12 +237,47 @@ export const useAuthStore = create(
         if (filters.ownerId) query = query.eq('owner_id', filters.ownerId)
         const { data, error } = await query
         if (error) throw error
-        return data || []
+
+        if (!data || data.length === 0) return []
+
+        const propIds = data.map(p => p.id)
+        const { data: reviews } = await supabase.from('reviews').select('property_id, rating').in('property_id', propIds)
+        
+        if (reviews) {
+          const ratingMap = {}
+          reviews.forEach(r => {
+            if (!ratingMap[r.property_id]) ratingMap[r.property_id] = { sum: 0, count: 0 }
+            ratingMap[r.property_id].sum += (r.rating || 0)
+            ratingMap[r.property_id].count += 1
+          })
+          
+          data.forEach(p => {
+            if (ratingMap[p.id]) {
+              p.review_count = ratingMap[p.id].count
+              p.rating = Math.round((ratingMap[p.id].sum / p.review_count) * 10) / 10
+            } else {
+              p.review_count = 0
+              p.rating = 0
+            }
+          })
+        }
+
+        return data
       },
 
       fetchProperty: async (id) => {
         const { data, error } = await supabase.from('properties').select('*').eq('id', id).single()
         if (error) throw error
+
+        const { data: reviews } = await supabase.from('reviews').select('rating').eq('property_id', id)
+        if (reviews && reviews.length > 0) {
+          data.review_count = reviews.length
+          data.rating = Math.round((reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length) * 10) / 10
+        } else {
+          data.review_count = 0
+          data.rating = 0
+        }
+
         return data
       },
 
@@ -406,7 +441,29 @@ export const useAuthStore = create(
         if (filters.status) query = query.eq('status', filters.status)
         const { data, error } = await query
         if (error) throw error
-        return data || []
+        
+        if (!data || data.length === 0) return []
+
+        const tenantIds = [...new Set(data.map(r => r.tenant_id).filter(Boolean))]
+        const propertyIds = [...new Set(data.map(r => r.property_id).filter(Boolean))]
+
+        let profilesMap = {}
+        if (tenantIds.length > 0) {
+          const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', tenantIds)
+          ;(profiles || []).forEach(p => profilesMap[p.id] = p.full_name)
+        }
+
+        let propertiesMap = {}
+        if (propertyIds.length > 0) {
+          const { data: properties } = await supabase.from('properties').select('id, name').in('id', propertyIds)
+          ;(properties || []).forEach(p => propertiesMap[p.id] = p.name)
+        }
+
+        return data.map(r => ({
+          ...r,
+          tenant_name: profilesMap[r.tenant_id] || 'Unknown Tenant',
+          property_name: propertiesMap[r.property_id] || 'Unknown Property'
+        }))
       },
 
       createReservation: async (reservationData) => {

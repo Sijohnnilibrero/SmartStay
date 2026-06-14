@@ -75,6 +75,9 @@ export default function Reservations() {
   }, [loadReservations])
 
   function handleStatus(id, status) {
+    var actionText = status === 'confirmed' ? 'approve' : status === 'cancelled' ? 'reject/cancel' : status;
+    if (!confirm('Are you sure you want to ' + actionText + ' this reservation?')) return;
+
     setActioning(id)
     updateReservationStatus(id, status).then(function () {
       setReservations(function (prev) {
@@ -163,11 +166,11 @@ export default function Reservations() {
                       <tr key={r.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                         <td className="px-3 py-2 sm:px-4 sm:py-3">
                           <div className="flex items-center gap-1.5 sm:gap-2">
-                            <div className="hidden xs:block"><Avatar initials={(r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" /></div>
-                            <span className="text-[10px] sm:text-[12px] font-medium text-stone-800">{r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown'}</span>
+                            <div className="hidden xs:block"><Avatar initials={(r.tenant_name || r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" /></div>
+                            <span className="text-[10px] sm:text-[12px] font-medium text-stone-800">{r.tenant_name || (r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown')}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{getPropName(r.property_id)}</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_name || getPropName(r.property_id)}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.check_in}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.duration_months} mo.</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
@@ -175,29 +178,29 @@ export default function Reservations() {
                         <td className="px-3 py-2 sm:px-4 sm:py-3">
                           <div className="flex items-center gap-1">
                             {(isAdmin || isOwner) && r.status === 'pending' && (
-                              <>
-                                <button className="p-1 sm:p-1.5 rounded-lg text-[#0F6E56] hover:bg-[#E1F5EE] disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'confirmed') }} title="Confirm">
-                                  <CheckCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                </button>
-                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Reject">
-                                  <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                </button>
-                              </>
+                              <div className="flex gap-1 sm:gap-2">
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="primary" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'confirmed') }}>
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Approve
+                                </Button>
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                  <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-red-400" /> <span className="text-red-500">Reject</span>
+                                </Button>
+                              </div>
                             )}
                             {(isAdmin || isOwner) && r.status === 'confirmed' && (
-                              <>
-                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleStatus(r.id, 'cancelled') }} title="Cancel Reservation">
-                                  <XCircle className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                </button>
-                                <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
-                                  <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                                </button>
-                              </>
+                              <div className="flex gap-1 sm:gap-2">
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                  <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Cancel
+                                </Button>
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
+                                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Delete
+                                </Button>
+                              </div>
                             )}
                             {(isAdmin || isOwner) && ['completed', 'cancelled'].includes(r.status) && (
-                              <button className="p-1 sm:p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50" disabled={actioning === r.id} onClick={function () { handleDelete(r.id) }} title="Delete Reservation">
-                                <Trash2 className="w-[12px] h-[12px] sm:w-[13px] sm:h-[13px]" />
-                              </button>
+                              <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
+                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Delete
+                              </Button>
                             )}
                             {isTenant && (r.status === 'confirmed' || r.status === 'completed') && (
                               <button 

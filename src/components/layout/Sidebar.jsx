@@ -57,7 +57,6 @@ const NAV_TENANT = [
       { to: '/tenant/room', label: 'My Room', icon: BedDouble },
       { to: '/tenant/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
       { to: '/tenant/reservations', label: 'Reservations' },
-      { to: '/tenant/reviews', label: 'Reviews' },
       { to: '/tenant/landlord', label: 'My Landlord', icon: User },
     ]
   },
