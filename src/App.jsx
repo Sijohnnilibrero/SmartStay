@@ -57,7 +57,7 @@ export default function App() {
              <Route path="rooms" element={<TenantBrowseRooms />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reviews" element={<Reviews />} />
-            <Route path="recommend" element={<TenantRecommendations />} />
+            <Route path="recommendations" element={<TenantRecommendations />} />
             <Route path="map" element={<TenantMap />} />
             <Route path="favorites" element={<Reservations />} />
             <Route path="property/:id" element={<TenantPropertyDetails />} />

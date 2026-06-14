@@ -62,7 +62,7 @@ const NAV_TENANT = [
   },
   {
     label: 'Discover', icon: Sparkles, routes: [
-      { to: '/tenant/recommend', label: 'Recommendations' },
+      { to: '/tenant/recommendations', label: 'Recommendations' },
       { to: '/tenant/map', label: 'Map', icon: Map },
     ]
   },
