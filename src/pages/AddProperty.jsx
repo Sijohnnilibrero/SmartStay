@@ -368,12 +368,7 @@ export default function AddProperty() {
                         {MUNICIPALITIES.map(function(m) { return <option key={m} value={m}>{m}</option> })}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Island *</label>
-                      <select value={form.island} onChange={function(e) { set('island', e.target.value) }} className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30">
-                        {ISLANDS.map(function(i) { return <option key={i} value={i}>{i}</option> })}
-                      </select>
-                    </div>
+
                     <div>
                       <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5 text-[--teal] font-bold">Total Rooms *</label>
                       <input type="number" min="1" max="50" value={form.total_rooms} onChange={handleTotalRoomsChange} placeholder="0" className="w-full px-3 py-2 text-sm rounded-xl border border-teal-200 bg-teal-50/50 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all font-semibold text-stone-800" />
