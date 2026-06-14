@@ -11,16 +11,16 @@ export default function AdminDashboard() {
 
   const loadData = useCallback(function() {
     Promise.all([
-      useAuthStore.getState().fetchTenants(),
+      useAuthStore.getState().fetchAllUsers(),
       useAuthStore.getState().fetchProperties(),
       useAuthStore.getState().fetchReservations(),
     ]).then(function(results) {
-      var tenants = results[0] || []
+      var users = results[0] || []
       var properties = results[1] || []
       var reservations = results[2] || []
       setStats([
-        { label: 'Total Tenants', value: tenants.length, icon: Users, color: 'blue' },
-        { label: 'Total Homeowners', value: tenants.filter(function(t) { return t.role === 'homeowner' }).length, icon: Home, color: 'purple' },
+        { label: 'Total Tenants', value: users.filter(function(u) { return u.role === 'tenant' }).length, icon: Users, color: 'blue' },
+        { label: 'Total Homeowners', value: users.filter(function(u) { return u.role === 'owner' }).length, icon: Home, color: 'purple' },
         { label: 'Total Properties', value: properties.length, icon: Home, color: 'emerald' },
         { label: 'Total Reservations', value: reservations.length, icon: Calendar, color: 'amber' },
         { label: 'Pending Approvals', value: properties.filter(function(p) { return p.status === 'pending_review' }).length, icon: Shield, color: 'amber' },
