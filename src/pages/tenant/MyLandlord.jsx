@@ -239,9 +239,9 @@ export default function MyLandlord() {
               </Card>
 
               <Card className="p-4 border-l-4 border-l-teal-400">
-                <h4 className="text-[12px] font-semibold text-stone-800 mb-1">SmartStay Payments</h4>
+                <h4 className="text-[12px] font-semibold text-stone-800 mb-1">Payment Information</h4>
                 <p className="text-[11px] text-stone-500 leading-relaxed">
-                  Rent payments can be recorded and tracked under the Reservations tab. Make sure to request a receipt for reference.
+                  SmartStay does not process online payments. All rent and deposits must be paid directly to your landlord (via cash, GCash, or bank transfer). Please request a receipt from your landlord for your own records.
                 </p>
               </Card>
             </div>

@@ -210,13 +210,10 @@ export default function MyRoom() {
               </Button>
             </Card>
             <Card className="p-4 border-l-4 border-l-amber-400">
-              <h4 className="text-[12px] font-semibold text-stone-800 mb-1">Payments</h4>
+              <h4 className="text-[12px] font-semibold text-stone-800 mb-1">Payment Information</h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Track your rent payments and payment history under the Reservations tab.
+                SmartStay does not process online payments. All rent and deposits must be paid directly to your landlord (via cash, GCash, or bank transfer). Please request a receipt from your landlord for your own records.
               </p>
-              <Button variant="ghost" size="sm" className="mt-2 px-0" onClick={() => navigate('/tenant/reservations')}>
-                View Reservations <ArrowRight size={12} />
-              </Button>
             </Card>
           </div>
         </div>
