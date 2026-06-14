@@ -220,9 +220,6 @@ export default function TenantOnboarding() {
           className="relative px-6 pt-8 pb-6 text-center"
           style={{ background: 'linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%)' }}
         >
-          <button onClick={dismiss} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-            <X size={15} />
-          </button>
           <div className="text-5xl mb-3 animate-bounce">{current.icon}</div>
           <h2 className="text-white font-bold text-xl leading-tight mb-1">{current.title}</h2>
           <p className="text-white/80 text-[13px]">{current.subtitle}</p>
