@@ -104,14 +104,14 @@ export default function Properties() {
   var stats = {
     total: properties.filter(function (p) { return p.status !== 'pending_review' }).length,
     active: properties.filter(function (p) { return p.status === 'active' }).length,
-    available: properties.filter(function (p) { return (p.available_rooms || 0) > 0 && p.status !== 'pending_review' }).length,
+    available: properties.reduce(function (sum, p) { return sum + (p.status !== 'pending_review' ? (p.available_rooms || 0) : 0) }, 0),
     pending: properties.filter(function (p) { return p.status === 'pending_review' }).length,
   }
 
   const STAT_ITEMS = [
     { label: 'Total Properties', value: stats.total,     accent: '#0F6E56', bg: '#E1F5EE', icon: <Home size={16} /> },
     { label: 'Active',           value: stats.active,    accent: '#1D9E75', bg: '#D1FAE5', icon: <TrendingUp size={16} /> },
-    { label: 'Has Vacancies',    value: stats.available, accent: '#534AB7', bg: '#EEEDFE', icon: <BedDouble size={16} /> },
+    { label: 'Vacant Rooms',     value: stats.available, accent: '#534AB7', bg: '#EEEDFE', icon: <BedDouble size={16} /> },
     { label: 'Pending Review',   value: stats.pending,   accent: '#BA7517', bg: '#FAEEDA', icon: <Clock size={16} /> },
   ]
 
