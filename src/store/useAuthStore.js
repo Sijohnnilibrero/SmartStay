@@ -87,9 +87,20 @@ export const useAuthStore = create(
       register: async ({ email, password, name, role, tenantType, municipality }) => {
         set({ isLoading: true, authError: null })
         try {
+          const roleValue = ['admin', 'owner', 'tenant'].includes(role) ? role : 'tenant'
+          const tenantTypeValue = ['student', 'professional', 'government_employee', 'visitor'].includes(tenantType) ? tenantType : null
+
           const { data, error } = await supabase.auth.signUp({
             email: email.trim().toLowerCase(),
             password,
+            options: {
+              data: {
+                full_name: name.trim() || email.trim().toLowerCase(),
+                role: roleValue,
+                tenant_type: tenantTypeValue,
+                municipality: municipality || 'Basco',
+              }
+            }
           })
 
           if (error) {
@@ -102,21 +113,9 @@ export const useAuthStore = create(
             return { success: false, authError: 'User creation failed (no user id returned).' }
           }
 
-          const roleValue = ['admin', 'owner', 'tenant'].includes(role) ? role : 'tenant'
-          const tenantTypeValue = ['student', 'professional', 'government_employee', 'visitor'].includes(tenantType) ? tenantType : null
-
-          const { error: profileError } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            full_name: name.trim() || email.trim().toLowerCase(),
-            role: roleValue,
-            tenant_type: tenantTypeValue,
-            municipality: municipality || 'Basco',
-          })
-
-          if (profileError) {
-            set({ isLoading: false, authError: 'Profile insert failed: ' + profileError.message })
-            return { success: false, authError: 'Profile insert failed: ' + profileError.message }
-          }
+          // We no longer manually insert into 'profiles' here.
+          // A Supabase database trigger will automatically catch the metadata
+          // passed in 'options.data' above and insert the row into 'profiles' for us!
 
           set({ isLoading: false })
           return { success: true }
