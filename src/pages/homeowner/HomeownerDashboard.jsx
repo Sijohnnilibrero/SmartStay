@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Home, Users, BedDouble, FileText, Plus, CheckCircle, XCircle } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
+import { Home, Users, BedDouble, FileText, Plus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 export default function HomeownerDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
   const updateReservationStatus = useAuthStore((s) => s.updateReservationStatus)
+  const addToast = useAppStore((s) => s.addToast)
   const [stats, setStats] = useState({ properties: 0, rooms: 0, occupied: 0, vacant: 0, pending: 0, approved: 0 })
   const [recent, setRecent] = useState([])
+  const [expiringPermits, setExpiringPermits] = useState([])
   const [actioningId, setActioningId] = useState(null)
   const wasHiddenRef = useRef(false)
 
@@ -20,6 +23,17 @@ export default function HomeownerDashboard() {
     ]).then(function(results) {
       var houses = results[0] || []
       var activeHouses = houses.filter(function(h) { return h.status !== 'pending_review' })
+      
+      var now = new Date()
+      var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      
+      var expiring = activeHouses.filter(function(h) {
+        if (!h.permit_expires_on) return false
+        var expDate = new Date(h.permit_expires_on)
+        return expDate <= thirtyDays
+      })
+      setExpiringPermits(expiring)
+
       var reservations = results[1] || []
       var myPropIds = houses.map(function(h) { return h.id })
       var myReservations = reservations.filter(function(r) { return myPropIds.indexOf(r.property_id) !== -1 })
@@ -56,7 +70,7 @@ export default function HomeownerDashboard() {
       loadData()
     }).catch(function(err) {
       console.error('Status update failed:', err)
-      alert(err.message || 'Failed to update reservation.')
+      addToast(err.message || 'Failed to update reservation.', 'error')
     }).finally(function() {
       setActioningId(null)
     })
@@ -75,6 +89,43 @@ export default function HomeownerDashboard() {
       </div>
 
       <div className="p-6 space-y-5">
+        {expiringPermits.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-100 text-amber-600 rounded-xl flex-shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-900 text-sm sm:text-base mb-1">Business Permits Expiring Soon!</h3>
+                <p className="text-amber-700 text-xs sm:text-sm mb-3">
+                  The following properties have business permits that are expiring within 30 days or have already expired. Please renew them to avoid delisting.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {expiringPermits.map(p => {
+                    const exp = new Date(p.permit_expires_on)
+                    const isExpired = exp < new Date()
+                    return (
+                      <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/60 p-2.5 sm:p-3 rounded-xl border border-amber-100 gap-3">
+                        <div>
+                          <p className="font-semibold text-stone-800 text-xs sm:text-sm">{p.name}</p>
+                          <p className={`text-[10px] sm:text-xs font-medium ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
+                            {isExpired ? 'Expired on: ' : 'Expires: '} {exp.toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Link to={`/owner/properties/edit/${p.id}`}>
+                          <Button size="sm" variant={isExpired ? 'danger' : 'primary'} className="w-full sm:w-auto text-xs py-1.5 px-3 h-auto">
+                            Renew Permit
+                          </Button>
+                        </Link>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Total Properties</p>

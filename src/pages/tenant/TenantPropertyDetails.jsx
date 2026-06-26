@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, Badge, StarRating, OccupancyBar, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import { ArrowLeft, MapPin, CheckCircle2, BedDouble, X, MessageSquare, ExternalLink } from 'lucide-react'
 import PropertyMap from '@/components/map/PropertyMap'
 import { supabase } from '@/lib/supabase'
@@ -19,6 +20,7 @@ export default function TenantPropertyDetails() {
   var fetchRooms = useAuthStore(function(s) { return s.fetchRooms })
   var storeUser = useAuthStore(function(s) { return s.user })
   var createReservation = useAuthStore(function(s) { return s.createReservation })
+  var addToast = useAppStore(function(s) { return s.addToast })
 
   var propertyState = useState(null)
   var property = propertyState[0], setProperty = propertyState[1]
@@ -118,10 +120,10 @@ export default function TenantPropertyDetails() {
       amount_total: room.price_monthly,
     }).then(function() {
       setSelectedRoom(null)
-      alert('Reservation request submitted for Room ' + room.room_number + '! Waiting for homeowner approval.')
+      addToast('Reservation request submitted for Room ' + room.room_number + '! Waiting for homeowner approval.', 'success')
       navigate('/tenant/reservations')
     }).catch(function(err) {
-      alert(err.message || 'Failed to create reservation.')
+      addToast(err.message || 'Failed to create reservation.', 'error')
     }).finally(function() {
       setBooking(false)
     })
@@ -149,7 +151,7 @@ export default function TenantPropertyDetails() {
           <div className="p-4 border-b border-stone-100 flex items-center justify-between">
             <h3 className="font-semibold text-stone-800">About this property</h3>
             <Badge variant={(property.available_rooms || 0) === 0 ? 'coral' : 'teal'}>
-              {(property.available_rooms || 0) === 0 ? 'Fully Booked' : (property.available_rooms || 0) + ' rooms available'}
+              {(property.available_rooms || 0) === 0 ? 'No Available Rooms' : (property.available_rooms || 0) + ' rooms available'}
             </Badge>
           </div>
           <div className="p-4">
@@ -199,8 +201,8 @@ export default function TenantPropertyDetails() {
                       <div className="p-3">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-[13px] font-semibold text-stone-800">Room {r.room_number}</p>
-                          <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (r.is_available ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700')}>
-                            {r.is_available ? 'Available' : 'Occupied'}
+                          <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (r.is_available ? 'bg-teal-100 text-teal-700' : (r.status === 'ongoing_transaction' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'))}>
+                            {r.is_available ? 'Available' : (r.status === 'ongoing_transaction' ? 'Ongoing Transaction' : 'Occupied')}
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-400 mb-2">Floor {r.floor}</p>
@@ -265,10 +267,10 @@ export default function TenantPropertyDetails() {
         </Card>
 
         <Card>
-          <div className="p-4 border-b border-stone-100"><h3 className="font-semibold text-stone-800">Occupancy</h3></div>
+          <div className="p-4 border-b border-stone-100"><h3 className="font-semibold text-stone-800">Availability</h3></div>
           <div className="p-4">
             <OccupancyBar
-              label={property.total_rooms - (property.available_rooms || 0) + '/' + property.total_rooms + ' rooms occupied'}
+              label={property.total_rooms - (property.available_rooms || 0) + '/' + property.total_rooms + ' rooms unavailable'}
               value={occupancyPct}
               color={occupancyPct > 80 ? '#D85A30' : '#1D9E75'}
             />

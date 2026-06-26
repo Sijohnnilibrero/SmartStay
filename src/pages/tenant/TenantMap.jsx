@@ -44,7 +44,7 @@ export default function TenantMap() {
           </span>
           <span className="flex items-center gap-1.5">
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#D85A30', display: 'inline-block' }} />
-            Fully Booked
+            No Available Rooms
           </span>
         </div>
       </div>

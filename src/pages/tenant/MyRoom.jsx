@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
-import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight } from 'lucide-react'
+import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import ContractViewerModal from '@/components/ui/ContractViewerModal'
 
 export default function MyRoom() {
   const navigate = useNavigate()
@@ -12,6 +13,7 @@ export default function MyRoom() {
 
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
+  const [viewContractUrl, setViewContractUrl] = useState(null)
   const wasHiddenRef = useRef(false)
 
   const loadRoom = useCallback(function() {
@@ -78,6 +80,13 @@ export default function MyRoom() {
   }
 
   const { room, property, reservation } = data
+
+  let expirationDate = '—'
+  if (reservation?.check_in) {
+    const d = new Date(reservation.check_in)
+    d.setMonth(d.getMonth() + (reservation.duration_months || 1))
+    expirationDate = d.toISOString().split('T')[0]
+  }
 
   return (
     <div className="page-enter flex flex-col h-screen">
@@ -183,11 +192,40 @@ export default function MyRoom() {
                 </div>
                 <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</span>
               </div>
+                <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                    <Calendar className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Expires On
+                  </div>
+                  <span className="text-[11px] sm:text-[12px] font-medium text-red-500">{expirationDate}</span>
+                </div>
+                <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
+                    <FileText className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Contract Document
+                  </div>
+                {reservation.contract_url ? (
+                  <>
+                    <button 
+                      onClick={() => setViewContractUrl(reservation.contract_url)} 
+                      className="text-[11px] sm:text-[12px] font-medium text-[--teal] hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                    >
+                      View Contract
+                    </button>
+                    {viewContractUrl === reservation.contract_url && (
+                      <ContractViewerModal 
+                        url={reservation.contract_url} 
+                        onClose={() => setViewContractUrl(null)} 
+                      />
+                    )}
+                  </>
+                ) : (
+                    <span className="text-[11px] sm:text-[12px] font-medium text-stone-400">Not uploaded</span>
+                  )}
+                </div>
               <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
                   <CreditCard className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Monthly Rent
                 </div>
-                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{formatCurrency(room ? room.price_monthly : property.price_monthly)}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{formatCurrency(reservation.amount_total / (reservation.duration_months || 1))}</span>
               </div>
               <div className="flex items-center justify-between py-1.5 sm:py-2">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">

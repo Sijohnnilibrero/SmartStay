@@ -12,9 +12,9 @@ const PROPERTY_IMAGES = [
   '/images/property_3.png',
 ]
 
-const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
+const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
 const BUDGETS  = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
-const AMENITIES = ['WiFi', 'Meals', 'Parking', 'Laundry', 'Kitchen', 'Security']
+const AMENITIES = ['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished']
 
 function budgetMatch(price, budget) {
   if (budget === 'All')       return true
@@ -53,7 +53,8 @@ export default function TenantSearch() {
       var q = query.toLowerCase()
       if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q)) return false
       if (!budgetMatch(p.price_monthly, budget)) return false
-      if (amenities.length && !amenities.every(function(a) { return (p.amenities || []).includes(a) })) return false
+      var activeAmenities = amenities.filter(function(a) { return a !== 'Any' })
+      if (activeAmenities.length && !activeAmenities.every(function(a) { return (p.amenities || []).includes(a) })) return false
       return true
     })
     if (sortBy === 'rating')    list.sort(function(a, b) { return (b.rating || 0) - (a.rating || 0) })
@@ -127,7 +128,7 @@ export default function TenantSearch() {
 
 function PropertyCard({ property: p, idx = 0, onClick, onClickRooms }) {
   var availColor = (p.available_rooms || 0) === 0 ? 'coral' : (p.available_rooms || 0) <= 2 ? 'amber' : 'teal'
-  var availLabel = (p.available_rooms || 0) === 0 ? 'Fully Booked' : (p.available_rooms || 0) + ' rooms left'
+  var availLabel = (p.available_rooms || 0) === 0 ? 'No Available Rooms' : (p.available_rooms || 0) + ' rooms left'
   var imgSrc = p.image_url || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]
 
   return (

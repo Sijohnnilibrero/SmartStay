@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Badge, OccupancyBar, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { ArrowLeft, MapPin, CheckCircle, XCircle, Trash2, Mail, Phone, Calendar, User } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
+import { MapPin, ArrowLeft, Star, BedDouble, User, CheckCircle, XCircle, Trash2, Home, Upload, FileText, Download, Mail, Phone, Calendar } from 'lucide-react'
 import PropertyMap from '@/components/map/PropertyMap'
 import { supabase } from '@/lib/supabase'
 
@@ -17,6 +18,7 @@ export default function AdminPropertyDetails() {
   const updatePropertyStatus = useAuthStore((s) => s.updatePropertyStatus)
   const deleteProperty = useAuthStore((s) => s.deleteProperty)
   const user = useAuthStore((s) => s.user)
+  const addToast = useAppStore((s) => s.addToast)
 
   const [property, setProperty] = useState(null)
   const [ownerProfile, setOwnerProfile] = useState(null)
@@ -79,7 +81,7 @@ export default function AdminPropertyDetails() {
       setProperty(prev => ({ ...prev, status }))
       setConfirmAction(null)
     }).catch(err => {
-      alert('Failed to update status: ' + err.message)
+      addToast('Failed to update status: ' + err.message, 'error')
     }).finally(() => setActioning(null))
   }
 
@@ -88,7 +90,7 @@ export default function AdminPropertyDetails() {
     deleteProperty(id).then(() => {
       navigate('/admin/properties')
     }).catch(err => {
-      alert('Failed to delete: ' + err.message)
+      addToast('Failed to delete: ' + err.message, 'error')
     }).finally(() => setActioning(null))
   }
 
@@ -138,10 +140,10 @@ export default function AdminPropertyDetails() {
             {/* Occupancy & Stats */}
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-bold text-stone-800 mb-4">Occupancy Stats</h3>
+                <h3 className="text-lg font-bold text-stone-800 mb-4">Availability Stats</h3>
                 <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
                   <OccupancyBar 
-                    label={`${occupiedRooms}/${property.total_rooms} rooms occupied`} 
+                    label={`${occupiedRooms}/${property.total_rooms} rooms unavailable`} 
                     value={occupiedRooms} 
                     max={property.total_rooms} 
                   />
@@ -192,7 +194,26 @@ export default function AdminPropertyDetails() {
             {/* Moderation Controls */}
             <Card>
               <div className="p-6 space-y-4">
-                <h3 className="text-sm font-bold text-stone-800 uppercase tracking-wider mb-2">Moderation Actions</h3>
+                <h3 className="text-sm font-bold text-stone-800 uppercase tracking-wider mb-4">Moderation Actions</h3>
+                
+                {(property.permit_urls && property.permit_urls.length > 0) || property.permit_url ? (
+                  <div className="mb-4 space-y-2">
+                    {(property.permit_urls && property.permit_urls.length > 0 ? property.permit_urls : [property.permit_url]).map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-2.5 text-sm font-medium text-[--teal] border border-teal-200 bg-teal-50 hover:bg-teal-100 rounded-xl transition-colors">
+                        <FileText size={16} className="mr-2" /> View Business Permit {property.permit_urls && property.permit_urls.length > 1 ? i + 1 : ''}
+                      </a>
+                    ))}
+                    {property.permit_expires_on && (
+                      <p className={`text-center text-[10px] sm:text-xs mt-1.5 font-medium ${new Date(property.permit_expires_on) < new Date() ? 'text-red-500' : 'text-stone-500'}`}>
+                        {new Date(property.permit_expires_on) < new Date() ? 'Expired on: ' : 'Expires: '} {new Date(property.permit_expires_on).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-full py-2 text-sm text-stone-500 bg-stone-50 border border-stone-200 rounded-xl mb-4 italic">
+                    <FileText size={14} className="mr-2 opacity-50" /> No permit uploaded
+                  </div>
+                )}
                 
                 {property.status === 'pending_review' && (
                   <div className="flex gap-2">
@@ -270,8 +291,8 @@ export default function AdminPropertyDetails() {
                           <p className="text-sm font-semibold text-stone-800">Room {r.room_number}</p>
                           <p className="text-xs text-stone-500">{formatCurrency(r.price_monthly)}/mo</p>
                         </div>
-                        <Badge variant={r.is_available ? 'teal' : 'coral'}>
-                          {r.is_available ? 'Available' : 'Occupied'}
+                        <Badge variant={r.is_available ? 'teal' : (r.status === 'ongoing_transaction' ? 'amber' : 'coral')}>
+                          {r.is_available ? 'Available' : (r.status === 'ongoing_transaction' ? 'Ongoing Transaction' : 'Occupied')}
                         </Badge>
                       </div>
                     ))

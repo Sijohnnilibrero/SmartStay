@@ -4,6 +4,7 @@ import Topbar from '@/components/layout/Topbar'
 import { Button, Badge, OccupancyBar, Input, FilterChip } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import {
   Plus, Search, Eye, CheckCircle, XCircle, Edit, Trash2,
   Home, TrendingUp, Clock, Layers, MapPin, BedDouble, Wifi, Droplets,
@@ -29,6 +30,7 @@ export default function Properties() {
   const fetchProperties = useAuthStore((s) => s.fetchProperties)
   const updatePropertyStatus = useAuthStore((s) => s.updatePropertyStatus)
   const deleteProperty = useAuthStore((s) => s.deleteProperty)
+  const systemConfirm = useAppStore((s) => s.systemConfirm)
 
   const [query, setQuery] = useState('')
   const [island, setIsland] = useState('All')
@@ -84,8 +86,8 @@ export default function Properties() {
     }).finally(function () { setActioning(null) })
   }
 
-  function handleDelete(id) {
-    if (!confirm('Delete this property?')) return
+  async function handleDelete(id) {
+    if (!(await systemConfirm('Are you sure you want to delete this property?'))) return
     setActioning(id)
     deleteProperty(id).then(function () {
       setProperties(function (prev) { return prev.filter(function (p) { return p.id !== id }) })
@@ -265,7 +267,7 @@ export default function Properties() {
 
                     {/* Occupancy */}
                     <OccupancyBar
-                      label={`${occupied}/${p.total_rooms} rooms occupied`}
+                      label={`${occupied}/${p.total_rooms} rooms unavailable`}
                       value={occupied}
                       max={p.total_rooms}
                       color={isFull ? '#D85A30' : '#1D9E75'}

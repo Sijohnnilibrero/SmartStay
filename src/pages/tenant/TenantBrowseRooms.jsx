@@ -12,7 +12,7 @@ const PROPERTY_IMAGES = [
   '/images/property_3.png',
 ]
 
-const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
+const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
 const BUDGETS = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
 
 function budgetMatch(price, budget) {
@@ -174,7 +174,9 @@ function RoomCard({ room: r, property: p, idx = 0, onViewProperty, onReserve }) 
         </div>
         {/* Availability badge top-right */}
         <div className="absolute top-3 right-3">
-          <Badge variant={r.is_available ? 'teal' : 'coral'}>{r.is_available ? 'Available' : 'Occupied'}</Badge>
+          <Badge variant={r.is_available ? 'teal' : (r.status === 'ongoing_transaction' ? 'amber' : 'coral')}>
+            {r.is_available ? 'Available' : (r.status === 'ongoing_transaction' ? 'Ongoing Transaction' : 'Occupied')}
+          </Badge>
         </div>
         {/* Price bottom-right */}
         <div className="absolute bottom-3 right-3">
@@ -210,7 +212,7 @@ function RoomCard({ room: r, property: p, idx = 0, onViewProperty, onReserve }) 
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" className="flex-1 text-[11px]" onClick={onViewProperty}>View Property</Button>
           <Button size="sm" className="flex-1 text-[11px]" onClick={onReserve} disabled={!r.is_available}>
-            {r.is_available ? 'Reserve' : 'Occupied'}
+            {r.is_available ? 'Reserve' : (r.status === 'ongoing_transaction' ? 'Ongoing Transaction' : 'Occupied')}
           </Button>
         </div>
       </div>

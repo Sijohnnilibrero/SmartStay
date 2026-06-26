@@ -11,6 +11,14 @@ supabase_drop_all.sql
 supabase_fix_rooms.sql
 supabase_migrate_room_images.sql
 supabase_schema.sql
+reset_database.sql
 
 # Local Netlify folder
 .netlify
+
+# Exclude design and DB scripts
+*.sql
+erd.*
+*.mmd
+config.json
+test_*.js

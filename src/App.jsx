@@ -15,13 +15,16 @@ import TenantMap       from '@/pages/tenant/TenantMap'
 import MyLandlord      from '@/pages/tenant/MyLandlord'
 import MyRoom          from '@/pages/tenant/MyRoom'
 import TenantBrowseRooms from '@/pages/tenant/TenantBrowseRooms'
+import MyPayments        from '@/pages/tenant/MyPayments'
 import HomeownerDashboard from '@/pages/homeowner/HomeownerDashboard'
 import HomeownerTenants from '@/pages/homeowner/HomeownerTenants'
 import HomeownerRooms from '@/pages/homeowner/HomeownerRooms'
 import HomeownerProfile from '@/pages/homeowner/HomeownerProfile'
+import HomeownerLedger  from '@/pages/homeowner/HomeownerLedger'
 import Messages from '@/pages/Messages'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
+import AdminLedger    from '@/pages/admin/AdminLedger'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
@@ -63,6 +66,7 @@ export default function App() {
             <Route path="property/:id" element={<TenantPropertyDetails />} />
              <Route path="landlord" element={<MyLandlord />} />
              <Route path="room" element={<MyRoom />} />
+             <Route path="payments" element={<MyPayments />} />
              <Route path="messages" element={<Messages />} />
           </Route>
 
@@ -75,6 +79,7 @@ export default function App() {
             <Route path="rooms/:propertyId" element={<HomeownerRooms />} />
             <Route path="tenants" element={<HomeownerTenants />} />
             <Route path="reservations" element={<Reservations />} />
+            <Route path="ledger" element={<HomeownerLedger />} />
             <Route path="profile" element={<HomeownerProfile />} />
             <Route path="messages" element={<Messages />} />
           </Route>
@@ -86,6 +91,7 @@ export default function App() {
             <Route path="properties" element={<Properties />} />
             <Route path="property/:id" element={<AdminPropertyDetails />} />
             <Route path="reservations" element={<Reservations />} />
+            <Route path="ledger" element={<AdminLedger />} />
           </Route>
         </Route>
       </Route>

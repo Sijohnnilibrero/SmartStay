@@ -6,6 +6,7 @@ import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
 import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import ContractViewerModal from '@/components/ui/ContractViewerModal'
 
 export default function MyLandlord() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export default function MyLandlord() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
+  const [viewContractUrl, setViewContractUrl] = useState(null)
   const wasHiddenRef = useRef(false)
 
   const loadLandlord = useCallback(function () {
@@ -94,6 +96,13 @@ export default function MyLandlord() {
   const landlordInitials = landlord.full_name
     ? landlord.full_name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '??'
+
+  let expirationDate = '—'
+  if (reservation?.check_in) {
+    const d = new Date(reservation.check_in)
+    d.setMonth(d.getMonth() + (reservation.duration_months || 1))
+    expirationDate = d.toISOString().split('T')[0]
+  }
 
   return (
     <div className="page-enter flex flex-col h-screen">
@@ -176,15 +185,43 @@ export default function MyLandlord() {
                 </Badge>
               </div>
 
-              <div className="p-3 sm:p-5 grid grid-cols-2 gap-2 sm:gap-4 border-b border-stone-100 bg-stone-50/30">
+              <div className="p-3 sm:p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 border-b border-stone-100 bg-stone-50/30">
                 <div className="flex gap-2 sm:gap-3">
                   <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
                     <Calendar className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-[--teal]" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Move-in Date</p>
                     <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{reservation.check_in || '—'}</p>
                     <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Duration: {reservation.duration_months || 1} mo</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
+                    <Calendar className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-red-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Expires On</p>
+                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{expirationDate}</p>
+                    {reservation.contract_url ? (
+                      <>
+                        <button 
+                          onClick={() => setViewContractUrl(reservation.contract_url)} 
+                          className="text-[8px] sm:text-[10px] text-[--teal] hover:underline flex items-center gap-1 mt-0.5 bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          <ExternalLink size={10} /> View Contract
+                        </button>
+                        {viewContractUrl === reservation.contract_url && (
+                          <ContractViewerModal 
+                            url={reservation.contract_url} 
+                            onClose={() => setViewContractUrl(null)} 
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">No contract uploaded</p>
+                    )}
                   </div>
                 </div>
 
@@ -194,7 +231,7 @@ export default function MyLandlord() {
                   </div>
                   <div>
                     <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Monthly Rent</p>
-                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{formatCurrency(property.price_monthly)}</p>
+                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{formatCurrency(reservation.amount_total / (reservation.duration_months || 1))}</p>
                     <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Total: {formatCurrency(reservation.amount_total)}</p>
                   </div>
                 </div>

@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge, Button, Input } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import { Plus, Trash2, Edit2, MapPin, ImagePlus, X, Upload, Loader2, BedDouble, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
-const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
+const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
 const EMPTY_FORM = { room_number: '', floor: 1, price_monthly: '', amenities: [], notes: '', is_available: true, image_urls: [] }
 
 // ── Multi-Image Uploader ─────────────────────────────────────────
@@ -13,10 +14,12 @@ function RoomImagesUploader({ existingUrls, setExistingUrls, newFiles, setNewFil
   const inputRef = useRef(null)
   const [drag, setDrag] = useState(false)
 
+  const addToast = useAppStore((s) => s.addToast)
+
   function handleFiles(files) {
     if (!files || files.length === 0) return
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size <= 5 * 1024 * 1024)
-    if (validFiles.length < files.length) alert('Some files were ignored. Must be images under 5MB.')
+    if (validFiles.length < files.length) addToast('Some files were ignored. Must be images under 5MB.', 'error')
     setNewFiles(prev => [...prev, ...validFiles])
   }
 
@@ -84,9 +87,13 @@ export default function HomeownerRooms() {
   const deleteRoom       = useAuthStore((s) => s.deleteRoom)
   const fetchProperty    = useAuthStore((s) => s.fetchProperty)
   const uploadRoomImages = useAuthStore((s) => s.uploadRoomImages)
+  const fetchReservations = useAuthStore((s) => s.fetchReservations)
+  const addToast = useAppStore((s) => s.addToast)
+  const systemConfirm = useAppStore((s) => s.systemConfirm)
 
   const [rooms,    setRooms]    = useState([])
   const [property, setProperty] = useState(null)
+  const [reservations, setReservations] = useState([])
   const [loading,  setLoading]  = useState(true)
   const [editing,  setEditing]  = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -99,10 +106,15 @@ export default function HomeownerRooms() {
 
   const loadData = useCallback(function() {
     setLoading(true)
-    Promise.all([fetchRooms(propertyId), fetchProperty(propertyId)])
-      .then(([r, p]) => { setRooms(r || []); setProperty(p); setLoading(false) })
+    Promise.all([fetchRooms(propertyId), fetchProperty(propertyId), fetchReservations()])
+      .then(([r, p, res]) => { 
+        setRooms(r || []); 
+        setProperty(p); 
+        setReservations(res || []);
+        setLoading(false) 
+      })
       .catch(() => setLoading(false))
-  }, [propertyId, fetchRooms, fetchProperty])
+  }, [propertyId, fetchRooms, fetchProperty, fetchReservations])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -165,7 +177,7 @@ export default function HomeownerRooms() {
         const uploadedUrls = await uploadRoomImages(newFiles, editing || 'new') 
         finalUrls = [...finalUrls, ...uploadedUrls]
       }
-      catch (err) { alert('Upload failed: ' + (err.message || err)); setUploading(false); return }
+      catch (err) { addToast('Upload failed: ' + (err.message || err), 'error'); setUploading(false); return }
       setUploading(false)
     }
 
@@ -187,21 +199,33 @@ export default function HomeownerRooms() {
       }
       closeForm()
       loadData()
+      addToast(editing ? 'Room updated successfully!' : 'Room created successfully!', 'success')
     } catch (err) {
-      alert(err.message || err.details || 'Failed to save room.')
+      addToast(err.message || err.details || 'Failed to save room.', 'error')
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this room?')) return
+    if (!(await systemConfirm('Are you sure you want to delete this room?'))) return
     setActioning(id)
-    try { await deleteRoom(id); loadData() }
-    catch (err) { alert(err.message || 'Failed to delete room.') }
+    try { await deleteRoom(id); loadData(); addToast('Room deleted successfully!', 'success') }
+    catch (err) { addToast(err.message || 'Failed to delete room.', 'error') }
     finally { setActioning(null) }
   }
 
   const totalRooms     = rooms.length
   const availableRooms = rooms.filter((r) => r.is_available).length
+
+  function getRoomDisplayStatus(room) {
+    if (room.is_available) return { label: 'Available', variant: 'teal' }
+    
+    // If it's not available, check if it's waiting for payment
+    const roomReservations = reservations.filter(r => r.room_id === room.id)
+    const isAwaiting = roomReservations.some(r => r.status === 'awaiting_payment')
+    
+    if (isAwaiting) return { label: 'Awaiting Payment', variant: 'amber' }
+    return { label: 'Occupied', variant: 'coral' }
+  }
 
   return (
     <div className="page-enter p-6 space-y-5">
@@ -225,7 +249,7 @@ export default function HomeownerRooms() {
         {[
           { label: 'Total Rooms', value: totalRooms,              accent: '#0F6E56', bg: '#E1F5EE' },
           { label: 'Available',   value: availableRooms,          accent: '#1D9E75', bg: '#D1FAE5' },
-          { label: 'Occupied',    value: totalRooms - availableRooms, accent: '#D85A30', bg: '#FAECE7' },
+          { label: 'Occupied/Reserved', value: totalRooms - availableRooms, accent: '#D85A30', bg: '#FAECE7' },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-stone-200 p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -391,8 +415,8 @@ export default function HomeownerRooms() {
                   </span>
                 </div>
                 <div className="absolute top-3 right-3">
-                  <Badge variant={r.is_available ? 'teal' : 'coral'}>
-                    {r.is_available ? 'Available' : 'Occupied'}
+                  <Badge variant={getRoomDisplayStatus(r).variant}>
+                    {getRoomDisplayStatus(r).label}
                   </Badge>
                 </div>
                 <div className="absolute bottom-3 right-3">

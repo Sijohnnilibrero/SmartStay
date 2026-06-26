@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Topbar from '@/components/layout/Topbar'
-import { Card, Badge, Avatar, FilterChip, Button } from '@/components/ui'
+import { Card, Badge, Avatar, Button } from '@/components/ui'
+import ContractViewerModal from '@/components/ui/ContractViewerModal'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { CheckCircle, XCircle, Trash2, Star } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
+import { CheckCircle, XCircle, Trash2, Star, Upload } from 'lucide-react'
 import AddReviewModal from '@/components/AddReviewModal'
 
-var STATUSES = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled']
-var STATUS_BADGE = { pending: 'amber', confirmed: 'teal', completed: 'gray', cancelled: 'coral' }
+var STATUSES = ['All', 'Pending', 'Awaiting_Payment', 'Confirmed', 'Completed', 'Cancelled']
+var STATUS_BADGE = { pending: 'amber', awaiting_payment: 'blue', confirmed: 'teal', completed: 'gray', cancelled: 'coral' }
 
 export default function Reservations() {
   var user = useAuthStore(function (s) { return s.user })
@@ -18,6 +20,10 @@ export default function Reservations() {
   var updateReservationStatus = useAuthStore(function (s) { return s.updateReservationStatus })
   var deleteReservation = useAuthStore(function (s) { return s.deleteReservation })
   var fetchProperties = useAuthStore(function (s) { return s.fetchProperties })
+  var uploadPaymentReceipt = useAuthStore(function (s) { return s.uploadPaymentReceipt })
+  var uploadContract = useAuthStore(function (s) { return s.uploadContract })
+  var addToast = useAppStore(function (s) { return s.addToast })
+  var systemConfirm = useAppStore(function (s) { return s.systemConfirm })
 
   var filterState = useState('All')
   var filter = filterState[0], setFilter = filterState[1]
@@ -33,6 +39,7 @@ export default function Reservations() {
   
   var reviewModalState = useState({ isOpen: false, propertyId: null, propertyName: '' })
   var reviewModal = reviewModalState[0], setReviewModal = reviewModalState[1]
+  const [viewContractUrl, setViewContractUrl] = useState(null)
 
   var loadReservations = useCallback(function () {
     setLoading(true)
@@ -74,9 +81,9 @@ export default function Reservations() {
     return function () { document.removeEventListener('visibilitychange', handleVisibility) }
   }, [loadReservations])
 
-  function handleStatus(id, status) {
-    var actionText = status === 'confirmed' ? 'approve' : status === 'cancelled' ? 'reject/cancel' : status;
-    if (!confirm('Are you sure you want to ' + actionText + ' this reservation?')) return;
+  async function handleStatus(id, status) {
+    var actionText = status === 'confirmed' ? 'confirm' : status === 'cancelled' ? 'reject/cancel' : status === 'awaiting_payment' ? 'request payment for' : status;
+    if (!(await systemConfirm('Are you sure you want to ' + actionText + ' this reservation?'))) return;
 
     setActioning(id)
     updateReservationStatus(id, status).then(function () {
@@ -87,13 +94,54 @@ export default function Reservations() {
       })
     }).catch(function (err) {
       console.error('Status update failed:', err)
+      addToast('Action failed: ' + (err.message || 'Unknown error'), 'error')
     }).finally(function () {
       setActioning(null)
     })
   }
 
-  function handleDelete(id) {
-    if (!confirm('Delete this reservation?')) return
+  async function handleUploadReceipt(id, event) {
+    var file = event.target.files[0]
+    if (!file) return
+    setActioning(id)
+    try {
+      var url = await uploadPaymentReceipt(file, id)
+      setReservations(function (prev) {
+        return prev.map(function (r) {
+          return r.id === id ? Object.assign({}, r, { payment_receipt_url: url }) : r
+        })
+      })
+      addToast('Receipt uploaded successfully! Waiting for homeowner verification.', 'success')
+    } catch (err) {
+      console.error(err)
+      addToast('Failed to upload receipt: ' + err.message, 'error')
+    } finally {
+      setActioning(null)
+    }
+  }
+
+  async function handleUploadContract(id, event) {
+    var file = event.target.files[0]
+    if (!file) return
+    setActioning(id)
+    try {
+      var url = await uploadContract(file, id)
+      setReservations(function (prev) {
+        return prev.map(function (r) {
+          return r.id === id ? Object.assign({}, r, { contract_url: url }) : r
+        })
+      })
+      addToast('Contract uploaded successfully!', 'success')
+    } catch (err) {
+      console.error(err)
+      addToast('Failed to upload contract: ' + err.message, 'error')
+    } finally {
+      setActioning(null)
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!(await systemConfirm('Are you sure you want to delete this reservation?'))) return
     setActioning(id)
     deleteReservation(id).then(function () {
       setReservations(function (prev) {
@@ -101,6 +149,7 @@ export default function Reservations() {
       })
     }).catch(function (err) {
       console.error('Delete failed:', err)
+      addToast('Failed to delete reservation: ' + err.message, 'error')
     }).finally(function () {
       setActioning(null)
     })
@@ -118,6 +167,7 @@ export default function Reservations() {
   var totals = {
     All: reservations.length,
     Pending: reservations.filter(function (r) { return r.status === 'pending' }).length,
+    Awaiting_Payment: reservations.filter(function (r) { return r.status === 'awaiting_payment' }).length,
     Confirmed: reservations.filter(function (r) { return r.status === 'confirmed' }).length,
     Completed: reservations.filter(function (r) { return r.status === 'completed' }).length,
     Cancelled: reservations.filter(function (r) { return r.status === 'cancelled' }).length,
@@ -129,12 +179,12 @@ export default function Reservations() {
 
       <div className="p-6 space-y-4">
         {/* Hide scrollbar utility class can be added inline or in css */}
-        <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 snap-x" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 snap-x" style={{ scrollbarWidth: 'none' }}>
           {STATUSES.map(function (s) {
             return (
               <div key={s} onClick={function () { setFilter(s) }}
-                className={'flex-shrink-0 w-[28%] sm:w-auto p-2 sm:p-3 rounded-lg sm:rounded-xl border cursor-pointer transition-all snap-start ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
-                <p className="text-[9px] sm:text-[11px] text-stone-400 mb-0.5 sm:mb-1">{s}</p>
+                className={'flex-shrink-0 w-[35%] sm:w-auto p-2 sm:p-3 rounded-lg sm:rounded-xl border cursor-pointer transition-all snap-start ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
+                <p className="text-[9px] sm:text-[10px] text-stone-400 mb-0.5 sm:mb-1 truncate">{s.replace('_', ' ')}</p>
                 <p className={'text-base sm:text-xl font-bold leading-tight ' + (filter === s ? 'text-[#0F6E56]' : 'text-stone-800')}>{totals[s]}</p>
               </div>
             )
@@ -151,10 +201,10 @@ export default function Reservations() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px] sm:min-w-0">
+              <table className="w-full min-w-[650px] sm:min-w-0">
                 <thead>
                   <tr className="border-b border-stone-100">
-                    {['Tenant', 'Property', 'Check-in', 'Duration', 'Amount', 'Status'].map(function (h) {
+                    {['Tenant', 'Property', 'Check-in', 'Duration', 'Expires On', 'Amount', 'Status'].map(function (h) {
                       return <th key={h} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
                     })}
                     <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Actions</th>
@@ -173,38 +223,98 @@ export default function Reservations() {
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_name || getPropName(r.property_id)}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.check_in}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.duration_months} mo.</td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-red-500 whitespace-nowrap font-medium">
+                          {(() => {
+                            if (!r.check_in) return '—'
+                            const d = new Date(r.check_in)
+                            d.setMonth(d.getMonth() + (r.duration_months || 1))
+                            return d.toLocaleDateString()
+                          })()}
+                        </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'}>{r.status}</Badge></td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'} className="text-[9px] sm:text-[10px] truncate">{r.status.replace('_', ' ')}</Badge></td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 flex-wrap">
                             {(isAdmin || isOwner) && r.status === 'pending' && (
                               <div className="flex gap-1 sm:gap-2">
-                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="primary" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'confirmed') }}>
-                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Approve
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="primary" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'awaiting_payment') }}>
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Req. Payment
                                 </Button>
                                 <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
                                   <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-red-400" /> <span className="text-red-500">Reject</span>
                                 </Button>
                               </div>
                             )}
+                            
+                            {(isAdmin || isOwner) && r.status === 'awaiting_payment' && (
+                              <div className="flex gap-1 sm:gap-2">
+                                {r.payment_receipt_url && (
+                                  <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto border border-blue-500 text-blue-600 hover:bg-blue-50" variant="ghost" disabled={actioning === r.id} onClick={() => window.open(r.payment_receipt_url, '_blank')}>
+                                    View Receipt
+                                  </Button>
+                                )}
+                                {!r.payment_receipt_url && (
+                                  <span className="text-[9px] sm:text-[10px] text-stone-400 italic px-1 whitespace-nowrap">Awaiting upload...</span>
+                                )}
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto" variant="primary" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'confirmed') }}>
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Confirm
+                                </Button>
+                                <Button className="px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+
+                            {isTenant && r.status === 'pending' && (
+                              <div className="flex gap-1 sm:gap-2">
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                  <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Cancel Request
+                                </Button>
+                              </div>
+                            )}
+
+                            {isTenant && r.status === 'awaiting_payment' && (
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <label className={"cursor-pointer px-2 py-1 flex items-center gap-1 rounded text-[9px] sm:text-[11px] transition-colors whitespace-nowrap " + (r.payment_receipt_url ? 'bg-stone-200 text-stone-700 hover:bg-stone-300' : 'bg-blue-500 text-white hover:bg-blue-600')}>
+                                  <Upload size={12} /> {r.payment_receipt_url ? 'Re-upload Receipt' : 'Upload Receipt'}
+                                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleUploadReceipt(r.id, e)} disabled={actioning === r.id} />
+                                </label>
+                                {r.payment_receipt_url && <span className="text-[9px] sm:text-[10px] text-green-600 font-medium">Uploaded</span>}
+                                <Button className="px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+
                             {(isAdmin || isOwner) && r.status === 'confirmed' && (
                               <div className="flex gap-1 sm:gap-2">
-                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
+                                <label className={"cursor-pointer px-1.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1 rounded text-[9px] sm:text-[11px] transition-colors whitespace-nowrap border " + (r.contract_url ? 'border-blue-500 text-blue-600 hover:bg-blue-50' : 'bg-blue-500 text-white hover:bg-blue-600')}>
+                                  <Upload size={12} /> {r.contract_url ? 'Update Contract' : 'Upload Contract'}
+                                  <input type="file" className="hidden" accept="application/pdf,image/*" onChange={(e) => handleUploadContract(r.id, e)} disabled={actioning === r.id} />
+                                </label>
+                                {r.contract_url && (
+                                  <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto border border-stone-200" variant="ghost" disabled={actioning === r.id} onClick={() => setViewContractUrl(r.contract_url)}>
+                                    View Contract
+                                  </Button>
+                                )}
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
                                   <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Cancel
                                 </Button>
-                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
                                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Delete
                                 </Button>
                               </div>
                             )}
+
                             {(isAdmin || isOwner) && ['completed', 'cancelled'].includes(r.status) && (
-                              <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[12px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
+                              <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
                                 <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Delete
                               </Button>
                             )}
+
                             {isTenant && (r.status === 'confirmed' || r.status === 'completed') && (
                               <button 
-                                className="px-2 py-1 flex items-center gap-1 rounded bg-[#1D9E75] text-white text-[9px] hover:bg-[#0F6E56] transition-colors"
+                                className="px-2 py-1 flex items-center gap-1 rounded bg-[#1D9E75] text-white text-[9px] sm:text-[11px] hover:bg-[#0F6E56] transition-colors"
                                 onClick={() => setReviewModal({ isOpen: true, propertyId: r.property_id, propertyName: getPropName(r.property_id) })}
                               >
                                 <Star size={10} fill="currentColor" /> Review
@@ -227,7 +337,12 @@ export default function Reservations() {
         onClose={() => setReviewModal({ isOpen: false, propertyId: null, propertyName: '' })}
         propertyId={reviewModal.propertyId}
         propertyName={reviewModal.propertyName}
-        onReviewAdded={() => alert('Review added successfully!')}
+        onReviewAdded={() => addToast('Review added successfully!', 'success')}
+      />
+
+      <ContractViewerModal 
+        url={viewContractUrl} 
+        onClose={() => setViewContractUrl(null)} 
       />
     </div>
   )

@@ -1,70 +1,30 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, Button, Badge } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
-import { Plus, Download, Calendar, Star, TrendingUp, ArrowRight } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
-
-var BUDGETS = [
-  { value: '1k-2k', label: '₱1,000–₱2,000', min: 1000, max: 2000 },
-  { value: '2k-3.5k', label: '₱2,000–₱3,500', min: 2000, max: 3500 },
-  { value: '3.5k+', label: '₱3,500+', min: 3500, max: 99999 },
-]
-
-function scoreProperty(p, opts) {
-  var score = 0
-  var budget = opts.budget
-  var municipality = opts.municipality
-  var amenityPrefs = opts.amenityPrefs
-
-  if (p.price_monthly >= budget.min && p.price_monthly <= budget.max) score += 30
-  if (municipality === 'Any' || p.municipality === municipality) score += 25
-  score += Math.round(((p.rating || 0) / 5) * 20)
-  amenityPrefs.forEach(function(pref) {
-    if ((p.amenities || []).indexOf(pref) !== -1) score += 5
-  })
-  if ((p.available_rooms || 0) > 0) score += 10
-  return Math.min(score, 100)
-}
+import { formatCurrency, calculateNextDueDate } from '@/lib/utils'
 
 export default function TenantDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
-  const [stats, setStats] = useState({ reservations: 0, favorites: 0, recommendedCount: 0 })
   const [recentActivity, setRecentActivity] = useState([])
+  const [landlordData, setLandlordData] = useState(null)
+  const [transactions, setTransactions] = useState([])
 
   var loadData = useCallback(function() {
     if (!user?.id) return
     Promise.all([
       useAuthStore.getState().fetchReservations({ tenantId: user.id }),
-      useAuthStore.getState().fetchProperties({ status: 'active' }),
+      useAuthStore.getState().fetchMyLandlord(user.id),
+      useAuthStore.getState().fetchTransactions()
     ]).then(function(results) {
-      var allProps = results[1] || []
-      var recommendedCount = 0
-      
-      if (user?.preferences) {
-        var budgetVal = user.preferences.budget || '2k-3.5k'
-        var budgetObj = BUDGETS.find(function(b) { return b.value === budgetVal }) || BUDGETS[1]
-        var opts = {
-          budget: budgetObj,
-          municipality: user.preferences.municipality || 'Any',
-          amenityPrefs: user.preferences.amenityPrefs || []
-        }
-        recommendedCount = allProps
-          .map(function(p) { return scoreProperty(p, opts) })
-          .filter(function(score) { return score >= 50 }).length
-      } else {
-        recommendedCount = allProps.slice(0, 4).length
-      }
-
-      setStats({
-        reservations: results[0].length,
-        favorites: 0,
-        recommendedCount: recommendedCount,
-      })
       setRecentActivity(results[0].slice(0, 5))
+      setLandlordData(results[1])
+      setTransactions(results[2])
+    }).catch(function(err) {
+      console.error(err)
     })
-  }, [user])
+  }, [user?.id])
 
   useFocusRefresh(loadData, [user?.id])
 
@@ -77,6 +37,15 @@ export default function TenantDashboard() {
     return 'Good evening'
   }
 
+  function getExpirationDate(res) {
+    if (!res || !res.check_in || !res.duration_months) return 'No active contract'
+    var d = new Date(res.check_in)
+    d.setMonth(d.getMonth() + res.duration_months)
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  var dueData = landlordData?.reservation ? calculateNextDueDate(landlordData.reservation, transactions) : null
+
   return (
     <div className="page-enter">
       <div className="px-6 pt-5 pb-1">
@@ -85,23 +54,57 @@ export default function TenantDashboard() {
       </div>
 
       <div className="p-6 space-y-5">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          <Card className="p-3 sm:p-4">
-            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Active Reservations</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#0F6E56' }}>{stats.reservations}</p>
-            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">View your bookings</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#0F6E56' }}>
+            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">My Landlord</p>
+            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
+              {landlordData?.landlord?.full_name || 'N/A'}
+            </p>
+            <p className="text-[12px] text-stone-500 truncate">
+              {landlordData?.landlord ? (landlordData.landlord.contact || 'No contact info provided') : 'No active landlord'}
+            </p>
           </Card>
-          <Card className="p-3 sm:p-4">
-            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Saved Properties</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#BA7517' }}>{stats.favorites}</p>
-            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">Favorite listings</p>
+          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#BA7517' }}>
+            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">My Contract</p>
+            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
+              {landlordData?.property?.name || 'N/A'}
+            </p>
+            <p className="text-[12px] text-stone-500 truncate">
+              {landlordData?.property && landlordData?.reservation ? formatCurrency(landlordData.reservation.amount_total / landlordData.reservation.duration_months) + ' / mo' : 'No active contract'}
+            </p>
           </Card>
-          <Card className="p-3 sm:p-4">
-            <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Recommended</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#1D9E75' }}>{stats.recommendedCount}</p>
-            <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 truncate">For you</p>
+          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#1D9E75' }}>
+            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">Contract Expiration</p>
+            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
+              {getExpirationDate(landlordData?.reservation)}
+            </p>
+            <p className="text-[12px] text-stone-500 truncate">
+              {landlordData?.reservation ? landlordData.reservation.duration_months + ' months total' : 'No active contract'}
+            </p>
           </Card>
         </div>
+
+        {dueData && (dueData.isOverdue || dueData.isUpcoming) && (
+          <div className={`p-4 rounded-xl border-l-4 shadow-sm flex items-start gap-3 ${dueData.isOverdue ? 'bg-red-50 border-red-500' : 'bg-orange-50 border-orange-500'}`}>
+            <div className={`p-2 rounded-full ${dueData.isOverdue ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+              <h4 className={`font-bold text-sm ${dueData.isOverdue ? 'text-red-800' : 'text-orange-800'}`}>
+                {dueData.isOverdue ? 'Rent is Overdue' : 'Rent is Due Soon'}
+              </h4>
+              <p className={`text-xs mt-1 ${dueData.isOverdue ? 'text-red-700' : 'text-orange-700'}`}>
+                Your monthly rent is <strong>{formatCurrency(landlordData.reservation.amount_total / landlordData.reservation.duration_months)}</strong>. 
+                You have verified payments of {formatCurrency((landlordData.reservation.amount_total / landlordData.reservation.duration_months) - dueData.amountDue)} for this billing cycle.
+                <br />
+                Please log a payment for your remaining balance of <strong>{formatCurrency(dueData.amountDue)}</strong> {dueData.isOverdue ? 'as soon as possible.' : `by ${dueData.dateString}.`}
+              </p>
+              <Link to="/tenant/payments" className={`inline-flex items-center gap-1 mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg ${dueData.isOverdue ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'} transition-colors`}>
+                Pay Remaining Balance &rarr;
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4">
           <Card className="p-0 overflow-hidden">
@@ -113,11 +116,11 @@ export default function TenantDashboard() {
                 return (
                   <div key={a.id} className="flex items-center gap-2 sm:gap-2.5 py-1.5 sm:py-2 border-b border-stone-50 last:border-0">
                     <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[9px] sm:text-[10px] font-semibold text-[#0F6E56]">
-                      {(a.property_id || '??').substring(0, 2).toUpperCase()}
+                      {(a.property_name || a.property_id || '??').substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] sm:text-[12px] font-medium text-stone-800 truncate">Reservation</p>
-                      <p className="text-[9px] sm:text-[10px] text-stone-400 truncate">{a.property_id ? a.property_id.substring(0, 8) : '—'}</p>
+                      <p className="text-[11px] sm:text-[12px] font-medium text-stone-800 truncate">Reservation: {a.property_name || 'Property'}</p>
+                      <p className="text-[9px] sm:text-[10px] text-stone-400 truncate">{new Date(a.created_at).toLocaleDateString()}</p>
                     </div>
                     <Badge variant={a.status === 'pending' ? 'amber' : a.status === 'confirmed' ? 'teal' : 'gray'} className="text-[9px] sm:text-[11px]">
                       {a.status}

@@ -143,7 +143,7 @@ export default function PropertyMap({
           <p style="font-size:11px;color:#888780;margin:0 0 6px">📍 ${p.address}</p>
           <p style="font-size:11px;font-weight:500;color:#78716c;background:#f5f5f4;padding:2px 6px;border-radius:4px;display:inline-block;margin:0 0 8px">Prices vary</p>
           <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;background:${isFull ? '#FAECE7' : '#E1F5EE'};color:${isFull ? '#D85A30' : '#0F6E56'}">
-            ${isFull ? 'Fully Booked' : (p.available_rooms) + ' rooms left'}
+            ${isFull ? 'No Available Rooms' : (p.available_rooms) + ' rooms left'}
           </span>
           ${onSelect ? `<br/><button
             onclick="window.__ssSelectProp('${p.id}')"

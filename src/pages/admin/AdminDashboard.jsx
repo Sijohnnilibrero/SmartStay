@@ -7,6 +7,8 @@ import { Users, Home, Calendar, Shield, AlertTriangle, TrendingUp } from 'lucide
 export default function AdminDashboard() {
   const [stats, setStats] = useState([])
   const [recent, setRecent] = useState([])
+  const [expiringPermits, setExpiringPermits] = useState([])
+  const [actioningId, setActioningId] = useState(null)
   const wasHiddenRef = useRef(false)
 
   const loadData = useCallback(function() {
@@ -27,6 +29,14 @@ export default function AdminDashboard() {
         { label: 'Open Complaints', value: 0, icon: AlertTriangle, color: 'rose' },
       ])
       setRecent(reservations.slice(0, 5))
+
+      var now = new Date()
+      var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      var expiring = properties.filter(function(p) {
+        if (!p.permit_expires_on || p.status === 'inactive') return false
+        return new Date(p.permit_expires_on) <= thirtyDays
+      })
+      setExpiringPermits(expiring)
     })
   }, [])
 
@@ -87,6 +97,28 @@ export default function AdminDashboard() {
           </Card>
 
           <div className="space-y-3 sm:space-y-4">
+            {expiringPermits.length > 0 && (
+              <Card className="p-0 overflow-hidden border-amber-200">
+                <div className="bg-amber-50 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 border-b border-amber-100">
+                  <AlertTriangle size={16} className="text-amber-600" />
+                  <h3 className="font-semibold text-[12px] sm:text-[14px] text-amber-900 uppercase tracking-wide">Expiring Permits ({expiringPermits.length})</h3>
+                </div>
+                <div className="divide-y divide-stone-100 max-h-[200px] overflow-y-auto">
+                  {expiringPermits.map(p => {
+                    const isExpired = new Date(p.permit_expires_on) < new Date()
+                    return (
+                      <Link key={p.id} to={`/admin/properties/${p.id}`} className="block px-3 py-2 hover:bg-stone-50 transition-colors">
+                        <p className="text-[12px] sm:text-sm font-semibold text-stone-800 truncate">{p.name}</p>
+                        <p className={`text-[10px] sm:text-xs font-medium ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
+                          {isExpired ? 'Expired: ' : 'Expires: '} {new Date(p.permit_expires_on).toLocaleDateString()}
+                        </p>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </Card>
+            )}
+
             <p className="font-medium text-[12px] sm:text-[14px] text-stone-800 uppercase tracking-wide px-1 sm:px-0">Quick Links</p>
             <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
               {[

@@ -11,8 +11,8 @@ var BUDGETS = [
   { value: '2k-3.5k', label: '₱2,000–₱3,500', min: 2000, max: 3500 },
   { value: '3.5k+', label: '₱3,500+', min: 3500, max: 99999 },
 ]
-var MUNICIPALITIES = ['Any', 'Basco', 'Ivana', 'Mahatao', 'Uyugan']
-var PREFS = ['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished']
+var MUNICIPALITIES = ['Any', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
+var PREFS = ['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished']
 
 function scoreProperty(p, opts) {
   var score = 0

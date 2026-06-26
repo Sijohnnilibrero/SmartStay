@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import { useAppStore } from '@/store/useAppStore'
 import { Menu } from 'lucide-react'
+import Toaster from '@/components/ui/Toaster'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function AppLayout() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
@@ -48,6 +50,10 @@ export default function AppLayout() {
 
         <Outlet />
       </main>
+
+      {/* Global Overlays */}
+      <Toaster />
+      <ConfirmModal />
     </div>
   )
 }

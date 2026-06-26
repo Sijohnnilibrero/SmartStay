@@ -53,3 +53,50 @@ export function getAvatarColor(initials) {
   const idx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % colors.length
   return colors[idx]
 }
+
+export function calculateNextDueDate(reservation, transactions) {
+  if (!reservation || !reservation.check_in || !reservation.amount_total || !reservation.duration_months) return null
+  
+  var monthlyRent = reservation.amount_total / reservation.duration_months
+  if (monthlyRent <= 0) return null
+
+  // Calculate how many months have been verified paid
+  var totalPaid = 0
+  if (transactions && transactions.length > 0) {
+    totalPaid = transactions
+      .filter(t => t.status === 'verified' && (t.payment_type === 'monthly_rent' || t.payment_type === 'initial_deposit'))
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+  }
+
+  var monthsPaid = Math.floor(totalPaid / monthlyRent)
+  var remainder = totalPaid % monthlyRent
+  var amountDue = monthlyRent - remainder
+
+  // Next due date = check_in date + monthsPaid
+  var d = new Date(reservation.check_in)
+  d.setMonth(d.getMonth() + monthsPaid)
+  
+  // Normalize today to start of day for accurate comparison
+  var today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  var dueDateOnly = new Date(d)
+  dueDateOnly.setHours(0, 0, 0, 0)
+
+  var isOverdue = dueDateOnly < today
+
+  // Diff in days
+  var diffTime = dueDateOnly - today
+  var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  var isUpcoming = diffDays >= 0 && diffDays <= 5
+
+  return {
+    date: d,
+    dateString: d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }),
+    isOverdue,
+    isUpcoming,
+    daysUntil: diffDays,
+    amountDue: amountDue,
+    monthsPaid
+  }
+}

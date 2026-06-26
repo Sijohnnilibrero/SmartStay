@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Badge, Button } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import { Users, Search, MessageSquare, X, AlertTriangle } from 'lucide-react'
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
@@ -37,6 +38,7 @@ export default function HomeownerTenants() {
   var errorState = useState(null)
   var errorMsg = errorState[0], setErrorMsg = errorState[1]
   var wasHiddenRef = useRef(false)
+  var addToast = useAppStore(function(s) { return s.addToast })
 
   var loadTenants = useCallback(function() {
     setLoading(true)
@@ -64,7 +66,9 @@ export default function HomeownerTenants() {
               reservation_status: r.status,
               ended_at: r.ended_at,
               property_name: propName,
-              reservation_created: r.created_at
+              reservation_created: r.created_at,
+              check_in: r.check_in,
+              duration_months: r.duration_months
             })
           }
         })
@@ -100,7 +104,7 @@ export default function HomeownerTenants() {
       setEndingTenant(null)
       loadTenants()
     }).catch(function(err) {
-      alert('Failed to end contract: ' + err.message)
+      addToast('Failed to end contract: ' + err.message, 'error')
       setLoading(false)
     })
   }
@@ -193,6 +197,9 @@ export default function HomeownerTenants() {
                   {['Tenant', 'Type', 'Property', 'Joined'].map(function(h, idx) {
                     return <th key={h || idx} className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">{h}</th>
                   })}
+                  {activeTab === 'active' && (
+                    <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Expires On</th>
+                  )}
                   {activeTab === 'past' && (
                     <th className="text-left px-3 py-2 sm:px-4 sm:py-3 text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 font-medium">Ended On</th>
                   )}
@@ -225,6 +232,16 @@ export default function HomeownerTenants() {
                       <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">
                         {t.reservation_created ? new Date(t.reservation_created).toLocaleDateString() : '—'}
                       </td>
+                      {activeTab === 'active' && (
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-red-500 whitespace-nowrap font-medium">
+                          {(() => {
+                            if (!t.check_in) return '—'
+                            const d = new Date(t.check_in)
+                            d.setMonth(d.getMonth() + (t.duration_months || 1))
+                            return d.toLocaleDateString()
+                          })()}
+                        </td>
+                      )}
                       {activeTab === 'past' && (
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">
                           {t.ended_at ? new Date(t.ended_at).toLocaleDateString() : '—'}

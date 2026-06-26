@@ -296,6 +296,21 @@ export const useAuthStore = create(
         return urlData.publicUrl
       },
 
+      uploadPropertyPermit: async (file, propertyId) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        const ext = file.name.split('.').pop()
+        const path = `${user.id}/${propertyId || 'new'}_permit_${Date.now()}.${ext}`
+        const { data, error } = await supabase.storage
+          .from('property-permits')
+          .upload(path, file, { upsert: true, contentType: file.type })
+        if (error) throw error
+        const { data: urlData } = supabase.storage
+          .from('property-permits')
+          .getPublicUrl(data.path)
+        return urlData.publicUrl
+      },
+
       createProperty: async (propertyData) => {
         const user = get().user
         if (!user) throw new Error('Not authenticated')
@@ -315,6 +330,8 @@ export const useAuthStore = create(
           longitude: propertyData.longitude || null,
           location: propertyData.location || null,
           image_url: propertyData.image_url || null,
+          permit_urls: propertyData.permit_urls || [],
+          permit_expires_on: propertyData.permit_expires_on || null,
         }).select().single()
         if (error) throw error
         return data
@@ -335,6 +352,8 @@ export const useAuthStore = create(
           longitude: propertyData.longitude,
           location: propertyData.location || null,
           image_url: propertyData.image_url !== undefined ? propertyData.image_url : undefined,
+          permit_urls: propertyData.permit_urls !== undefined ? propertyData.permit_urls : undefined,
+          permit_expires_on: propertyData.permit_expires_on !== undefined ? propertyData.permit_expires_on : undefined,
         }).eq('id', id).select().single()
         if (error) throw error
         return data
@@ -470,6 +489,25 @@ export const useAuthStore = create(
         const sessionUser = (await supabase.auth.getSession()).data.session?.user
         const userId = sessionUser?.id || get().user?.id
         if (!userId) throw new Error('Not authenticated')
+
+        // 1. Fetch user's current active reservations
+        const { data: activeRes, error: fetchErr } = await supabase.from('reservations')
+          .select('room_id')
+          .eq('tenant_id', userId)
+          .in('status', ['pending', 'awaiting_payment', 'confirmed'])
+        
+        if (fetchErr) throw fetchErr
+
+        // 2. Check duplicate room reservation
+        if (activeRes.some(r => r.room_id === reservationData.room_id)) {
+           throw new Error('You already have an active reservation for this room.')
+        }
+
+        // 3. Check max 3 reservations limit
+        if (activeRes.length >= 3) {
+           throw new Error('You have reached the maximum limit of 3 active reservations. Please cancel one before reserving again.')
+        }
+
         const { data, error } = await supabase.from('reservations').insert({
           tenant_id: userId,
           owner_id: reservationData.owner_id || null,
@@ -486,6 +524,14 @@ export const useAuthStore = create(
       },
 
       updateReservationStatus: async (id, status) => {
+        if (get().isTenant() && status === 'cancelled') {
+          const { data: rData } = await supabase.from('reservations').select('property_id').eq('id', id).single()
+          const { error } = await supabase.rpc('tenant_cancel_reservation', { res_id: id })
+          if (error) throw error
+          if (rData?.property_id) await get().syncPropertyRooms(rData.property_id)
+          return
+        }
+
         const updateData = { status }
         if (status === 'completed') {
           updateData.ended_at = new Date().toISOString()
@@ -494,8 +540,9 @@ export const useAuthStore = create(
         if (error) throw error
         
         if (data.room_id) {
-          const isAvailable = status !== 'confirmed';
-          const { error: roomErr } = await supabase.from('rooms').update({ is_available: isAvailable }).eq('id', data.room_id)
+          const isAvailable = !['confirmed', 'awaiting_payment'].includes(status);
+          const roomStatus = status === 'confirmed' ? 'occupied' : (status === 'awaiting_payment' ? 'ongoing_transaction' : 'available');
+          const { error: roomErr } = await supabase.from('rooms').update({ is_available: isAvailable, status: roomStatus }).eq('id', data.room_id)
           if (roomErr) throw roomErr;
           await get().syncPropertyRooms(data.property_id)
         }
@@ -509,9 +556,138 @@ export const useAuthStore = create(
         if (error) throw error
         
         if (res?.room_id) {
-          await supabase.from('rooms').update({ is_available: true }).eq('id', res.room_id)
+          await supabase.from('rooms').update({ is_available: true, status: 'available' }).eq('id', res.room_id)
           await get().syncPropertyRooms(res.property_id)
         }
+      },
+
+      uploadPaymentReceipt: async (file, reservationId) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const ext = file.name.split('.').pop()
+        const path = `${user.id}/${reservationId}_receipt_${Date.now()}.${ext}`
+        
+        const { data, error } = await supabase.storage
+          .from('payment-receipts')
+          .upload(path, file, { upsert: true, contentType: file.type })
+          
+        if (error) throw error
+        
+        const { data: urlData } = supabase.storage
+          .from('payment-receipts')
+          .getPublicUrl(data.path)
+          
+        // Update the reservation with the receipt URL
+        const { error: updateError } = await supabase
+          .from('reservations')
+          .update({ payment_receipt_url: urlData.publicUrl })
+          .eq('id', reservationId)
+          
+        if (updateError) throw updateError
+        
+        return urlData.publicUrl
+      },
+
+      uploadContract: async (file, reservationId) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const ext = file.name.split('.').pop()
+        const path = `${user.id}/${reservationId}_contract_${Date.now()}.${ext}`
+        
+        const { data, error } = await supabase.storage
+          .from('contracts')
+          .upload(path, file, { upsert: true, contentType: file.type })
+          
+        if (error) throw error
+        
+        const { data: urlData } = supabase.storage
+          .from('contracts')
+          .getPublicUrl(data.path)
+          
+        // Update the reservation with the contract URL
+        const { error: updateError } = await supabase
+          .from('reservations')
+          .update({ contract_url: urlData.publicUrl })
+          .eq('id', reservationId)
+          
+        if (updateError) throw updateError
+        
+        return urlData.publicUrl
+      },
+
+      // ── Transactions ───────────────────────────────────────────────────────
+      fetchTransactions: async () => {
+        let query = supabase.from('transactions').select(`
+          *,
+          reservation:reservations(status, room_id, rooms(room_number)),
+          property:properties(name, address),
+          tenant:profiles!tenant_id(full_name),
+          owner:profiles!owner_id(full_name)
+        `).order('payment_date', { ascending: false })
+        
+        const { data, error } = await query
+        if (error) throw error
+        return data || []
+      },
+
+      createTransaction: async (txData) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const { data, error } = await supabase.from('transactions').insert({
+          reservation_id: txData.reservation_id,
+          tenant_id: user.id,
+          owner_id: txData.owner_id,
+          property_id: txData.property_id,
+          amount: txData.amount,
+          payment_type: txData.payment_type,
+          payment_date: txData.payment_date,
+          receipt_url: txData.receipt_url,
+          status: 'pending_verification'
+        }).select().single()
+        
+        if (error) throw error
+        return data
+      },
+
+      updateTransactionStatus: async (id, status) => {
+        const { data, error } = await supabase.from('transactions').update({ status }).eq('id', id).select().single()
+        if (error) throw error
+        return data
+      },
+
+      updateTransaction: async (id, updates) => {
+        const { data, error } = await supabase.from('transactions').update(updates).eq('id', id).select().single()
+        if (error) throw error
+        return data
+      },
+
+      deleteTransaction: async (id) => {
+        const { error } = await supabase.from('transactions').delete().eq('id', id)
+        if (error) throw error
+        return true
+      },
+
+      uploadTransactionReceipt: async (file) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const ext = file.name.split('.').pop()
+        const path = `${user.id}/tx_${Date.now()}.${ext}`
+        
+        const { data, error } = await supabase.storage
+          .from('payment-receipts')
+          .upload(path, file, { upsert: true, contentType: file.type })
+          
+        if (error) throw error
+        
+        const { data: urlData } = supabase.storage
+          .from('payment-receipts')
+          .getPublicUrl(data.path)
+          
+        return urlData.publicUrl
       },
 
       // ── Reviews ────────────────────────────────────────────────────────────

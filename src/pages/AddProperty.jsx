@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import Topbar from '@/components/layout/Topbar'
 import { Button, Card, CardHeader, CardTitle, Input, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import PropertyMap from '@/components/map/PropertyMap'
-import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home } from 'lucide-react'
+import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home, CheckCircle2 } from 'lucide-react'
 
-const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan']
-const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
+const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
+const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
 
 const PLACEHOLDER_IMAGES = [
   '/images/property_1.png',
@@ -17,8 +19,9 @@ const PLACEHOLDER_IMAGES = [
 
 var EMPTY_FORM = {
   name: '', description: '', address: '', municipality: 'Basco', island: 'Batan',
+  house_number: '', street: '', barangay: '', landmark: '',
   total_rooms: '', amenities: [],
-  latitude: null, longitude: null, image_url: null,
+  latitude: null, longitude: null, image_url: null, permit_urls: [], permit_expires_on: '',
 }
 
 export default function AddProperty() {
@@ -31,16 +34,21 @@ export default function AddProperty() {
   var updateProperty = useAuthStore(function(s) { return s.updateProperty })
   var fetchProperty  = useAuthStore(function(s) { return s.fetchProperty })
   var uploadPropertyImage = useAuthStore(function(s) { return s.uploadPropertyImage })
+  var uploadPropertyPermit = useAuthStore(function(s) { return s.uploadPropertyPermit })
   var createRoom = useAuthStore(function(s) { return s.createRoom })
   var uploadRoomImages = useAuthStore(function(s) { return s.uploadRoomImages })
   var isLoading = useAuthStore(function(s) { return s.isLoading })
+  var addToast = useAppStore(function(s) { return s.addToast })
 
   var [error, setError] = useState('')
   var [form, setForm] = useState(EMPTY_FORM)
   var [imageFile, setImageFile] = useState(null)
   var [imagePreview, setImagePreview] = useState(null)
+  var [permitFiles, setPermitFiles] = useState([])
   var [uploading, setUploading] = useState(false)
   var [dragOver, setDragOver] = useState(false)
+  var [permitPreviewModal, setPermitPreviewModal] = useState(false)
+  var [activePermitPreview, setActivePermitPreview] = useState(null)
   var fileInputRef = useRef(null)
 
   var [otherProperties, setOtherProperties] = useState([])
@@ -64,6 +72,10 @@ export default function AddProperty() {
         name: p.name || '',
         description: p.description || '',
         address: p.address || '',
+        house_number: p.house_number || '',
+        street: p.street || '',
+        barangay: p.barangay || '',
+        landmark: p.landmark || '',
         municipality: p.municipality || 'Basco',
         island: p.island || 'Batan',
         total_rooms: p.total_rooms != null ? String(p.total_rooms) : '',
@@ -71,6 +83,8 @@ export default function AddProperty() {
         latitude: p.latitude || null,
         longitude: p.longitude || null,
         image_url: p.image_url || null,
+        permit_urls: p.permit_urls || (p.permit_url ? [p.permit_url] : []),
+        permit_expires_on: p.permit_expires_on || ''
       })
       if (p.image_url) setImagePreview(p.image_url)
     }).catch(function(err) {
@@ -121,8 +135,29 @@ export default function AddProperty() {
     })
   }
 
-  function handlePickLocation(lat, lng) {
+  async function handlePickLocation(lat, lng) {
     setForm(function(f) { return Object.assign({}, f, { latitude: lat, longitude: lng }) })
+    try {
+      var res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      var data = await res.json()
+      if (data && data.address) {
+        setForm(function(f) {
+          var next = Object.assign({}, f)
+          var st = data.address.road || data.address.pedestrian
+          if (st) next.street = st
+          var brgy = data.address.village || data.address.suburb || data.address.neighbourhood || data.address.quarter
+          if (brgy) next.barangay = brgy
+          var muni = data.address.town || data.address.city || data.address.municipality || data.address.county
+          if (muni) {
+            var m = muni.replace('Municipality of ', '')
+            if (MUNICIPALITIES.includes(m)) next.municipality = m
+          }
+          return next
+        })
+      }
+    } catch(err) {
+      console.error('Geocoding failed:', err)
+    }
   }
 
   function handleFileSelect(file) {
@@ -172,7 +207,7 @@ export default function AddProperty() {
   function handleRoomDraftImages(idx, files) {
     if (!files || files.length === 0) return
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size <= 5 * 1024 * 1024)
-    if (validFiles.length < files.length) alert('Some files ignored. Max 5 MB images only.')
+    if (validFiles.length < files.length) addToast('Some files ignored. Max 5 MB images only.', 'error')
     setRoomDrafts(function(prev) {
       var next = [...prev]
       next[idx] = {
@@ -200,8 +235,18 @@ export default function AddProperty() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!form.name.trim() || !form.address.trim()) {
-      setError('Please fill in all required property fields.')
+    if (!form.name.trim() || !form.street.trim() || !form.barangay.trim()) {
+      setError('Please fill in all required property fields (Name, Street, Barangay).')
+      return
+    }
+
+    if (!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0)) {
+      setError('Please provide a Business Permit.')
+      return
+    }
+
+    if ((permitFiles.length > 0 || (form.permit_urls && form.permit_urls.length > 0)) && !form.permit_expires_on) {
+      setError('Please provide the permit expiration date.')
       return
     }
     
@@ -225,10 +270,29 @@ export default function AddProperty() {
       setUploading(false)
     }
 
+    var permitUrls = form.permit_urls || []
+
+    if (permitFiles.length > 0) {
+      setUploading(true)
+      try {
+        const uploaded = await uploadPropertyPermit(permitFiles, propertyId || 'new')
+        permitUrls = [...permitUrls, ...uploaded]
+      } catch (err) {
+        setError('Permit upload failed: ' + (err.message || err))
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
     var payload = Object.assign({}, form, {
       name: form.name.trim(),
       description: form.description.trim(),
-      address: form.address.trim(),
+      address: `${form.house_number ? form.house_number.trim() + ' ' : ''}${form.street ? form.street.trim() + ', ' : ''}${form.barangay ? 'Brgy. ' + form.barangay.trim() : ''}`.trim().replace(/,$/, ''),
+      house_number: form.house_number.trim(),
+      street: form.street.trim(),
+      barangay: form.barangay.trim(),
+      landmark: form.landmark.trim(),
       price_monthly: 0,
       total_rooms: parseInt(form.total_rooms) || 1,
       amenities: form.amenities,
@@ -238,6 +302,8 @@ export default function AddProperty() {
         ? 'SRID=4326;POINT(' + form.longitude + ' ' + form.latitude + ')'
         : null,
       image_url: imageUrl,
+      permit_urls: permitUrls,
+      permit_expires_on: form.permit_expires_on || null,
     })
 
     setUploading(true) // General loading state for combined submit
@@ -342,6 +408,85 @@ export default function AddProperty() {
                     <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleFileInputChange} />
                   </div>
 
+                  {/* Business Permit */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
+                        Business Permit Documents {isEdit ? <span className="text-stone-300 normal-case tracking-normal font-normal">(Already verified/uploaded)</span> : <span className="text-red-400">*</span>}
+                      </label>
+                      <button type="button" onClick={() => document.getElementById('permit_upload_input').click()} className="text-[10px] bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md font-semibold hover:bg-teal-100 flex items-center gap-1 transition-colors">
+                        <Plus size={10} /> Add Permit File
+                      </button>
+                    </div>
+                    
+                    <input
+                      id="permit_upload_input"
+                      type="file"
+                      multiple
+                      accept="application/pdf,image/jpeg,image/png,image/webp"
+                      onChange={(e) => setPermitFiles([...permitFiles, ...Array.from(e.target.files)])}
+                      className="hidden"
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {/* Existing Uploaded Permits */}
+                      {form.permit_urls && form.permit_urls.map((url, idx) => (
+                        <div key={'existing-'+idx} className="flex items-center gap-3 p-2 bg-white border border-stone-200 rounded-xl cursor-pointer hover:border-teal-300 transition-all" onClick={() => window.open(url, '_blank')}>
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0 flex items-center justify-center text-[--teal]">
+                             <CheckCircle2 size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium text-stone-700 truncate">Existing Permit {idx+1}</p>
+                            <p className="text-[9px] text-[--teal] mt-0.5">Verified</p>
+                          </div>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); set('permit_urls', form.permit_urls.filter((_, i) => i !== idx)); }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Newly Selected Permits */}
+                      {permitFiles.map((pFile, idx) => (
+                        <div key={'new-'+idx} className="flex items-center gap-3 p-2 bg-white border border-teal-100 rounded-xl cursor-pointer hover:border-teal-300 transition-all group" onClick={() => { setActivePermitPreview(pFile); setPermitPreviewModal(true); }}>
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
+                            {pFile.type.startsWith('image/') ? (
+                              <img src={URL.createObjectURL(pFile)} className="w-full h-full object-cover" alt="Permit thumbnail" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-stone-500">PDF</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium text-stone-700 truncate">{pFile.name}</p>
+                            <p className="text-[9px] text-[--teal] mt-0.5 flex items-center gap-1"><CheckCircle2 size={10} /> Ready to upload</p>
+                          </div>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setPermitFiles(permitFiles.filter((_, i) => i !== idx)); }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0) && (
+                      <p className="text-[10px] text-stone-400 mt-2">PDF or Image required to list property</p>
+                    )}
+                    
+                    {/* Expiration Date for Permit */}
+                    {(permitFiles.length > 0 || isEdit || (form.permit_urls && form.permit_urls.length > 0)) && (
+                      <div className="mt-4">
+                        <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1">
+                          Permit Expiration Date <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={form.permit_expires_on}
+                          onChange={(e) => set('permit_expires_on', e.target.value)}
+                          className="w-full sm:w-1/2 px-3 py-1.5 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   {/* Name */}
                   <div>
                     <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Property Name *</label>
@@ -354,10 +499,25 @@ export default function AddProperty() {
                     <textarea rows={2} value={form.description} onChange={function(e) { set('description', e.target.value) }} placeholder="Brief description..." className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all resize-none" />
                   </div>
 
-                  {/* Address */}
-                  <div>
-                    <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Address *</label>
-                    <input value={form.address} onChange={function(e) { set('address', e.target.value) }} placeholder="e.g. Naidi Hills, Basco" required className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
+                  {/* Detailed Address */}
+                  <div className="space-y-3">
+                    <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block">Detailed Address *</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <input value={form.house_number} onChange={function(e) { set('house_number', e.target.value) }} placeholder="House/Building No." className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
+                      </div>
+                      <div>
+                        <input value={form.street} onChange={function(e) { set('street', e.target.value) }} placeholder="Street Name *" required className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <input value={form.barangay} onChange={function(e) { set('barangay', e.target.value) }} placeholder="Barangay *" required className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
+                      </div>
+                      <div>
+                        <input value={form.landmark} onChange={function(e) { set('landmark', e.target.value) }} placeholder="Nearest Landmark / Directions" className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Location & Rooms */}
@@ -488,7 +648,7 @@ export default function AddProperty() {
                           <div>
                             <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Amenities</label>
                             <div className="flex flex-wrap gap-1.5">
-                              {['WiFi', 'Water', 'Electric', 'Meals', 'Security', 'Kitchen', 'Parking', 'Laundry'].map((a) => (
+                              {['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry'].map((a) => (
                                 <button key={a} type="button" onClick={() => toggleRoomDraftAmenity(idx, a)} className={'px-2 py-1 rounded-full text-[10px] font-medium border transition-all ' + (draft.amenities.includes(a) ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300 shadow-sm' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:bg-stone-50')}>
                                   {a}
                                 </button>
@@ -507,6 +667,27 @@ export default function AddProperty() {
           </div>
         </form>
       </div>
+
+      {permitPreviewModal && activePermitPreview && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4" onClick={() => setPermitPreviewModal(false)}>
+          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 border-b border-stone-100">
+              <h3 className="font-bold text-sm text-stone-800">Permit Preview</h3>
+              <button className="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors" onClick={() => setPermitPreviewModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="overflow-auto p-4 flex-1 bg-stone-50 flex items-center justify-center">
+              {activePermitPreview.type.startsWith('image/') ? (
+                <img src={URL.createObjectURL(activePermitPreview)} alt="Permit Preview" className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-sm" />
+              ) : (
+                <iframe src={URL.createObjectURL(activePermitPreview)} className="w-[80vw] h-[75vh] max-w-4xl rounded-lg shadow-sm bg-white" title="PDF Preview" />
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

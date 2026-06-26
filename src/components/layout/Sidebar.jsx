@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Sparkles,
-  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare,
+  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare, DollarSign
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -15,6 +15,7 @@ const NAV_ADMIN = [
       { to: '/admin/users', label: 'Users' },
       { to: '/admin/properties', label: 'Properties' },
       { to: '/admin/reservations', label: 'Reservations' },
+      { to: '/admin/ledger', label: 'Ledger', icon: DollarSign },
     ]
   },
   {
@@ -30,6 +31,7 @@ const NAV_OWNER = [
     label: 'Manage', icon: Home, routes: [
       { to: '/owner/properties', label: 'My Properties' },
       { to: '/owner/reservations', label: 'Reservations' },
+      { to: '/owner/ledger', label: 'Ledger', icon: DollarSign },
     ]
   },
   {
@@ -57,6 +59,7 @@ const NAV_TENANT = [
       { to: '/tenant/room', label: 'My Room', icon: BedDouble },
       { to: '/tenant/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
       { to: '/tenant/reservations', label: 'Reservations' },
+      { to: '/tenant/payments', label: 'My Payments', icon: DollarSign },
       { to: '/tenant/landlord', label: 'My Landlord', icon: User },
     ]
   },

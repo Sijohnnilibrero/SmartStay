@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Card, Button } from '@/components/ui'
 import { User, Mail, Phone, MapPin, Save, CheckCircle } from 'lucide-react'
 
-const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan']
+const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
 
 export default function HomeownerProfile() {
   const user = useAuthStore((s) => s.user)
