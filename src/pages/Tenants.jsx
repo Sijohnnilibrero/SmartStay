@@ -132,12 +132,19 @@ export default function Tenants() {
       fetchProperties(),
     ]).then(function (results) {
       var allTenants = results[0] || []
-      if (!isAdmin && user) {
+      if (!isAdmin() && user) {
         var myProps = (results[2] || []).filter(function (p) { return p.owner_id === user.id })
         var myPropIds = myProps.map(function (p) { return p.id })
         var myResIds = (results[1] || []).filter(function (r) { return myPropIds.indexOf(r.property_id) !== -1 }).map(function (r) { return r.tenant_id })
         setTenants(allTenants.filter(function (t) { return myResIds.indexOf(t.id) !== -1 }))
       } else {
+        if (user?.role === 'admin' && user?.admin_region) {
+          if (user.admin_region === 'Batan Island') {
+            allTenants = allTenants.filter(t => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(t.municipality))
+          } else {
+            allTenants = allTenants.filter(t => t.municipality === user.admin_region)
+          }
+        }
         setTenants(allTenants)
       }
       setLoading(false)

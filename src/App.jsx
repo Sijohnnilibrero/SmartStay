@@ -25,6 +25,8 @@ import Messages from '@/pages/Messages'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
 import AdminLedger    from '@/pages/admin/AdminLedger'
+import AdminStaff     from '@/pages/admin/AdminStaff'
+import AdminMap       from '@/pages/admin/AdminMap'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
@@ -40,7 +42,7 @@ export default function App() {
 
   function getRedirectPath() {
     if (!user) return '/login'
-    if (user.role === 'admin') return '/admin'
+    if (user.role === 'admin' || user.role === 'super_admin') return '/admin'
     if (user.role === 'owner') return '/owner'
     return '/tenant'
   }
@@ -85,13 +87,15 @@ export default function App() {
           </Route>
 
           {/* Admin routes - view only */}
-          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']} />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Tenants />} />
             <Route path="properties" element={<Properties />} />
             <Route path="property/:id" element={<AdminPropertyDetails />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="ledger" element={<AdminLedger />} />
+            <Route path="staff" element={<AdminStaff />} />
+            <Route path="map" element={<AdminMap />} />
           </Route>
         </Route>
       </Route>

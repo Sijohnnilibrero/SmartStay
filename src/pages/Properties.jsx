@@ -26,7 +26,7 @@ const AMENITY_ICONS = {
 export default function Properties() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
   const fetchProperties = useAuthStore((s) => s.fetchProperties)
   const updatePropertyStatus = useAuthStore((s) => s.updatePropertyStatus)
   const deleteProperty = useAuthStore((s) => s.deleteProperty)
@@ -45,6 +45,13 @@ export default function Properties() {
     setLoading(true)
     setError('')
     fetchProperties(isAdmin ? {} : { ownerId: user?.id }).then(function (data) {
+      if (user?.role === 'admin' && user?.admin_region) {
+        if (user.admin_region === 'Batan Island') {
+          data = data.filter(p => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(p.municipality))
+        } else {
+          data = data.filter(p => p.municipality === user.admin_region)
+        }
+      }
       setProperties(data)
       setLoading(false)
     }).catch(function (err) {

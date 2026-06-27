@@ -56,6 +56,15 @@ export default function Reservations() {
         data = all.filter(function (r) { return myPropIds.indexOf(r.property_id) !== -1 })
       } else if (!isAdmin) {
         data = all.filter(function (r) { return r.tenant_id === user.id })
+      } else if (isAdmin && user?.admin_region) {
+        var regionProps = results[1] || []
+        if (user.admin_region === 'Batan Island') {
+          regionProps = regionProps.filter(p => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(p.municipality))
+        } else {
+          regionProps = regionProps.filter(p => p.municipality === user.admin_region)
+        }
+        var regionPropIds = regionProps.map(p => p.id)
+        data = all.filter(r => regionPropIds.includes(r.property_id))
       }
 
       setReservations(data)

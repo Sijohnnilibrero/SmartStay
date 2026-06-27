@@ -8,22 +8,25 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { useState, useEffect } from 'react'
 
-const NAV_ADMIN = [
-  { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
-  {
-    label: 'Manage', icon: Users, routes: [
-      { to: '/admin/users', label: 'Users' },
-      { to: '/admin/properties', label: 'Properties' },
-      { to: '/admin/reservations', label: 'Reservations' },
-      { to: '/admin/ledger', label: 'Ledger', icon: DollarSign },
-    ]
-  },
-  {
-    label: 'Analytics', icon: BarChart3, routes: [
-      { to: '/admin/analytics', label: 'Reports' },
-    ]
-  },
-]
+const getAdminNav = (user) => {
+  const isSuper = user?.role === 'super_admin'
+  const manageRoutes = [
+    { to: '/admin/users', label: 'Users' },
+    { to: '/admin/properties', label: 'Properties' },
+    { to: '/admin/reservations', label: 'Reservations' },
+  ]
+  
+  if (isSuper) {
+    manageRoutes.push({ to: '/admin/ledger', label: 'Ledger', icon: DollarSign })
+    manageRoutes.push({ to: '/admin/staff', label: 'Manage Staff', icon: Users })
+  }
+
+  return [
+    { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
+    { label: 'Manage', icon: Users, routes: manageRoutes },
+    { label: 'Discover', icon: Sparkles, routes: [{ to: '/admin/map', label: 'System Map', icon: Map }] }
+  ]
+}
 
 const NAV_OWNER = [
   { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/owner', label: 'Overview' }] },
@@ -71,9 +74,15 @@ const NAV_TENANT = [
   },
 ]
 
-const NAV_BY_ROLE = { admin: NAV_ADMIN, owner: NAV_OWNER, tenant: NAV_TENANT }
-const ROLE_LABEL = { admin: 'Administrator', owner: 'Homeowner', tenant: 'Tenant' }
+const getNavForRole = (user) => {
+  if (user?.role === 'super_admin' || user?.role === 'admin') return getAdminNav(user)
+  if (user?.role === 'owner') return NAV_OWNER
+  return NAV_TENANT
+}
+
+const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Administrator', owner: 'Homeowner', tenant: 'Tenant' }
 const ROLE_COLORS = {
+  super_admin: { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
   admin: { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
   owner: { bg: '#E1F5EE', text: '#0F6E56', accent: '#0F6E56' },
   tenant: { bg: '#FAEEDA', text: '#BA7517', accent: '#BA7517' },
@@ -81,6 +90,7 @@ const ROLE_COLORS = {
 
 // Sidebar gradient backgrounds per role
 const HEADER_GRADIENTS = {
+  super_admin: 'linear-gradient(135deg, #534AB7 0%, #7C3AED 100%)',
   admin: 'linear-gradient(135deg, #534AB7 0%, #7C3AED 100%)',
   owner: 'linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%)',
   tenant: 'linear-gradient(135deg, #BA7517 0%, #D97706 100%)',
@@ -101,9 +111,11 @@ export default function Sidebar() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
 
-  const nav = NAV_BY_ROLE[user?.role] || NAV_TENANT
-  const colors = ROLE_COLORS[user?.role] || ROLE_COLORS.admin
-  const gradient = HEADER_GRADIENTS[user?.role] || HEADER_GRADIENTS.admin
+  const userRole = user?.role || 'tenant'
+  const navItems = getNavForRole(user)
+  const roleColors = ROLE_COLORS[userRole] || ROLE_COLORS.tenant
+  const roleLabel = ROLE_LABEL[userRole] || ROLE_LABEL.tenant
+  const headerBg = HEADER_GRADIENTS[userRole] || HEADER_GRADIENTS.tenant
 
   // Unread message count for badge
   const [unreadMessages, setUnreadMessages] = useState(0)
@@ -132,7 +144,7 @@ export default function Sidebar() {
   return (
     <aside className="flex flex-col w-full md:w-[220px] flex-shrink-0 bg-white md:border-r border-stone-200 h-screen sticky top-0">
       {/* Brand Header */}
-      <div className="px-5 py-5 relative overflow-hidden" style={{ background: gradient }}>
+      <div className="px-5 py-5 relative overflow-hidden" style={{ background: headerBg }}>
         {/* Decorative circle */}
         <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10" />
         <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10" />
@@ -149,15 +161,15 @@ export default function Sidebar() {
       <div className="px-4 py-2.5 border-b border-stone-100">
         <span
           className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
-          style={{ background: colors.bg, color: colors.text }}
+          style={{ background: roleColors.bg, color: roleColors.text }}
         >
-          {ROLE_LABEL[user?.role] || 'Guest'}
+          {roleLabel}
         </span>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-3">
-        {nav.map(function (group) {
+        {navItems.map(function (group) {
           return (
             <div key={group.label} className="mb-3">
               <p className="text-[10px] uppercase tracking-widest text-stone-400 font-medium px-2 py-1.5 flex items-center gap-1.5">
@@ -178,7 +190,7 @@ export default function Sidebar() {
                         ? 'text-white font-medium shadow-sm'
                         : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'
                     )}
-                    style={active ? { background: gradient } : {}}
+                    style={active ? { background: headerBg } : {}}
                   >
                     {route.icon
                       ? <route.icon size={15} className="flex-shrink-0" />
@@ -203,7 +215,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-stone-50">
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center text-[12px] font-bold flex-shrink-0 shadow-sm"
-            style={{ background: colors.bg, color: colors.text }}
+            style={{ background: roleColors.bg, color: roleColors.text }}
           >
             {user?.initials || '??'}
           </div>

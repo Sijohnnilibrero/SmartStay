@@ -17,9 +17,23 @@ export default function AdminDashboard() {
       useAuthStore.getState().fetchProperties(),
       useAuthStore.getState().fetchReservations(),
     ]).then(function(results) {
+      const userState = useAuthStore.getState().user
       var users = results[0] || []
       var properties = results[1] || []
       var reservations = results[2] || []
+
+      if (userState?.role === 'admin' && userState?.admin_region) {
+        if (userState.admin_region === 'Batan Island') {
+          users = users.filter(u => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(u.municipality))
+          properties = properties.filter(p => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(p.municipality))
+        } else {
+          users = users.filter(u => u.municipality === userState.admin_region)
+          properties = properties.filter(p => p.municipality === userState.admin_region)
+        }
+        const propIds = properties.map(p => p.id)
+        reservations = reservations.filter(r => propIds.includes(r.property_id))
+      }
+
       setStats([
         { label: 'Total Tenants', value: users.filter(function(u) { return u.role === 'tenant' }).length, icon: Users, color: 'blue' },
         { label: 'Total Homeowners', value: users.filter(function(u) { return u.role === 'owner' }).length, icon: Home, color: 'purple' },

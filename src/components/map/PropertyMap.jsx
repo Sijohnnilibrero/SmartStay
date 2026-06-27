@@ -136,7 +136,14 @@ export default function PropertyMap({
     const pinned = properties.filter((p) => p.latitude && p.longitude)
     pinned.forEach((p) => {
       const isFull = (p.available_rooms || 0) === 0
-      const icon = makeIcon(isFull ? '#D85A30' : '#1D9E75')
+      const isPending = p.status === 'pending_review'
+      const isInactive = p.status === 'inactive'
+      
+      let color = '#1D9E75' // active
+      if (isPending) color = '#BA7517'
+      else if (isFull || isInactive) color = '#D85A30'
+
+      const icon = makeIcon(color)
       const popup = L.popup({ maxWidth: 220, className: 'ss-popup' }).setContent(`
         <div style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px 2px">
           <p style="font-weight:700;font-size:13px;color:#1a1a18;margin:0 0 2px">${p.name}</p>

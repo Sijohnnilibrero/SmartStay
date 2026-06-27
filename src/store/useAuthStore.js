@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export const DEMO_ACCOUNTS = [
   {
@@ -87,7 +88,7 @@ export const useAuthStore = create(
       register: async ({ email, password, name, role, tenantType, municipality }) => {
         set({ isLoading: true, authError: null })
         try {
-          const roleValue = ['admin', 'owner', 'tenant'].includes(role) ? role : 'tenant'
+          const roleValue = ['super_admin', 'admin', 'owner', 'tenant'].includes(role) ? role : 'tenant'
           const tenantTypeValue = ['student', 'professional', 'government_employee', 'visitor'].includes(tenantType) ? tenantType : null
 
           const { data, error } = await supabase.auth.signUp({
@@ -122,6 +123,49 @@ export const useAuthStore = create(
         } catch (err) {
           set({ isLoading: false, authError: 'Registration failed: ' + (err.message || err) })
           return { success: false, authError: 'Registration failed: ' + (err.message || err) }
+        }
+      },
+
+      // ── Create Admin Account (Super Admin only) ──────────────────────────
+      createAdminAccount: async ({ email, password, name, region }) => {
+        set({ isLoading: true, authError: null })
+        try {
+          // Use a secondary client so we don't log out the Super Admin
+          const adminSupabase = createClient(
+            import.meta.env.VITE_SUPABASE_URL,
+            import.meta.env.VITE_SUPABASE_ANON_KEY,
+            { auth: { persistSession: false, autoRefreshToken: false } }
+          )
+
+          const { data, error } = await adminSupabase.auth.signUp({
+            email: email.trim().toLowerCase(),
+            password,
+            options: {
+              data: {
+                full_name: name.trim() || email.trim().toLowerCase(),
+                role: 'admin',
+                tenant_type: null,
+                municipality: 'Basco', // default
+              }
+            }
+          })
+
+          if (error) throw error
+          if (!data?.user?.id) throw new Error('Failed to create admin user ID')
+
+          // Update the profile with the assigned region manually since it's a special field
+          const { error: profError } = await supabase
+            .from('profiles')
+            .update({ admin_region: region })
+            .eq('id', data.user.id)
+            
+          if (profError) throw profError
+
+          set({ isLoading: false })
+          return { success: true }
+        } catch (err) {
+          set({ isLoading: false, authError: 'Admin creation failed: ' + (err.message || err) })
+          return { success: false, authError: 'Admin creation failed: ' + (err.message || err) }
         }
       },
 
@@ -222,9 +266,10 @@ export const useAuthStore = create(
         }
       },
 
-      isAdmin: () => get().user?.role === 'admin',
-      isOwner: () => get().user?.role === 'owner',
       isTenant: () => get().user?.role === 'tenant',
+      isOwner: () => get().user?.role === 'owner',
+      isAdmin: () => get().user?.role === 'admin' || get().user?.role === 'super_admin',
+      isSuperAdmin: () => get().user?.role === 'super_admin',
       clearError: () => set({ authError: null }),
 
       // ── Properties ────────────────────────────────────────────────────────
