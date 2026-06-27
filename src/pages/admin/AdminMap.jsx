@@ -81,8 +81,10 @@ export default function AdminMap() {
                 </div>
               )}
               <PropertyMap
+                mode="browse"
                 properties={pinned}
-                onPropertyClick={(id) => navigate(`/admin/property/${id}`)}
+                height="100%"
+                onSelect={(id) => navigate(`/admin/property/${id}`)}
               />
             </>
           )}
