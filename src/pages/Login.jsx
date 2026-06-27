@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 const ROLE_META = {
   admin: { color: '#534AB7', bg: '#EEEDFE', label: 'Administrator', initials: 'AD' },
   owner: { color: '#0F6E56', bg: '#E1F5EE', label: 'Homeowner', initials: 'OW' },
-  tenant: { color: '#BA7517', bg: '#FAEEDA', label: 'Tenant', initials: 'TN' },
+  tenant: { color: '#BA7517', bg: '#FAEEDA', label: 'Tenant / Tourist', initials: 'TN' },
 }
 
 export default function Login() {

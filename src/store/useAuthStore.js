@@ -206,14 +206,19 @@ export const useAuthStore = create(
       },
 
       // ── Update Profile ───────────────────────────────────────────────────
-      updateProfile: async ({ full_name, contact, municipality, email }) => {
+      updateProfile: async ({ full_name, contact, municipality, email, avatar_url }) => {
         const user = get().user
         if (!user) throw new Error('Not authenticated')
 
-        // Update profiles table (name, contact, municipality, email)
+        const payload = { full_name, contact, municipality, email }
+        if (avatar_url !== undefined) {
+          payload.avatar_url = avatar_url
+        }
+
+        // Update profiles table
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ full_name, contact, municipality, email })
+          .update(payload)
           .eq('id', user.id)
 
         if (profileError) throw new Error('Profile update failed: ' + profileError.message)
@@ -227,6 +232,7 @@ export const useAuthStore = create(
             contact,
             municipality,
             email: email || user.email,
+            ...(avatar_url !== undefined && { avatar: avatar_url }),
           },
         })
       },
@@ -285,6 +291,14 @@ export const useAuthStore = create(
         if (!data || data.length === 0) return []
 
         const propIds = data.map(p => p.id)
+        const ownerIds = [...new Set(data.map(p => p.owner_id).filter(Boolean))]
+
+        let ownersMap = {}
+        if (ownerIds.length > 0) {
+          const { data: owners } = await supabase.from('profiles').select('id, full_name, avatar_url, email, contact, municipality').in('id', ownerIds)
+          ;(owners || []).forEach(o => ownersMap[o.id] = o)
+        }
+
         const { data: reviews } = await supabase.from('reviews').select('property_id, rating').in('property_id', propIds)
         
         if (reviews) {
@@ -306,7 +320,17 @@ export const useAuthStore = create(
           })
         }
 
-        return data
+        return data.map(p => {
+          const owner = ownersMap[p.owner_id] || {}
+          return {
+            ...p,
+            owner_name: owner.full_name || 'Unknown Owner',
+            owner_avatar: owner.avatar_url || null,
+            owner_email: owner.email || null,
+            owner_contact: owner.contact || null,
+            owner_municipality: owner.municipality || null
+          }
+        })
       },
 
       fetchProperty: async (id) => {
@@ -325,6 +349,21 @@ export const useAuthStore = create(
         return data
       },
 
+      uploadAvatar: async (file) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        const ext = file.name.split('.').pop()
+        const path = `avatars/${user.id}_${Date.now()}.${ext}`
+        const { data, error } = await supabase.storage
+          .from('property-images')
+          .upload(path, file, { upsert: true, contentType: file.type })
+        if (error) throw error
+        const { data: urlData } = supabase.storage
+          .from('property-images')
+          .getPublicUrl(data.path)
+        return urlData.publicUrl
+      },
+
       uploadPropertyImage: async (file, propertyId) => {
         const user = get().user
         if (!user) throw new Error('Not authenticated')
@@ -340,19 +379,27 @@ export const useAuthStore = create(
         return urlData.publicUrl
       },
 
-      uploadPropertyPermit: async (file, propertyId) => {
+      uploadPropertyPermit: async (files, propertyId) => {
         const user = get().user
         if (!user) throw new Error('Not authenticated')
-        const ext = file.name.split('.').pop()
-        const path = `${user.id}/${propertyId || 'new'}_permit_${Date.now()}.${ext}`
-        const { data, error } = await supabase.storage
-          .from('property-permits')
-          .upload(path, file, { upsert: true, contentType: file.type })
-        if (error) throw error
-        const { data: urlData } = supabase.storage
-          .from('property-permits')
-          .getPublicUrl(data.path)
-        return urlData.publicUrl
+        
+        // Handle single file for backward compatibility
+        const fileArray = Array.isArray(files) ? files : [files]
+        
+        const uploadPromises = fileArray.map(async (file, idx) => {
+          const ext = file.name.split('.').pop()
+          const path = `${user.id}/${propertyId || 'new'}_permit_${Date.now()}_${idx}.${ext}`
+          const { data, error } = await supabase.storage
+            .from('property-permits')
+            .upload(path, file, { upsert: true, contentType: file.type })
+          if (error) throw error
+          const { data: urlData } = supabase.storage
+            .from('property-permits')
+            .getPublicUrl(data.path)
+          return urlData.publicUrl
+        })
+        
+        return Promise.all(uploadPromises)
       },
 
       createProperty: async (propertyData) => {
@@ -363,6 +410,10 @@ export const useAuthStore = create(
           name: propertyData.name,
           description: propertyData.description || '',
           address: propertyData.address,
+          house_number: propertyData.house_number || '',
+          street: propertyData.street || '',
+          barangay: propertyData.barangay || '',
+          landmark: propertyData.landmark || '',
           municipality: propertyData.municipality,
           island: propertyData.island,
           price_monthly: propertyData.price_monthly,
@@ -376,6 +427,8 @@ export const useAuthStore = create(
           image_url: propertyData.image_url || null,
           permit_urls: propertyData.permit_urls || [],
           permit_expires_on: propertyData.permit_expires_on || null,
+          accepts_long_term: propertyData.accepts_long_term !== undefined ? propertyData.accepts_long_term : true,
+          accepts_transient: propertyData.accepts_transient !== undefined ? propertyData.accepts_transient : false,
         }).select().single()
         if (error) throw error
         return data
@@ -386,6 +439,10 @@ export const useAuthStore = create(
           name: propertyData.name,
           description: propertyData.description || '',
           address: propertyData.address,
+          house_number: propertyData.house_number !== undefined ? propertyData.house_number : undefined,
+          street: propertyData.street !== undefined ? propertyData.street : undefined,
+          barangay: propertyData.barangay !== undefined ? propertyData.barangay : undefined,
+          landmark: propertyData.landmark !== undefined ? propertyData.landmark : undefined,
           municipality: propertyData.municipality,
           island: propertyData.island,
           price_monthly: propertyData.price_monthly,
@@ -398,6 +455,8 @@ export const useAuthStore = create(
           image_url: propertyData.image_url !== undefined ? propertyData.image_url : undefined,
           permit_urls: propertyData.permit_urls !== undefined ? propertyData.permit_urls : undefined,
           permit_expires_on: propertyData.permit_expires_on !== undefined ? propertyData.permit_expires_on : undefined,
+          accepts_long_term: propertyData.accepts_long_term !== undefined ? propertyData.accepts_long_term : undefined,
+          accepts_transient: propertyData.accepts_transient !== undefined ? propertyData.accepts_transient : undefined,
         }).eq('id', id).select().single()
         if (error) throw error
         return data
@@ -510,10 +569,10 @@ export const useAuthStore = create(
         const tenantIds = [...new Set(data.map(r => r.tenant_id).filter(Boolean))]
         const propertyIds = [...new Set(data.map(r => r.property_id).filter(Boolean))]
 
-        let profilesMap = {}
+        let profilesDataMap = {}
         if (tenantIds.length > 0) {
-          const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', tenantIds)
-          ;(profiles || []).forEach(p => profilesMap[p.id] = p.full_name)
+          const { data: profiles } = await supabase.from('profiles').select('id, full_name, avatar_url, email, contact, municipality').in('id', tenantIds)
+          ;(profiles || []).forEach(p => profilesDataMap[p.id] = p)
         }
 
         let propertiesMap = {}
@@ -522,11 +581,18 @@ export const useAuthStore = create(
           ;(properties || []).forEach(p => propertiesMap[p.id] = p.name)
         }
 
-        return data.map(r => ({
-          ...r,
-          tenant_name: profilesMap[r.tenant_id] || 'Unknown Tenant',
-          property_name: propertiesMap[r.property_id] || 'Unknown Property'
-        }))
+        return data.map(r => {
+          const p = profilesDataMap[r.tenant_id] || {}
+          return {
+            ...r,
+            tenant_name: p.full_name || 'Unknown Tenant',
+            tenant_avatar: p.avatar_url || null,
+            tenant_email: p.email || null,
+            tenant_contact: p.contact || null,
+            tenant_municipality: p.municipality || null,
+            property_name: propertiesMap[r.property_id] || 'Unknown Property'
+          }
+        })
       },
 
       createReservation: async (reservationData) => {

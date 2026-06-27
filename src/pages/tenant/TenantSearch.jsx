@@ -12,17 +12,7 @@ const PROPERTY_IMAGES = [
   '/images/property_3.png',
 ]
 
-const MUNICIPALITIES = ['All', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
-const BUDGETS  = ['All', '₱1k–₱2k', '₱2k–₱3k', '₱3k+']
-const AMENITIES = ['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished']
 
-function budgetMatch(price, budget) {
-  if (budget === 'All')       return true
-  if (budget === '₱1k–₱2k') return price >= 1000 && price <= 2000
-  if (budget === '₱2k–₱3k') return price > 2000 && price <= 3000
-  if (budget === '₱3k+')     return price > 3000
-  return true
-}
 
 export default function TenantSearch() {
   const navigate = useNavigate()
@@ -30,7 +20,7 @@ export default function TenantSearch() {
   const [allProperties, setAllProperties] = useState([])
   const [query,     setQuery]     = useState('')
   const [island,    setIsland]    = useState('All')
-  const [budget,    setBudget]    = useState('All')
+  const [stayType,  setStayType]  = useState('Any')
   const [amenities, setAmenities] = useState([])
   const [sortBy,    setSortBy]    = useState('rating')
 
@@ -52,23 +42,22 @@ export default function TenantSearch() {
     var list = allProperties.filter(function(p) {
       var q = query.toLowerCase()
       if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q)) return false
-      if (!budgetMatch(p.price_monthly, budget)) return false
+      if (stayType === 'Long-term (Monthly)' && !p.accepts_long_term) return false
+      if (stayType === 'Transient (Daily)' && !p.accepts_transient) return false
       var activeAmenities = amenities.filter(function(a) { return a !== 'Any' })
       if (activeAmenities.length && !activeAmenities.every(function(a) { return (p.amenities || []).includes(a) })) return false
       return true
     })
     if (sortBy === 'rating')    list.sort(function(a, b) { return (b.rating || 0) - (a.rating || 0) })
-    if (sortBy === 'price-asc') list.sort(function(a, b) { return a.price_monthly - b.price_monthly })
-    if (sortBy === 'price-desc')list.sort(function(a, b) { return b.price_monthly - a.price_monthly })
     if (sortBy === 'occupancy') list.sort(function(a, b) { return ((a.available_rooms || 0)) - ((b.available_rooms || 0)) })
     return list
-  }, [allProperties, query, budget, amenities, sortBy])
+  }, [allProperties, query, stayType, amenities, sortBy])
 
   return (
     <div className="page-enter">
       <div className="px-6 pt-5 pb-1">
-        <p className="font-bold text-2xl text-stone-800">Browse Boarding Houses</p>
-        <p className="text-sm text-stone-400 mt-0.5">{filtered.length} properties found</p>
+        <p className="font-bold text-2xl text-stone-800">Where do you want to stay?</p>
+        <p className="text-sm text-stone-400 mt-0.5">{filtered.length} verified properties found</p>
       </div>
 
       <div className="p-6">
@@ -88,8 +77,6 @@ export default function TenantSearch() {
             onChange={function(e) { setSortBy(e.target.value) }}
           >
             <option value="rating">Sort: Best Rated</option>
-            <option value="price-asc">Sort: Price Low–High</option>
-            <option value="price-desc">Sort: Price High–Low</option>
             <option value="occupancy">Sort: Most Available</option>
           </select>
         </div>
@@ -99,11 +86,11 @@ export default function TenantSearch() {
             <SlidersHorizontal size={13} className="text-stone-400" />
             <span className="text-[11px] text-stone-400 font-medium">Filters:</span>
           </div>
-          {BUDGETS.map(function(b) {
-            return <FilterChip key={b} label={b} active={budget === b} onClick={function() { setBudget(b) }} />
+          {['Any', 'Long-term (Monthly)', 'Transient (Daily)'].map(function(s) {
+            return <FilterChip key={s} label={s} active={stayType === s} onClick={function() { setStayType(s) }} />
           })}
           <div className="w-px bg-stone-200 mx-1" />
-          {AMENITIES.map(function(a) {
+          {['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Furnished'].map(function(a) {
             return <FilterChip key={a} label={a} active={amenities.includes(a)} onClick={function() { toggleAmenity(a) }} />
           })}
         </div>
@@ -159,15 +146,27 @@ function PropertyCard({ property: p, idx = 0, onClick, onClickRooms }) {
         {/* Price bottom-right */}
         <div className="absolute bottom-3 right-3">
           <span className="bg-white/95 backdrop-blur-sm text-[--teal] font-bold text-[12px] px-2.5 py-1 rounded-full shadow-sm">
-            Prices vary
+            {p.price_monthly && p.accepts_long_term ? (
+              <>{formatCurrency(p.price_monthly)}<span className="text-[10px] font-normal text-stone-500">/mo</span></>
+            ) : p.price_daily && p.accepts_transient ? (
+              <>{formatCurrency(p.price_daily)}<span className="text-[10px] font-normal text-stone-500">/day</span></>
+            ) : (
+              'Prices vary'
+            )}
           </span>
         </div>
       </div>
 
       <div className="p-4">
-        <p className="text-[14px] font-semibold text-stone-800 mb-0.5 group-hover:text-[--teal] transition-colors truncate">
-          {p.name}
-        </p>
+        <div className="flex items-start justify-between gap-2 mb-0.5">
+          <p className="text-[14px] font-semibold text-stone-800 group-hover:text-[--teal] transition-colors truncate">
+            {p.name}
+          </p>
+          <div className="flex items-center gap-1 bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" /></svg>
+            <span className="text-[9px] font-bold tracking-wide uppercase">Verified</span>
+          </div>
+        </div>
         <p className="text-[11px] text-stone-400 flex items-center gap-1 mb-3">
           <MapPin size={10} className="flex-shrink-0" /> {p.address}
         </p>

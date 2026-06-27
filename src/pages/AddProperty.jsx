@@ -22,6 +22,7 @@ var EMPTY_FORM = {
   house_number: '', street: '', barangay: '', landmark: '',
   total_rooms: '', amenities: [],
   latitude: null, longitude: null, image_url: null, permit_urls: [], permit_expires_on: '',
+  accepts_long_term: true, accepts_transient: false,
 }
 
 export default function AddProperty() {
@@ -84,7 +85,9 @@ export default function AddProperty() {
         longitude: p.longitude || null,
         image_url: p.image_url || null,
         permit_urls: p.permit_urls || (p.permit_url ? [p.permit_url] : []),
-        permit_expires_on: p.permit_expires_on || ''
+        permit_expires_on: p.permit_expires_on || '',
+        accepts_long_term: p.accepts_long_term !== false,
+        accepts_transient: !!p.accepts_transient
       })
       if (p.image_url) setImagePreview(p.image_url)
     }).catch(function(err) {
@@ -111,6 +114,7 @@ export default function AddProperty() {
               room_number: `${prev.length + i + 1}`,
               floor: 1,
               price_monthly: '',
+              price_daily: '',
               amenities: [],
               notes: '',
               is_available: true,
@@ -250,9 +254,19 @@ export default function AddProperty() {
       return
     }
     
-    if (!isEdit && roomDrafts.some(r => !r.room_number || !r.price_monthly)) {
-      setError('Please provide a Room # and Monthly Price for all rooms on the right.')
-      return
+    if (!isEdit) {
+      if (form.accepts_long_term && roomDrafts.some(r => !r.room_number || !r.price_monthly)) {
+        setError('Please provide a Room # and Monthly Price for all rooms on the right.')
+        return
+      }
+      if (form.accepts_transient && roomDrafts.some(r => !r.room_number || !r.price_daily)) {
+        setError('Please provide a Room # and Daily Price for all rooms on the right.')
+        return
+      }
+      if (!form.accepts_long_term && !form.accepts_transient) {
+        setError('Please select who you cater to (Long-term or Transients).')
+        return
+      }
     }
 
     var imageUrl = form.image_url
@@ -304,6 +318,8 @@ export default function AddProperty() {
       image_url: imageUrl,
       permit_urls: permitUrls,
       permit_expires_on: form.permit_expires_on || null,
+      accepts_long_term: form.accepts_long_term,
+      accepts_transient: form.accepts_transient,
     })
 
     setUploading(true) // General loading state for combined submit
@@ -322,7 +338,8 @@ export default function AddProperty() {
             property_id: finalPropertyId,
             room_number: draft.room_number,
             floor: parseInt(draft.floor) || 1,
-            price_monthly: parseFloat(draft.price_monthly),
+            price_monthly: parseFloat(draft.price_monthly) || 0,
+            price_daily: parseFloat(draft.price_daily) || null,
             amenities: draft.amenities,
             notes: draft.notes,
             is_available: draft.is_available,
@@ -487,6 +504,34 @@ export default function AddProperty() {
                     )}
                   </div>
 
+                  {/* Stay Types */}
+                  <div>
+                    <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-2">Who do you cater to? *</label>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.accepts_long_term}
+                          onChange={(e) => set('accepts_long_term', e.target.checked)}
+                          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
+                        />
+                        <span className="text-sm font-medium text-stone-700">Long-term Boarders (Monthly)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.accepts_transient}
+                          onChange={(e) => set('accepts_transient', e.target.checked)}
+                          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
+                        />
+                        <span className="text-sm font-medium text-stone-700">Short-term Transients (Daily)</span>
+                      </label>
+                    </div>
+                    {!form.accepts_long_term && !form.accepts_transient && (
+                      <p className="text-[10px] text-red-500 mt-1">Please select at least one.</p>
+                    )}
+                  </div>
+
                   {/* Name */}
                   <div>
                     <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Property Name *</label>
@@ -586,9 +631,19 @@ export default function AddProperty() {
             <div className="lg:col-span-6">
               {isEdit ? (
                 <div className="bg-stone-50 rounded-2xl border border-stone-200 border-dashed p-10 flex flex-col items-center justify-center text-center text-stone-400 h-full min-h-[300px]">
-                  <BedDouble size={48} className="text-stone-200 mb-4" />
-                  <p className="font-semibold text-stone-600">Editing existing property</p>
-                  <p className="text-sm mt-1 max-w-sm">To manage rooms for this property, please go to the 'Manage Rooms' page from the dashboard.</p>
+                  <BedDouble size={48} className="text-teal-300 mb-4" />
+                  <p className="font-semibold text-stone-600 text-lg mb-2">Manage Property Rooms</p>
+                  <p className="text-sm mt-1 max-w-sm mb-6 text-stone-500">
+                    To add new rooms, upload room photos, or change room pricing and availability, please use the dedicated room management page.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/owner/rooms/' + propertyId)}
+                    className="px-6 py-3 rounded-xl bg-teal-600 text-white font-bold shadow-md hover:bg-teal-700 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                  >
+                    <BedDouble size={18} />
+                    Manage Rooms Now
+                  </button>
                 </div>
               ) : roomDrafts.length === 0 ? (
                 <div className="bg-stone-50 rounded-2xl border border-stone-200 border-dashed p-10 flex flex-col items-center justify-center text-center text-stone-400 h-[calc(100vh-140px)] min-h-[400px]">
@@ -630,7 +685,7 @@ export default function AddProperty() {
 
                         {/* Room Form Fields */}
                         <div className="md:col-span-8 space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                             <div>
                               <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Room # *</label>
                               <Input value={draft.room_number} onChange={(e) => updateRoomDraft(idx, 'room_number', e.target.value)} placeholder="101" required className="bg-stone-50 focus:bg-white" />
@@ -639,10 +694,18 @@ export default function AddProperty() {
                               <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Floor</label>
                               <Input type="number" min="1" value={draft.floor} onChange={(e) => updateRoomDraft(idx, 'floor', e.target.value)} placeholder="1" className="bg-stone-50 focus:bg-white" />
                             </div>
-                            <div>
-                              <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Price (₱/mo) *</label>
-                              <Input type="number" min="0" value={draft.price_monthly} onChange={(e) => updateRoomDraft(idx, 'price_monthly', e.target.value)} placeholder="3500" required className="bg-stone-50 focus:bg-white" />
-                            </div>
+                            {form.accepts_long_term && (
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Price (₱/mo) *</label>
+                                <Input type="number" min="0" value={draft.price_monthly} onChange={(e) => updateRoomDraft(idx, 'price_monthly', e.target.value)} placeholder="3500" required className="bg-stone-50 focus:bg-white" />
+                              </div>
+                            )}
+                            {form.accepts_transient && (
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5 text-teal-600">Daily Price (₱/day) *</label>
+                                <Input type="number" min="0" value={draft.price_daily} onChange={(e) => updateRoomDraft(idx, 'price_daily', e.target.value)} placeholder="500" required className="bg-teal-50/50 focus:bg-white border-teal-200" />
+                              </div>
+                            )}
                           </div>
                           
                           <div>

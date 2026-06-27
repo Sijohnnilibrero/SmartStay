@@ -3,13 +3,14 @@ import { Card, Button, Input, Select, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
-import { Shield, MapPin, UserPlus } from 'lucide-react'
+import { Shield, MapPin, UserPlus, Eye, EyeOff } from 'lucide-react'
 
 export default function AdminStaff() {
   const { createAdminAccount } = useAuthStore()
   const { addToast } = useAppStore()
   const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Form state
   const [isCreating, setIsCreating] = useState(false)
@@ -111,30 +112,46 @@ export default function AdminStaff() {
             </div>
             
             <form onSubmit={handleCreate} className="space-y-4">
-              <Input
-                label="Full Name"
-                placeholder="e.g. John Doe"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="admin@smartstay.ph"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-              <Input
-                label="Temporary Password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                required
-                minLength={6}
-              />
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
+                <Input
+                  placeholder="e.g. John Doe"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                <Input
+                  type="email"
+                  placeholder="admin@smartstay.ph"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5 ml-1">Temporary Password</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 6 characters"
+                    value={formData.password}
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    minLength={6}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5 ml-1">
                   Assigned Territory

@@ -14,7 +14,7 @@ const TYPE_LABELS = {
   student: 'Student',
   professional: 'Professional',
   government_employee: 'Government Employee',
-  visitor: 'Visitor',
+  visitor: 'Visitor / Tourist',
 }
 
 export default function HomeownerTenants() {

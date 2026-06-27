@@ -3,9 +3,11 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import Topbar from '@/components/layout/Topbar'
 import { Button, Input } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
+import TenantProfileModal from '@/components/ui/TenantProfileModal'
+import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
 import {
   Search, Users, GraduationCap, Briefcase, Building2, Globe,
-  MapPin, Calendar, Mail,
+  MapPin, Calendar, Mail, Eye
 } from 'lucide-react'
 
 const TYPE_COLORS = {
@@ -22,23 +24,27 @@ const TYPE_ICONS = {
   visitor:             <Globe size={14} />,
 }
 
-function TenantCard({ t, isAdmin, onAction }) {
+function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
   const color = TYPE_COLORS[t.tenant_type] || { bg: '#F5F4F0', text: '#78716C', label: t.tenant_type || 'Tenant' }
   const icon  = TYPE_ICONS[t.tenant_type] || <Users size={14} />
   const initials = (t.full_name || '??').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col gap-3">
+    <div className="bg-white rounded-2xl border border-stone-200 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col gap-3 relative">
       {/* Top: avatar + name */}
       <div className="flex items-center gap-3">
-        <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center text-[15px] font-bold flex-shrink-0 shadow-sm"
-          style={{ background: color.bg, color: color.text }}
-        >
-          {initials}
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-stone-800 text-[14px] truncate">{t.full_name}</p>
+        {t.avatar_url ? (
+          <img src={t.avatar_url} alt={t.full_name} className="w-12 h-12 rounded-2xl object-cover shadow-sm flex-shrink-0 border border-stone-100" />
+        ) : (
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-[15px] font-bold flex-shrink-0 shadow-sm"
+            style={{ background: color.bg, color: color.text }}
+          >
+            {initials}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-stone-800 text-[14px] truncate pr-8">{t.full_name}</p>
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span
               className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
@@ -53,6 +59,15 @@ function TenantCard({ t, isAdmin, onAction }) {
             )}
           </div>
         </div>
+        {isAdmin && (
+          <button 
+            onClick={() => onViewProfile(t)}
+            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+            title="View Profile"
+          >
+            <Eye size={16} />
+          </button>
+        )}
       </div>
 
       {/* Divider */}
@@ -122,6 +137,7 @@ export default function Tenants() {
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionUser, setActionUser] = useState(null)
+  const [selectedProfile, setSelectedProfile] = useState(null)
   const wasHiddenRef = useRef(false)
 
   var loadTenants = useCallback(function () {
@@ -294,7 +310,7 @@ export default function Tenants() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map(function (t) {
-              return <TenantCard key={t.id} t={t} isAdmin={isAdmin} onAction={(u, st) => setActionUser({ user: u, status: st })} />
+              return <TenantCard key={t.id} t={t} isAdmin={isAdmin} onAction={(u, st) => setActionUser({ user: u, status: st })} onViewProfile={setSelectedProfile} />
             })}
           </div>
         )}
@@ -329,6 +345,31 @@ export default function Tenants() {
           </div>
         </div>
       )}
+
+      {/* Profile Modals */}
+      {selectedProfile && selectedProfile.role === 'owner' ? (
+        <HomeownerProfileModal
+          owner={{
+            owner_name: selectedProfile.full_name,
+            owner_avatar: selectedProfile.avatar_url,
+            owner_email: selectedProfile.email,
+            owner_contact: selectedProfile.contact,
+            owner_municipality: selectedProfile.municipality
+          }}
+          onClose={() => setSelectedProfile(null)}
+        />
+      ) : selectedProfile ? (
+        <TenantProfileModal 
+          tenant={{
+            tenant_name: selectedProfile.full_name,
+            tenant_avatar: selectedProfile.avatar_url,
+            tenant_email: selectedProfile.email,
+            tenant_contact: selectedProfile.contact,
+            tenant_municipality: selectedProfile.municipality
+          }} 
+          onClose={() => setSelectedProfile(null)} 
+        />
+      ) : null}
     </div>
   )
 }

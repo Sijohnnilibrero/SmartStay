@@ -16,6 +16,7 @@ import MyLandlord      from '@/pages/tenant/MyLandlord'
 import MyRoom          from '@/pages/tenant/MyRoom'
 import TenantBrowseRooms from '@/pages/tenant/TenantBrowseRooms'
 import MyPayments        from '@/pages/tenant/MyPayments'
+import TenantProfile     from '@/pages/tenant/TenantProfile'
 import HomeownerDashboard from '@/pages/homeowner/HomeownerDashboard'
 import HomeownerTenants from '@/pages/homeowner/HomeownerTenants'
 import HomeownerRooms from '@/pages/homeowner/HomeownerRooms'
@@ -70,6 +71,7 @@ export default function App() {
              <Route path="room" element={<MyRoom />} />
              <Route path="payments" element={<MyPayments />} />
              <Route path="messages" element={<Messages />} />
+             <Route path="profile" element={<TenantProfile />} />
           </Route>
 
           {/* Owner/Homeowner routes - owners can add properties */}

@@ -7,7 +7,7 @@ import { Plus, Trash2, Edit2, MapPin, ImagePlus, X, Upload, Loader2, BedDouble, 
 import { formatCurrency } from '@/lib/utils'
 
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
-const EMPTY_FORM = { room_number: '', floor: 1, price_monthly: '', amenities: [], notes: '', is_available: true, image_urls: [] }
+const EMPTY_FORM = { room_number: '', floor: 1, price_monthly: '', price_daily: '', amenities: [], notes: '', is_available: true, image_urls: [] }
 
 // ── Multi-Image Uploader ─────────────────────────────────────────
 function RoomImagesUploader({ existingUrls, setExistingUrls, newFiles, setNewFiles }) {
@@ -148,12 +148,14 @@ export default function HomeownerRooms() {
       room_number: room.room_number,
       floor: room.floor,
       price_monthly: room.price_monthly,
+      price_daily: room.price_daily || '',
       amenities: room.amenities || [],
       notes: room.notes || '',
       is_available: room.is_available,
+      image_urls: room.image_urls || []
     })
-    setNewFiles([])
     setExistingUrls(room.image_urls || [])
+    setNewFiles([])
     setShowForm(true)
   }
 
@@ -184,7 +186,8 @@ export default function HomeownerRooms() {
     const payload = {
       room_number: form.room_number,
       floor: parseInt(form.floor) || 1,
-      price_monthly: parseFloat(form.price_monthly),
+      price_monthly: parseFloat(form.price_monthly) || 0,
+      price_daily: parseFloat(form.price_daily) || null,
       amenities: form.amenities,
       notes: form.notes,
       is_available: form.is_available,
@@ -303,12 +306,22 @@ export default function HomeownerRooms() {
                   onChange={(e) => setField('floor', parseInt(e.target.value) || 1)}
                   placeholder="1" />
               </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Price (₱/mo)</label>
-                <Input type="number" value={form.price_monthly}
-                  onChange={(e) => setField('price_monthly', e.target.value)}
-                  placeholder="3500" required />
-              </div>
+              {property?.accepts_long_term && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Price (₱/mo)</label>
+                  <Input type="number" value={form.price_monthly}
+                    onChange={(e) => setField('price_monthly', e.target.value)}
+                    placeholder="3500" required />
+                </div>
+              )}
+              {property?.accepts_transient && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5 text-teal-600">Daily Price (₱/day)</label>
+                  <Input type="number" value={form.price_daily}
+                    onChange={(e) => setField('price_daily', e.target.value)}
+                    placeholder="500" required className="border-teal-200 focus:ring-teal-400/30" />
+                </div>
+              )}
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Status</label>
                 <button
@@ -419,10 +432,17 @@ export default function HomeownerRooms() {
                     {getRoomDisplayStatus(r).label}
                   </Badge>
                 </div>
-                <div className="absolute bottom-3 right-3">
-                  <span className="bg-white/95 backdrop-blur-sm text-[--teal] font-bold text-[13px] px-2.5 py-1 rounded-full">
-                    {formatCurrency(r.price_monthly)}<span className="text-[10px] font-normal text-stone-500">/mo</span>
-                  </span>
+                <div className="absolute bottom-3 right-3 flex flex-col gap-1 items-end">
+                  {property?.accepts_long_term && r.price_monthly > 0 && (
+                    <span className="bg-white/95 backdrop-blur-sm text-[--teal] font-bold text-[13px] px-2.5 py-1 rounded-full shadow-sm">
+                      {formatCurrency(r.price_monthly)}<span className="text-[10px] font-normal text-stone-500">/mo</span>
+                    </span>
+                  )}
+                  {property?.accepts_transient && r.price_daily > 0 && (
+                    <span className="bg-white/95 backdrop-blur-sm text-teal-600 font-bold text-[13px] px-2.5 py-1 rounded-full shadow-sm">
+                      {formatCurrency(r.price_daily)}<span className="text-[10px] font-normal text-stone-500">/day</span>
+                    </span>
+                  )}
                 </div>
                 <div className="absolute bottom-3 left-3">
                   <span className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full">

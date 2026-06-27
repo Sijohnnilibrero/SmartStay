@@ -60,7 +60,6 @@ const NAV_TENANT = [
   {
     label: 'My Activity', icon: CalendarCheck, routes: [
       { to: '/tenant/room', label: 'My Room', icon: BedDouble },
-      { to: '/tenant/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
       { to: '/tenant/reservations', label: 'Reservations' },
       { to: '/tenant/payments', label: 'My Payments', icon: DollarSign },
       { to: '/tenant/landlord', label: 'My Landlord', icon: User },
@@ -72,6 +71,12 @@ const NAV_TENANT = [
       { to: '/tenant/map', label: 'Map', icon: Map },
     ]
   },
+  {
+    label: 'Account', icon: User, routes: [
+      { to: '/tenant/messages', label: 'Messages', icon: MessageSquare, badgeKey: 'messages' },
+      { to: '/tenant/profile', label: 'My Profile' },
+    ]
+  },
 ]
 
 const getNavForRole = (user) => {
@@ -80,7 +85,7 @@ const getNavForRole = (user) => {
   return NAV_TENANT
 }
 
-const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Administrator', owner: 'Homeowner', tenant: 'Tenant' }
+const ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Administrator', owner: 'Homeowner', tenant: 'Visitor / Tenant' }
 const ROLE_COLORS = {
   super_admin: { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
   admin: { bg: '#EEEDFE', text: '#534AB7', accent: '#534AB7' },
@@ -212,13 +217,23 @@ export default function Sidebar() {
 
       {/* User Profile & Logout */}
       <div className="p-3 border-t border-stone-100 space-y-1">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-stone-50">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-[12px] font-bold flex-shrink-0 shadow-sm"
-            style={{ background: roleColors.bg, color: roleColors.text }}
-          >
-            {user?.initials || '??'}
-          </div>
+        <div 
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${user?.role === 'tenant' || user?.role === 'owner' ? 'cursor-pointer hover:bg-stone-100' : 'bg-stone-50'}`}
+          onClick={() => {
+            if (user?.role === 'tenant') navigate('/tenant/profile')
+            else if (user?.role === 'owner') navigate('/owner/profile')
+          }}
+        >
+          {user?.avatar ? (
+            <img src={user.avatar} alt="Profile" className="w-8 h-8 rounded-xl object-cover shadow-sm flex-shrink-0" />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-[12px] font-bold flex-shrink-0 shadow-sm"
+              style={{ background: roleColors.bg, color: roleColors.text }}
+            >
+              {user?.initials || '??'}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-semibold text-stone-800 truncate">{user?.name || 'Guest'}</p>
             <p className="text-[10px] text-stone-400 truncate">{user?.email || ''}</p>

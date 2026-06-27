@@ -9,6 +9,7 @@ import {
   Plus, Search, Eye, CheckCircle, XCircle, Edit, Trash2,
   Home, TrendingUp, Clock, Layers, MapPin, BedDouble, Wifi, Droplets,
 } from 'lucide-react'
+import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
 
 const STATUS_COLORS = { pending_review: 'amber', active: 'teal', full: 'coral', inactive: 'gray' }
 const STATUS_LABEL  = { pending_review: 'Pending Review', active: 'Active', full: 'Fully Booked', inactive: 'Inactive' }
@@ -37,6 +38,7 @@ export default function Properties() {
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [actioning, setActioning] = useState(null)
+  const [selectedOwner, setSelectedOwner] = useState(null)
   const [error, setError] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const wasHiddenRef = useRef(false)
@@ -254,6 +256,22 @@ export default function Properties() {
                         <MapPin size={10} className="flex-shrink-0" />
                         <span className="truncate">{p.address || p.municipality}</span>
                       </p>
+                      
+                      {isAdmin && (
+                        <div 
+                          className="flex items-center gap-1.5 mt-2 pt-2 border-t border-stone-100 cursor-pointer hover:bg-stone-50 rounded p-1 -mx-1"
+                          onClick={(e) => { e.stopPropagation(); setSelectedOwner(p); }}
+                        >
+                          {p.owner_avatar ? (
+                            <img src={p.owner_avatar} alt="Avatar" className="w-5 h-5 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-[9px] font-bold">
+                              {(p.owner_name || '??').substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-[10px] text-teal-600 font-medium hover:underline truncate">{p.owner_name || 'Unknown Owner'}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Amenities */}
@@ -377,6 +395,8 @@ export default function Properties() {
           </div>
         </div>
       )}
+
+      <HomeownerProfileModal owner={selectedOwner} onClose={() => setSelectedOwner(null)} />
     </div>
   )
 }

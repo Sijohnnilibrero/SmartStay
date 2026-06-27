@@ -5,8 +5,8 @@ import { useAuthStore } from '@/store/useAuthStore'
 const ROLE_OPTIONS = [
   {
     value: 'tenant',
-    label: 'Tenant / Boarder',
-    desc: 'I am looking for a boarding house to rent.',
+    label: 'Tenant / Tourist / Boarder',
+    desc: 'I am looking for a boarding house or transient room.',
     icon: '🎒',
     color: '#BA7517',
     bg: '#FAEEDA',
@@ -25,7 +25,7 @@ const TENANT_TYPES = [
   { value: 'student',             label: 'Student' },
   { value: 'professional',        label: 'Professional' },
   { value: 'government_employee', label: 'Government Employee' },
-  { value: 'visitor',             label: 'Visitor' },
+  { value: 'visitor',             label: 'Visitor / Tourist / Transient' },
 ]
 
 export default function Register() {

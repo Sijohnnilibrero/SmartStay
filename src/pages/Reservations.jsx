@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { CheckCircle, XCircle, Trash2, Star, Upload } from 'lucide-react'
+import TenantProfileModal from '@/components/ui/TenantProfileModal'
 import AddReviewModal from '@/components/AddReviewModal'
 
 var STATUSES = ['All', 'Pending', 'Awaiting_Payment', 'Confirmed', 'Completed', 'Cancelled']
@@ -35,6 +36,7 @@ export default function Reservations() {
   var loading = loadingState[0], setLoading = loadingState[1]
   var actioningState = useState(null)
   var actioning = actioningState[0], setActioning = actioningState[1]
+  var [selectedTenant, setSelectedTenant] = useState(null)
   var wasHiddenRef = useRef(false)
   
   var reviewModalState = useState({ isOpen: false, propertyId: null, propertyName: '' })
@@ -224,9 +226,18 @@ export default function Reservations() {
                     return (
                       <tr key={r.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                         <td className="px-3 py-2 sm:px-4 sm:py-3">
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <div className="hidden xs:block"><Avatar initials={(r.tenant_name || r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" /></div>
-                            <span className="text-[10px] sm:text-[12px] font-medium text-stone-800">{r.tenant_name || (r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown')}</span>
+                          <div 
+                            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:bg-stone-100 p-1 -m-1 rounded transition-colors"
+                            onClick={() => (isAdmin || isOwner) && setSelectedTenant(r)}
+                          >
+                            <div className="hidden xs:block">
+                              {r.tenant_avatar ? (
+                                <img src={r.tenant_avatar} alt="Avatar" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover" />
+                              ) : (
+                                <Avatar initials={(r.tenant_name || r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" />
+                              )}
+                            </div>
+                            <span className="text-[10px] sm:text-[12px] font-medium text-teal-600 hover:underline">{r.tenant_name || (r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown')}</span>
                           </div>
                         </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_name || getPropName(r.property_id)}</td>
@@ -353,6 +364,8 @@ export default function Reservations() {
         url={viewContractUrl} 
         onClose={() => setViewContractUrl(null)} 
       />
+
+      <TenantProfileModal tenant={selectedTenant} onClose={() => setSelectedTenant(null)} />
     </div>
   )
 }
