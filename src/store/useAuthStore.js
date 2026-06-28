@@ -868,7 +868,7 @@ export const useAuthStore = create(
 
       // ── All Users (admin view) ─────────────────────────────────────────────
       fetchAllUsers: async () => {
-        const { data, error } = await supabase.from('profiles').select('*').neq('role', 'admin').order('created_at', { ascending: false })
+        const { data, error } = await supabase.from('profiles').select('*').in('role', ['tenant', 'owner']).order('created_at', { ascending: false })
         if (error) throw new Error('Failed to fetch users: ' + error.message)
         return data || []
       },
