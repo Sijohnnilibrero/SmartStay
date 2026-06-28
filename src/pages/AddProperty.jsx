@@ -22,7 +22,7 @@ var EMPTY_FORM = {
   house_number: '', street: '', barangay: '', landmark: '',
   total_rooms: '', amenities: [],
   latitude: null, longitude: null, image_url: null, permit_urls: [], permit_expires_on: '',
-  accepts_long_term: true, accepts_transient: false,
+  accepts_long_term: true, accepts_transient: false, status: 'pending_review'
 }
 
 export default function AddProperty() {
@@ -87,7 +87,8 @@ export default function AddProperty() {
         permit_urls: p.permit_urls || (p.permit_url ? [p.permit_url] : []),
         permit_expires_on: p.permit_expires_on || '',
         accepts_long_term: p.accepts_long_term !== false,
-        accepts_transient: !!p.accepts_transient
+        accepts_transient: !!p.accepts_transient,
+        status: p.status || 'pending_review'
       })
       if (p.image_url) setImagePreview(p.image_url)
     }).catch(function(err) {
@@ -452,12 +453,14 @@ export default function AddProperty() {
                       {/* Existing Uploaded Permits */}
                       {form.permit_urls && form.permit_urls.map((url, idx) => (
                         <div key={'existing-'+idx} className="flex items-center gap-3 p-2 bg-white border border-stone-200 rounded-xl cursor-pointer hover:border-teal-300 transition-all" onClick={() => window.open(url, '_blank')}>
-                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0 flex items-center justify-center text-[--teal]">
-                             <CheckCircle2 size={16} />
+                          <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center ${form.status === 'active' ? 'bg-teal-50 text-teal-600' : form.status === 'inactive' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                             {form.status === 'active' ? <CheckCircle2 size={16} /> : form.status === 'inactive' ? <X size={16} /> : <Loader2 size={16} className="animate-spin" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-stone-700 truncate">Existing Permit {idx+1}</p>
-                            <p className="text-[9px] text-[--teal] mt-0.5">Verified</p>
+                            <p className={`text-[9px] mt-0.5 font-medium ${form.status === 'active' ? 'text-teal-600' : form.status === 'inactive' ? 'text-red-600' : 'text-amber-600'}`}>
+                              {form.status === 'active' ? 'Verified' : form.status === 'inactive' ? 'Rejected' : 'Under Review'}
+                            </p>
                           </div>
                           <button type="button" onClick={(e) => { e.stopPropagation(); set('permit_urls', form.permit_urls.filter((_, i) => i !== idx)); }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md">
                             <X size={12} />

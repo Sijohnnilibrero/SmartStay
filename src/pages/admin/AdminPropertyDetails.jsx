@@ -360,7 +360,7 @@ export default function AdminPropertyDetails() {
       {permitModalUrl && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 sm:p-8 backdrop-blur-sm" onClick={() => setPermitModalUrl(null)}>
           <button 
-            className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-all"
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-all z-10"
             onClick={() => setPermitModalUrl(null)}
           >
             <XCircle size={28} />
