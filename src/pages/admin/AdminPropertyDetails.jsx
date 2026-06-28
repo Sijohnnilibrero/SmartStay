@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Badge, OccupancyBar, Button, ZoomableImage } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
