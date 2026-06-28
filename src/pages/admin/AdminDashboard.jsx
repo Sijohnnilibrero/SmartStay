@@ -72,7 +72,9 @@ export default function AdminDashboard() {
   return (
     <div className="page-enter">
       <div className="px-6 pt-5 pb-1">
-        <p className="font-bold text-2xl text-stone-800">Admin Dashboard</p>
+        <p className="font-bold text-2xl text-stone-800">
+          {useAuthStore(s => s.user)?.role === 'super_admin' ? 'Super Admin Dashboard' : 'Regional Admin Dashboard'}
+        </p>
         <p className="text-sm text-stone-400 mt-0.5">Platform overview and quick actions</p>
       </div>
 

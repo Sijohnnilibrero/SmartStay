@@ -58,7 +58,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<><AppLayout /><TenantOnboarding /></>}>
           {/* Tenant routes */}
-          <Route path="/tenant">
+          <Route path="/tenant" element={<ProtectedRoute allowedRoles={['tenant']} />}>
             <Route index element={<TenantDashboard />} />
              <Route path="search" element={<TenantSearch />} />
              <Route path="rooms" element={<TenantBrowseRooms />} />

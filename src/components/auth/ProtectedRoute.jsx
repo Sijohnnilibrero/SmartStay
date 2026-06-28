@@ -14,7 +14,9 @@ export default function ProtectedRoute({ allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />
+    if (user.role === 'admin' || user.role === 'super_admin') return <Navigate to="/admin" replace />
+    if (user.role === 'owner') return <Navigate to="/owner" replace />
+    return <Navigate to="/tenant" replace />
   }
 
   return <Outlet />
