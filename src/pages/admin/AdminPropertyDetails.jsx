@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Badge, OccupancyBar, Button } from '@/components/ui'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Card, Badge, OccupancyBar, Button, ZoomableImage } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -352,11 +353,11 @@ export default function AdminPropertyDetails() {
             <XCircle size={28} />
           </button>
           
-          <img 
+          
+          <ZoomableImage 
             src={permitModalUrl} 
             alt="Business Permit" 
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
-            onClick={(e) => e.stopPropagation()} 
+            className="w-full h-full max-h-[90vh]" 
           />
         </div>,
         document.body

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { Card, Badge, StarRating, OccupancyBar, Button, Input } from '@/components/ui'
+import { Card, Badge, StarRating, OccupancyBar, Button, Input, ZoomableImage } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -534,11 +534,11 @@ export default function TenantPropertyDetails() {
               touchEndX.current = 0
             }}
           >
-            <img 
+            <ZoomableImage 
               key={fullScreenImgIdx} 
               src={selectedRoom.image_urls[fullScreenImgIdx]} 
               alt="Room Fullscreen" 
-              className="max-w-full max-h-[80vh] object-contain sm:rounded-lg pointer-events-none quick-fade" 
+              className="w-full h-full max-h-[80vh] sm:rounded-lg quick-fade" 
             />
             
             {selectedRoom.image_urls.length > 1 && (

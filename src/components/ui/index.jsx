@@ -3,6 +3,7 @@ import ConfirmModal from './ConfirmModal'
 import ContractViewerModal from './ContractViewerModal'
 import ImageViewerModal from './ImageViewerModal'
 import ReviewModal from './ReviewModal'
+export { ZoomableImage } from './ZoomableImage'
 
 /* ── Badge ───────────────────────────────────────────── */
 export function Badge({ children, variant = 'teal', className }) {

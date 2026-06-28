@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { ZoomableImage } from './ZoomableImage'
 
 export default function ImageViewerModal({ isOpen, imageUrl, onClose }) {
   if (!isOpen || !imageUrl) return null
@@ -17,13 +18,13 @@ export default function ImageViewerModal({ isOpen, imageUrl, onClose }) {
       </button>
       
       <div 
-        className="relative max-w-4xl max-h-[90vh] rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+        className="relative max-w-4xl max-h-[90vh] w-full h-[90vh] rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <img 
+        <ZoomableImage 
           src={imageUrl} 
           alt="Expanded view" 
-          className="w-full h-full object-contain max-h-[90vh]" 
+          className="w-full h-full max-h-[90vh]" 
         />
       </div>
     </div>,
