@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Card, Badge, Button } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
-import { Users, Search, MessageSquare, X, AlertTriangle } from 'lucide-react'
+import { Users, Search, MessageSquare, X, AlertTriangle, Star } from 'lucide-react'
+import ReviewModal from '@/components/ui/ReviewModal'
+import TenantProfileModal from '@/components/ui/TenantProfileModal'
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
   professional: 'bg-teal-100 text-teal-700',
@@ -39,6 +41,9 @@ export default function HomeownerTenants() {
   var errorMsg = errorState[0], setErrorMsg = errorState[1]
   var wasHiddenRef = useRef(false)
   var addToast = useAppStore(function(s) { return s.addToast })
+  var [ratingTenant, setRatingTenant] = useState(null)
+  var [selectedTenant, setSelectedTenant] = useState(null)
+  var submitReview = useAuthStore(s => s.submitReview)
 
   var loadTenants = useCallback(function() {
     setLoading(true)
@@ -211,14 +216,17 @@ export default function HomeownerTenants() {
                   return (
                     <tr key={t.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                       <td className="px-3 py-2 sm:px-4 sm:py-3">
-                        <div className="flex items-center gap-2 sm:gap-2.5">
+                        <div 
+                          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer hover:bg-stone-100 p-1 -m-1 rounded transition-colors"
+                          onClick={() => setSelectedTenant(t)}
+                        >
                           <div
                             className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-semibold bg-stone-50"
                           >
                             {(t.full_name || '??').split(' ').map(function(n) { return n[0] }).slice(0, 2).join('').toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-[10px] sm:text-[12px] font-medium text-stone-800 truncate max-w-[80px] sm:max-w-none">{t.full_name}</p>
+                            <p className="text-[10px] sm:text-[12px] font-medium text-teal-600 hover:underline truncate max-w-[80px] sm:max-w-none">{t.full_name}</p>
                             <p className="text-[8px] sm:text-[10px] text-stone-400">{t.id ? t.id.substring(0, 8) : ''}</p>
                           </div>
                         </div>
@@ -259,6 +267,15 @@ export default function HomeownerTenants() {
                           >
                             <MessageSquare size={14} className="sm:mr-1.5" />
                             <span className="hidden sm:inline">Message</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="px-2 py-1 h-auto text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            onClick={() => setRatingTenant(t)}
+                          >
+                            <Star size={14} className="sm:mr-1.5" />
+                            <span className="hidden sm:inline">Rate</span>
                           </Button>
                           {activeTab === 'active' && (
                             <Button 
@@ -302,6 +319,24 @@ export default function HomeownerTenants() {
           </div>
         </div>
       )}
+
+      <ReviewModal 
+        isOpen={!!ratingTenant}
+        onClose={() => setRatingTenant(null)}
+        targetUser={{ id: ratingTenant?.id, full_name: ratingTenant?.full_name }}
+        reservationId={ratingTenant?.reservation_id}
+        onSubmit={async (payload) => {
+          await submitReview(payload)
+          addToast('Review submitted successfully!', 'success')
+          loadTenants()
+        }}
+      />
+
+      <TenantProfileModal 
+        isOpen={!!selectedTenant} 
+        tenantId={selectedTenant?.id} 
+        onClose={() => setSelectedTenant(null)} 
+      />
     </div>
   )
 }

@@ -154,7 +154,10 @@ export default function AddProperty() {
           var muni = data.address.town || data.address.city || data.address.municipality || data.address.county
           if (muni) {
             var m = muni.replace('Municipality of ', '')
-            if (MUNICIPALITIES.includes(m)) next.municipality = m
+            if (MUNICIPALITIES.includes(m)) {
+              next.municipality = m
+              next.island = (m === 'Sabtang') ? 'Sabtang' : (m === 'Itbayat') ? 'Itbayat' : 'Batan'
+            }
           }
           return next
         })
@@ -569,7 +572,11 @@ export default function AddProperty() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Municipality *</label>
-                      <select value={form.municipality} onChange={function(e) { set('municipality', e.target.value) }} className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30">
+                      <select value={form.municipality} onChange={function(e) { 
+                          var m = e.target.value
+                          var isld = (m === 'Sabtang') ? 'Sabtang' : (m === 'Itbayat') ? 'Itbayat' : 'Batan'
+                          setForm(f => Object.assign({}, f, { municipality: m, island: isld }))
+                        }} className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30">
                         {MUNICIPALITIES.map(function(m) { return <option key={m} value={m}>{m}</option> })}
                       </select>
                     </div>

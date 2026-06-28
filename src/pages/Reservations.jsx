@@ -365,7 +365,11 @@ export default function Reservations() {
         onClose={() => setViewContractUrl(null)} 
       />
 
-      <TenantProfileModal tenant={selectedTenant} onClose={() => setSelectedTenant(null)} />
+      <TenantProfileModal 
+        isOpen={!!selectedTenant} 
+        tenantId={selectedTenant?.tenant_id || selectedTenant?.id} 
+        onClose={() => setSelectedTenant(null)} 
+      />
     </div>
   )
 }

@@ -24,6 +24,7 @@ import HomeownerProfile from '@/pages/homeowner/HomeownerProfile'
 import HomeownerLedger  from '@/pages/homeowner/HomeownerLedger'
 import Messages from '@/pages/Messages'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminAnalytics from '@/pages/admin/AdminAnalytics'
 import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
 import AdminLedger    from '@/pages/admin/AdminLedger'
 import AdminStaff     from '@/pages/admin/AdminStaff'
@@ -91,6 +92,7 @@ export default function App() {
           {/* Admin routes - view only */}
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']} />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="users" element={<Tenants />} />
             <Route path="properties" element={<Properties />} />
             <Route path="property/:id" element={<AdminPropertyDetails />} />

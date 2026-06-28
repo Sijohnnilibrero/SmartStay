@@ -44,7 +44,12 @@ function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-stone-800 text-[14px] truncate pr-8">{t.full_name}</p>
+          <p 
+            className="font-semibold text-stone-800 text-[14px] truncate pr-8 cursor-pointer hover:underline hover:text-[--teal] transition-colors"
+            onClick={() => onViewProfile(t)}
+          >
+            {t.full_name}
+          </p>
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span
               className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
@@ -59,15 +64,13 @@ function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
             )}
           </div>
         </div>
-        {isAdmin && (
-          <button 
-            onClick={() => onViewProfile(t)}
-            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-            title="View Profile"
-          >
-            <Eye size={16} />
-          </button>
-        )}
+        <button 
+          onClick={() => onViewProfile(t)}
+          className="absolute top-4 right-4 p-2 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+          title="View Profile"
+        >
+          <Eye size={16} />
+        </button>
       </div>
 
       {/* Divider */}
@@ -347,9 +350,11 @@ export default function Tenants() {
       )}
 
       {/* Profile Modals */}
+      {/* Profile Modals */}
       {selectedProfile && selectedProfile.role === 'owner' ? (
         <HomeownerProfileModal
           owner={{
+            id: selectedProfile.id,
             owner_name: selectedProfile.full_name,
             owner_avatar: selectedProfile.avatar_url,
             owner_email: selectedProfile.email,
@@ -360,13 +365,8 @@ export default function Tenants() {
         />
       ) : selectedProfile ? (
         <TenantProfileModal 
-          tenant={{
-            tenant_name: selectedProfile.full_name,
-            tenant_avatar: selectedProfile.avatar_url,
-            tenant_email: selectedProfile.email,
-            tenant_contact: selectedProfile.contact,
-            tenant_municipality: selectedProfile.municipality
-          }} 
+          isOpen={true}
+          tenantId={selectedProfile.id}
           onClose={() => setSelectedProfile(null)} 
         />
       ) : null}

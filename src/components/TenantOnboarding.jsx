@@ -41,10 +41,12 @@ export default function TenantOnboarding() {
 
   async function finishOnboarding() {
     setIsSaving(true)
+    if (user?.id) {
+      localStorage.setItem(`smartstay_onboarded_${user.id}`, '1')
+    }
     try {
       if (user?.id) {
         await saveTenantPreferences(prefs)
-        localStorage.setItem(`smartstay_onboarded_${user.id}`, '1')
       }
     } catch (e) {
       console.error(e)

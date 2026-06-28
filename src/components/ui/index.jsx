@@ -1,4 +1,8 @@
 import { cn, getStatusColor } from '@/lib/utils'
+import ConfirmModal from './ConfirmModal'
+import ContractViewerModal from './ContractViewerModal'
+import ImageViewerModal from './ImageViewerModal'
+import ReviewModal from './ReviewModal'
 
 /* ── Badge ───────────────────────────────────────────── */
 export function Badge({ children, variant = 'teal', className }) {

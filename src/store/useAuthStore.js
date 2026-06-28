@@ -74,6 +74,7 @@ export const useAuthStore = create(
             tenant_type: profile.tenant_type,
             contact: profile.contact || '',
             preferences: profile.preferences || null,
+            admin_region: profile.admin_region || null,
           }
           set({ user, isLoading: false, authError: null })
           return { success: true, user }
@@ -201,6 +202,7 @@ export const useAuthStore = create(
             tenant_type: profile.tenant_type,
             contact: profile.contact || '',
             preferences: profile.preferences || null,
+            admin_region: profile.admin_region || null,
           },
         })
       },
@@ -1167,6 +1169,39 @@ export const useAuthStore = create(
         ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
 
         return msgs.map((m) => ({ ...m, sender: profileMap[m.sender_id] || null }))
+      },
+
+      fetchUserReviews: async (userId) => {
+        const { data, error } = await supabase
+          .from('user_reviews')
+          .select('*, reviewer:profiles!reviewer_id(full_name, avatar_url, role)')
+          .eq('reviewee_id', userId)
+          .order('created_at', { ascending: false })
+        
+        if (error) {
+          console.error('fetchUserReviews error:', error)
+          return []
+        }
+        return data || []
+      },
+
+      submitReview: async (payload) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const { error } = await supabase
+          .from('user_reviews')
+          .insert({
+            reviewer_id: user.id,
+            reviewee_id: payload.reviewee_id,
+            reservation_id: payload.reservation_id || null,
+            rating: payload.rating,
+            categories: payload.categories || {},
+            comment: payload.comment || ''
+          })
+          
+        if (error) throw new Error('Failed to submit review: ' + error.message)
+        return true
       },
     }),
     {

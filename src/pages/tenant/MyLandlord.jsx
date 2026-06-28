@@ -4,9 +4,10 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
-import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight } from 'lucide-react'
+import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight, Star } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
+import ReviewModal from '@/components/ui/ReviewModal'
 
 export default function MyLandlord() {
   const navigate = useNavigate()
@@ -17,7 +18,9 @@ export default function MyLandlord() {
   const [data, setData] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
   const [viewContractUrl, setViewContractUrl] = useState(null)
+  const [ratingLandlord, setRatingLandlord] = useState(false)
   const wasHiddenRef = useRef(false)
+  const submitReview = useAuthStore(s => s.submitReview)
 
   const loadLandlord = useCallback(function () {
     if (!user?.id) return
@@ -169,6 +172,13 @@ export default function MyLandlord() {
               >
                 Chat with Landlord <ExternalLink size={14} />
               </Button>
+              <Button
+                variant="ghost"
+                className="w-full mt-2 justify-center gap-1.5 text-amber-600 hover:bg-amber-50"
+                onClick={() => setRatingLandlord(true)}
+              >
+                Rate Landlord <Star size={14} />
+              </Button>
             </Card>
           </div>
 
@@ -286,6 +296,18 @@ export default function MyLandlord() {
 
         </div>
       </div>
+
+      <ReviewModal 
+        isOpen={ratingLandlord}
+        onClose={() => setRatingLandlord(false)}
+        targetUser={{ id: landlord.id, full_name: landlord.full_name }}
+        reservationId={reservation?.id}
+        onSubmit={async (payload) => {
+          await submitReview(payload)
+          addToast('Review submitted successfully!', 'success')
+          loadLandlord()
+        }}
+      />
     </div>
   )
 }

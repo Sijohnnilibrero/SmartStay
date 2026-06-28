@@ -22,7 +22,10 @@ const getAdminNav = (user) => {
   }
 
   return [
-    { label: 'Dashboard', icon: LayoutDashboard, routes: [{ to: '/admin', label: 'Overview' }] },
+    { label: 'Dashboard', icon: LayoutDashboard, routes: [
+      { to: '/admin', label: 'Overview' },
+      { to: '/admin/analytics', label: 'Analytics' }
+    ] },
     { label: 'Manage', icon: Users, routes: manageRoutes },
     { label: 'Discover', icon: Sparkles, routes: [{ to: '/admin/map', label: 'System Map', icon: Map }] }
   ]
