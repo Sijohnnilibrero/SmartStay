@@ -471,8 +471,15 @@ export const useAuthStore = create(
         return data
       },
 
-      updatePropertyStatus: async (id, status) => {
-        const { data, error } = await supabase.from('properties').update({ status }).eq('id', id).select().single()
+      updatePropertyStatus: async (id, status, reason = null) => {
+        const updateData = { status }
+        if (status === 'active') {
+          updateData.rejection_reason = null // Clear reason on approval
+        } else if (status === 'inactive' && reason) {
+          updateData.rejection_reason = reason
+        }
+        
+        const { data, error } = await supabase.from('properties').update(updateData).eq('id', id).select().single()
         if (error) throw error
         return data
       },

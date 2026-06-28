@@ -305,6 +305,14 @@ export default function Properties() {
                       color={isFull ? '#D85A30' : '#1D9E75'}
                     />
 
+                    {/* Rejection Reason */}
+                    {p.status === 'inactive' && p.rejection_reason && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-1">Rejection Notice</p>
+                        <p className="text-xs text-red-700 leading-snug">{p.rejection_reason}</p>
+                      </div>
+                    )}
+
                     {/* Admin approve/reject */}
                     {isAdmin && p.status === 'pending_review' && (
                       <div className="flex gap-2 mt-3 pt-3 border-t border-stone-100">

@@ -75,6 +75,7 @@ export function ZoomableImage({ src, alt, className = '' }) {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onDoubleClick={handleDoubleClick}
+      onClick={(e) => e.stopPropagation()}
       style={{ cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in' }}
     >
       <img

@@ -30,6 +30,7 @@ export default function AdminPropertyDetails() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [permitModalUrl, setPermitModalUrl] = useState(null)
+  const [rejectionReasonText, setRejectionReasonText] = useState('')
 
   const loadProperty = useCallback(() => {
     setLoading(true)
@@ -79,9 +80,10 @@ export default function AdminPropertyDetails() {
 
   const handleStatusChange = (status) => {
     setActioning('status')
-    updatePropertyStatus(id, status).then(() => {
-      setProperty(prev => ({ ...prev, status }))
+    updatePropertyStatus(id, status, status === 'inactive' ? rejectionReasonText : null).then(() => {
+      setProperty(prev => ({ ...prev, status, rejection_reason: status === 'inactive' ? rejectionReasonText : null }))
       setConfirmAction(null)
+      setRejectionReasonText('')
     }).catch(err => {
       addToast('Failed to update status: ' + err.message, 'error')
     }).finally(() => setActioning(null))
@@ -328,8 +330,20 @@ export default function AdminPropertyDetails() {
                'Are you sure you want to delete this property? All rooms and reservations will be permanently lost.'}
             </p>
 
+            {confirmAction === 'reject' && (
+              <div className="mb-6">
+                <textarea 
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/50" 
+                  rows="3" 
+                  placeholder="Reason for rejection (Optional)"
+                  value={rejectionReasonText}
+                  onChange={(e) => setRejectionReasonText(e.target.value)}
+                ></textarea>
+              </div>
+            )}
+
             <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 bg-stone-100 text-stone-700" onClick={() => { setConfirmAction(null); setDeleteConfirmText(''); }}>Cancel</Button>
+              <Button variant="ghost" className="flex-1 bg-stone-100 text-stone-700" onClick={() => { setConfirmAction(null); setDeleteConfirmText(''); setRejectionReasonText(''); }}>Cancel</Button>
               <Button 
                 className="flex-1 text-white"
                 style={{ background: confirmAction === 'approve' ? '#0F6E56' : '#DC2626' }}
