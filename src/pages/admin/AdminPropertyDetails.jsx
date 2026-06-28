@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Badge, OccupancyBar, Button } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
@@ -28,6 +29,7 @@ export default function AdminPropertyDetails() {
   const [actioning, setActioning] = useState(null)
   const [confirmAction, setConfirmAction] = useState(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [permitModalUrl, setPermitModalUrl] = useState(null)
 
   const loadProperty = useCallback(() => {
     setLoading(true)
@@ -206,9 +208,9 @@ export default function AdminPropertyDetails() {
                 {(property.permit_urls && property.permit_urls.length > 0) || property.permit_url ? (
                   <div className="mb-4 space-y-2">
                     {(property.permit_urls && property.permit_urls.length > 0 ? property.permit_urls : [property.permit_url]).map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-2.5 text-sm font-medium text-[--teal] border border-teal-200 bg-teal-50 hover:bg-teal-100 rounded-xl transition-colors">
+                      <button key={i} type="button" onClick={() => setPermitModalUrl(url)} className="flex items-center justify-center w-full py-2.5 text-sm font-medium text-[--teal] border border-teal-200 bg-teal-50 hover:bg-teal-100 rounded-xl transition-colors">
                         <FileText size={16} className="mr-2" /> View Business Permit {property.permit_urls && property.permit_urls.length > 1 ? i + 1 : ''}
-                      </a>
+                      </button>
                     ))}
                     {property.permit_expires_on && (
                       <p className={`text-center text-[10px] sm:text-xs mt-1.5 font-medium ${new Date(property.permit_expires_on) < new Date() ? 'text-red-500' : 'text-stone-500'}`}>
@@ -339,6 +341,25 @@ export default function AdminPropertyDetails() {
             </div>
           </div>
         </div>
+      )}
+      {/* Permit Modal */}
+      {permitModalUrl && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 sm:p-8 backdrop-blur-sm" onClick={() => setPermitModalUrl(null)}>
+          <button 
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-all"
+            onClick={() => setPermitModalUrl(null)}
+          >
+            <XCircle size={28} />
+          </button>
+          
+          <img 
+            src={permitModalUrl} 
+            alt="Business Permit" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>,
+        document.body
       )}
     </div>
   )
