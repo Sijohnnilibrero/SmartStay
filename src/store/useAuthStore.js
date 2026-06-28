@@ -63,12 +63,19 @@ export const useAuthStore = create(
             set({ isLoading: false, authError: 'Your account is temporarily suspended. Contact administration.' })
             return { success: false, authError: 'Your account is temporarily suspended. Contact administration.' }
           }
+          let actualName = profile.full_name;
+          if (!actualName && data.user.user_metadata?.full_name) {
+            actualName = data.user.user_metadata.full_name;
+            // Silently fix the database if the trigger missed it
+            supabase.from('profiles').update({ full_name: actualName }).eq('id', profile.id).then();
+          }
+
           const user = {
             id: profile.id,
             email: data.user.email,
             role: profile.role,
-            name: profile.full_name,
-            initials: toInitials(profile.full_name),
+            name: actualName,
+            initials: toInitials(actualName || data.user.email),
             avatar: profile.avatar_url,
             municipality: profile.municipality,
             tenant_type: profile.tenant_type,
