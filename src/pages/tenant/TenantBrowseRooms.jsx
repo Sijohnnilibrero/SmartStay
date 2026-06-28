@@ -150,16 +150,23 @@ export default function TenantBrowseRooms() {
 
 function RoomCard({ room: r, property: p, idx = 0, onViewProperty, onReserve }) {
   var hasRoomImg = r && r.image_urls && r.image_urls.length > 0;
-  var imgSrc = hasRoomImg ? r.image_urls[0] : ((p && p.image_url) || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]);
+  var imgSrc = hasRoomImg ? r.image_urls[0] : (p && p.image_url);
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group">
       {/* Image header */}
-      <div className="relative h-40 overflow-hidden">
-        <img
-          src={imgSrc}
-          alt={p?.name || 'Room'}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+      <div className="relative h-40 overflow-hidden bg-stone-100 flex items-center justify-center">
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={p?.name || 'Room'}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="text-stone-300 flex flex-col items-center justify-center gap-1.5 opacity-60">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">No Photo</span>
+          </div>
+        )}
         {hasRoomImg && r.image_urls.length > 1 && (
           <div className="absolute top-3 left-3 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm flex items-center gap-1 z-10">
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> {r.image_urls.length} photos

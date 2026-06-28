@@ -119,8 +119,15 @@ export default function AdminPropertyDetails() {
         </div>
 
         {/* Hero Image */}
-        <div className="h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-sm border border-stone-200">
-          <img src={property.image_url || '/images/property_1.png'} alt={property.name} className="w-full h-full object-cover" />
+        <div className="h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-sm border border-stone-200 bg-stone-100 flex items-center justify-center">
+          {property.image_url ? (
+            <img src={property.image_url} alt={property.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-stone-300 flex flex-col items-center justify-center gap-2 opacity-70">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              <span className="text-sm font-semibold uppercase tracking-wider">No Property Photo</span>
+            </div>
+          )}
         </div>
 
         {/* Main Content Grid */}
