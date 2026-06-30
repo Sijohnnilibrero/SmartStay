@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import PropertyMap from '@/components/map/PropertyMap'
 import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home, CheckCircle2 } from 'lucide-react'
+import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
@@ -50,6 +51,7 @@ export default function AddProperty() {
   var [dragOver, setDragOver] = useState(false)
   var [permitPreviewModal, setPermitPreviewModal] = useState(false)
   var [activePermitPreview, setActivePermitPreview] = useState(null)
+  var [viewingImage, setViewingImage] = useState(null)
   var fileInputRef = useRef(null)
 
   var [otherProperties, setOtherProperties] = useState([])
@@ -452,7 +454,7 @@ export default function AddProperty() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                       {/* Existing Uploaded Permits */}
                       {form.permit_urls && form.permit_urls.map((url, idx) => (
-                        <div key={'existing-'+idx} className="flex items-center gap-3 p-2 bg-white border border-stone-200 rounded-xl cursor-pointer hover:border-teal-300 transition-all" onClick={() => window.open(url, '_blank')}>
+                        <div key={'existing-'+idx} className="flex items-center gap-3 p-2 bg-white border border-stone-200 rounded-xl cursor-pointer hover:border-teal-300 transition-all" onClick={() => setViewingImage(url)}>
                           <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center ${form.status === 'active' ? 'bg-teal-50 text-teal-600' : form.status === 'inactive' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
                              {form.status === 'active' ? <CheckCircle2 size={16} /> : form.status === 'inactive' ? <X size={16} /> : <Loader2 size={16} className="animate-spin" />}
                           </div>
@@ -761,6 +763,13 @@ export default function AddProperty() {
         </div>,
         document.body
       )}
+      {/* Render Image Viewer Modal */}
+      <ImageViewerModal 
+        isOpen={!!viewingImage} 
+        imageUrl={viewingImage} 
+        onClose={() => setViewingImage(null)} 
+      />
+
     </div>
   )
 }

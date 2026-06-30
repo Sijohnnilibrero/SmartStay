@@ -9,6 +9,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { CheckCircle, XCircle, Trash2, Star, Upload } from 'lucide-react'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
 import AddReviewModal from '@/components/AddReviewModal'
+import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 var STATUSES = ['All', 'Pending', 'Awaiting_Payment', 'Confirmed', 'Completed', 'Cancelled']
 var STATUS_BADGE = { pending: 'amber', awaiting_payment: 'blue', confirmed: 'teal', completed: 'gray', cancelled: 'coral' }
@@ -43,6 +44,7 @@ export default function Reservations() {
   var reviewModalState = useState({ isOpen: false, propertyId: null, propertyName: '' })
   var reviewModal = reviewModalState[0], setReviewModal = reviewModalState[1]
   const [viewContractUrl, setViewContractUrl] = useState(null)
+  const [viewingImage, setViewingImage] = useState(null)
 
   var loadReservations = useCallback(function () {
     setLoading(true)
@@ -279,7 +281,7 @@ export default function Reservations() {
                             {(isAdmin || isOwner) && r.status === 'awaiting_payment' && (
                               <div className="flex gap-1 sm:gap-2">
                                 {r.payment_receipt_url && (
-                                  <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto border border-blue-500 text-blue-600 hover:bg-blue-50" variant="ghost" disabled={actioning === r.id} onClick={() => window.open(r.payment_receipt_url, '_blank')}>
+                                  <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto border border-blue-500 text-blue-600 hover:bg-blue-50" variant="ghost" disabled={actioning === r.id} onClick={() => setViewingImage(r.payment_receipt_url)}>
                                     View Receipt
                                   </Button>
                                 )}
