@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, MessageSquare, CheckCheck, X } from 'lucide-react'
+import { Bell, CheckCheck, X } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -16,28 +17,13 @@ function timeAgo(dateStr) {
 export default function NotificationBell() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const fetchNotifications = useAuthStore((s) => s.fetchNotifications)
-  const markNotificationRead = useAuthStore((s) => s.markNotificationRead)
-  const markAllNotificationsRead = useAuthStore((s) => s.markAllNotificationsRead)
+  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore()
 
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState([])
   const panelRef = useRef(null)
   const btnRef = useRef(null)
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length
-
-  const load = useCallback(async () => {
-    const data = await fetchNotifications()
-    setNotifications(data)
-  }, [fetchNotifications])
-
-  // Load on mount and poll every 30s
-  useEffect(() => {
-    load()
-    const id = setInterval(load, 30000)
-    return () => clearInterval(id)
-  }, [load])
+  // fetchNotifications is now called globally by useGlobalRealtime, so we don't need polling here anymore.
 
   // Close on outside click
   useEffect(() => {
@@ -55,28 +41,18 @@ export default function NotificationBell() {
 
   const handleOpen = () => {
     setOpen((v) => !v)
-    if (!open) load() // refresh when opening
   }
 
   const handleClickNotification = async (n) => {
     if (!n.is_read) {
-      await markNotificationRead(n.id)
-      setNotifications((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x))
-      )
+      await markAsRead(n.id)
     }
     setOpen(false)
-    // Navigate based on role
-    if (user?.role === 'owner') {
-      navigate('/owner/messages')
-    } else if (user?.role === 'tenant') {
-      navigate('/tenant/landlord')
-    }
+    if (n.link) navigate(n.link)
   }
 
   const handleMarkAll = async () => {
-    await markAllNotificationsRead()
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+    await markAllAsRead()
   }
 
   return (
@@ -163,13 +139,15 @@ export default function NotificationBell() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-stone-800 truncate">
-                      {n.sender?.full_name || 'Someone'}
+                    <p className={`text-sm leading-tight ${n.is_read ? 'text-stone-600' : 'text-stone-900 font-semibold'}`}>
+                      {n.title}
                     </p>
-                    <p className="text-[11px] text-stone-500 line-clamp-2 mt-0.5 leading-relaxed">
+                    <p className={`text-xs mt-0.5 line-clamp-2 ${n.is_read ? 'text-stone-400' : 'text-stone-500'}`}>
                       {n.body}
                     </p>
-                    <p className="text-[10px] text-stone-400 mt-1">{timeAgo(n.created_at)}</p>
+                    <p className="text-[10px] text-stone-400 mt-1 uppercase tracking-wider font-semibold">
+                      {timeAgo(n.created_at)}
+                    </p>
                   </div>
 
                   {/* Unread dot */}

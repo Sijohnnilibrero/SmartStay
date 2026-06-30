@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Topbar from '@/components/layout/Topbar'
+import { supabase } from '@/lib/supabase'
 import { Card, Badge, Avatar, Button } from '@/components/ui'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
 import { formatCurrency } from '@/lib/utils'
@@ -78,6 +79,15 @@ export default function Reservations() {
   }, [isAdmin, isOwner, user?.id, fetchReservations, fetchProperties])
 
   useEffect(function () { loadReservations() }, [loadReservations])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('reservations-page-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+      loadReservations()
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadReservations])
 
   useEffect(function () {
     function handleVisibility() {

@@ -159,9 +159,19 @@ export default function Sidebar() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-sm">🏠</div>
-            <p className="font-bold text-xl text-white leading-tight">SmartStay</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-xl text-white leading-tight">SmartStay</p>
+              <span 
+                className="px-1.5 py-0.5 bg-white/20 text-white text-[9px] font-bold tracking-wider rounded border border-white/30 backdrop-blur-sm" 
+              >
+                BETA
+              </span>
+            </div>
           </div>
-          <p className="text-[10px] uppercase tracking-widest text-white/60">Batanes Platform</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/80 font-semibold mt-1">Batanes Platform</p>
+          <p className="text-[10px] text-white/70 leading-snug mt-1 italic">
+            System is in early development. Expect bugs.
+          </p>
         </div>
       </div>
 

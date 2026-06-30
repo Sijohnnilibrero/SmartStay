@@ -87,6 +87,20 @@ export default function Messages() {
     setThreadLoading(false)
   }, [fetchMessages])
 
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('messages-page-changes')
+    channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+      if (payload.new.sender_id === user.id || payload.new.receiver_id === user.id) {
+        loadConversations()
+        if (selected && (payload.new.sender_id === selected.otherId || payload.new.receiver_id === selected.otherId)) {
+          loadThread(selected.otherId)
+        }
+      }
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, selected, loadConversations, loadThread])
+
   const handleSelectConversation = async (conv) => {
     setSelected(conv)
     setMobilePanelOpen(true)

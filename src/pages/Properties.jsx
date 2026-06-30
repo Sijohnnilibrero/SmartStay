@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Topbar from '@/components/layout/Topbar'
 import { Button, Badge, OccupancyBar, Input, FilterChip } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import {
@@ -63,6 +64,15 @@ export default function Properties() {
   }, [isAdmin, user?.id, fetchProperties])
 
   useEffect(function () { loadProperties() }, [loadProperties])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('properties-page-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+      loadProperties()
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadProperties])
 
   useEffect(function () {
     function handleVisibility() {
