@@ -872,6 +872,45 @@ export const useAuthStore = create(
         }))
       },
 
+      backfillMissingPayments: async () => {
+        const user = get().user
+        if (!user) return
+
+        // Get all confirmed reservations for this owner
+        const { data: res } = await supabase.from('reservations')
+          .select('*')
+          .eq('owner_id', user.id)
+          .in('status', ['confirmed', 'completed'])
+
+        if (!res) return
+
+        for (let r of res) {
+          // Check if there is already an initial deposit
+          const { data: txs } = await supabase.from('transactions')
+            .select('id')
+            .eq('reservation_id', r.id)
+            .eq('payment_type', 'initial_deposit')
+
+          if (!txs || txs.length === 0) {
+            // Insert missing transaction
+            await supabase.from('transactions').insert({
+              reservation_id: r.id,
+              tenant_id: r.tenant_id,
+              owner_id: r.owner_id,
+              property_id: r.property_id,
+              amount: r.amount_total,
+              payment_type: 'initial_deposit',
+              payment_date: new Date().toISOString(),
+              receipt_url: r.payment_receipt_url || null,
+              status: 'verified',
+              verified_by: r.owner_id,
+              verified_at: new Date().toISOString(),
+              notes: 'Automatically backfilled from reservation'
+            })
+          }
+        }
+      },
+
       createReview: async (reviewData) => {
         const user = get().user
         if (!user) throw new Error('Not authenticated')
