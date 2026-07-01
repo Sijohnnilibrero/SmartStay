@@ -1069,7 +1069,7 @@ export const useAuthStore = create(
         // Fetch profiles for those IDs
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name, role')
+          .select('id, full_name, role, avatar_url')
           .in('id', otherIds)
         const profileMap = {}
         ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
@@ -1130,7 +1130,7 @@ export const useAuthStore = create(
         const senderIds = [...new Set(msgs.map((m) => m.sender_id))]
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name, role')
+          .select('id, full_name, role, avatar_url')
           .in('id', senderIds)
         const profileMap = {}
         ;(profiles || []).forEach((p) => { profileMap[p.id] = p })

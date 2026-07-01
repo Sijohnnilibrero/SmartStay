@@ -382,6 +382,12 @@ export default function Reservations() {
         tenantId={selectedTenant?.tenant_id || selectedTenant?.id} 
         onClose={() => setSelectedTenant(null)} 
       />
+
+      <ImageViewerModal 
+        isOpen={!!viewingImage} 
+        imageUrl={viewingImage} 
+        onClose={() => setViewingImage(null)} 
+      />
     </div>
   )
 }

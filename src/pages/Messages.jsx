@@ -203,10 +203,14 @@ export default function Messages() {
                   >
                     {/* Avatar */}
                     <div
-                      className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-[12px] font-bold shadow-sm"
+                      className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-[12px] font-bold shadow-sm overflow-hidden"
                       style={{ background: colors.bg, color: colors.text }}
                     >
-                      {toInitials(conv.otherProfile?.full_name)}
+                      {conv.otherProfile?.avatar_url ? (
+                        <img src={conv.otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        toInitials(conv.otherProfile?.full_name)
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -259,13 +263,17 @@ export default function Messages() {
                   <ArrowLeft size={18} />
                 </button>
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0 overflow-hidden"
                   style={{
                     background: ROLE_COLORS[selected.otherProfile?.role]?.bg || '#E1F5EE',
                     color: ROLE_COLORS[selected.otherProfile?.role]?.text || '#0F6E56',
                   }}
                 >
-                  {toInitials(selected.otherProfile?.full_name)}
+                  {selected.otherProfile?.avatar_url ? (
+                    <img src={selected.otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    toInitials(selected.otherProfile?.full_name)
+                  )}
                 </div>
                 <div>
                   <p className="text-[13px] font-semibold text-stone-800">
