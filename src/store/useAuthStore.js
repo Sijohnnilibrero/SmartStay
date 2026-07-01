@@ -681,14 +681,11 @@ export const useAuthStore = create(
               tenant_id: data.tenant_id,
               owner_id: data.owner_id,
               property_id: data.property_id,
-              amount: data.amount_total, // 1 month rent
+              amount: data.amount_total,
               payment_type: 'initial_deposit',
-              payment_date: new Date().toISOString(),
-              receipt_url: data.payment_receipt_url || null, // Might be null if they paid cash/in-person
-              status: 'verified',
-              verified_by: data.owner_id,
-              verified_at: new Date().toISOString(),
-              notes: 'Automatically generated from initial reservation payment'
+              payment_date: new Date().toISOString().split('T')[0],
+              receipt_url: data.payment_receipt_url || null,
+              status: 'verified'
             })
             if (txErr) console.error("Failed to auto-inject transaction:", txErr)
           }
@@ -900,12 +897,9 @@ export const useAuthStore = create(
               property_id: r.property_id,
               amount: r.amount_total,
               payment_type: 'initial_deposit',
-              payment_date: new Date().toISOString(),
+              payment_date: new Date().toISOString().split('T')[0],
               receipt_url: r.payment_receipt_url || null,
-              status: 'verified',
-              verified_by: r.owner_id,
-              verified_at: new Date().toISOString(),
-              notes: 'Automatically backfilled from reservation'
+              status: 'verified'
             })
           }
         }

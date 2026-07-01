@@ -85,15 +85,7 @@ export default function HomeownerDashboard() {
           <p className="font-bold text-2xl text-stone-800">Homeowner Dashboard</p>
           <p className="text-sm text-stone-400 mt-0.5">Manage your properties</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={async () => {
-            await useAuthStore.getState().backfillMissingPayments();
-            window.location.reload();
-          }}>
-            Fix Ledger
-          </Button>
-          <Link to="/owner/properties"><Button><Plus size={16} /> Add Property</Button></Link>
-        </div>
+        <Link to="/owner/properties"><Button><Plus size={16} /> Add Property</Button></Link>
       </div>
 
       <div className="p-6 space-y-5">
