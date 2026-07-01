@@ -61,7 +61,7 @@ export default function TenantPropertyDetails() {
       setRooms(results[2] || [])
       
       if (prop && prop.owner_id) {
-        var { data: owner } = await supabase.from('profiles').select('full_name, role, avatar_url, email, contact, municipality').eq('id', prop.owner_id).single()
+        var { data: owner } = await supabase.from('profiles').select('id, full_name, role, avatar_url, email, contact, municipality').eq('id', prop.owner_id).single()
         setOwnerProfile(owner)
       }
 
@@ -573,6 +573,7 @@ export default function TenantPropertyDetails() {
       {showOwnerModal && ownerProfile && (
         <HomeownerProfileModal
           owner={{
+            owner_id: ownerProfile.id,
             owner_name: ownerProfile.full_name,
             owner_avatar: ownerProfile.avatar_url,
             owner_email: ownerProfile.email,

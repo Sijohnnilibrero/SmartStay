@@ -38,9 +38,11 @@ export default function HomeownerProfileModal({ owner, onClose }) {
     ? owner.owner_name.trim().split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '??'
 
-  const trustScore = profile?.trust_score || 50
-  const avgRating = profile?.average_rating || 0
-  const totalRev = profile?.total_reviews || 0
+  // Calculate dynamic stats from reviews since RLS might block tenant updates to homeowner profile
+  const totalRev = reviews.length
+  const avgRating = totalRev > 0 ? Number((reviews.reduce((acc, r) => acc + r.rating, 0) / totalRev).toFixed(1)) : 0
+  const trustScore = Math.min(100, Math.max(0, Math.round(50 + (totalRev * 2) + ((avgRating - 3) * 5))))
+
   const avatarToUse = profile?.avatar_url || owner.owner_avatar
   const nameToUse = profile?.full_name || owner.owner_name
 
@@ -138,7 +140,7 @@ export default function HomeownerProfileModal({ owner, onClose }) {
                 Recent Reviews
               </h3>
               
-              <div className="space-y-3">
+              <div className="space-y-3 overflow-y-auto max-h-[35vh] pr-1">
                 {reviews.length === 0 ? (
                   <p className="text-xs text-stone-500 text-center py-4 bg-stone-50 rounded-xl border border-dashed border-stone-200">
                     No reviews yet.
@@ -148,7 +150,7 @@ export default function HomeownerProfileModal({ owner, onClose }) {
                     <div key={rev.id} className="bg-stone-50 p-3 rounded-xl border border-stone-100">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Avatar initials={rev.reviewer?.full_name?.charAt(0) || '?'} size="sm" />
+                          <Avatar url={rev.reviewer?.avatar_url} initials={rev.reviewer?.full_name?.charAt(0) || '?'} size="sm" />
                           <div>
                             <p className="text-xs font-bold text-stone-800">{rev.reviewer?.full_name}</p>
                             <p className="text-[10px] text-stone-400">{new Date(rev.created_at).toLocaleDateString()}</p>

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 import { Card, Button } from '@/components/ui'
 import { MessageSquare, CheckCheck, Send, ArrowLeft } from 'lucide-react'
 
@@ -131,6 +132,8 @@ export default function Messages() {
     if (conv.unreadCount > 0) {
       // Mark each unread message (received by current user) as read
       await markAllNotificationsRead()
+      // Clear global bell notification
+      await useNotificationStore.getState().markMessageNotificationsAsRead()
       setConversations((prev) =>
         prev.map((c) => c.otherId === conv.otherId ? { ...c, unreadCount: 0 } : c)
       )
@@ -193,6 +196,7 @@ export default function Messages() {
             <button
               onClick={async () => {
                 await markAllNotificationsRead()
+                await useNotificationStore.getState().markMessageNotificationsAsRead()
                 setConversations((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })))
               }}
               className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-teal-600 transition-colors px-3 py-1.5 rounded-lg border border-stone-200 hover:border-teal-300 hover:bg-teal-50"

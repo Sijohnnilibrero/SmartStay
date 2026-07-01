@@ -246,7 +246,7 @@ export default function Reservations() {
                               {r.tenant_avatar ? (
                                 <img src={r.tenant_avatar} alt="Avatar" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover" />
                               ) : (
-                                <Avatar initials={(r.tenant_name || r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" />
+                                <Avatar url={r.tenant?.avatar_url} initials={(r.tenant_name || r.tenant_id || '??').substring(0, 2).toUpperCase()} size="sm" />
                               )}
                             </div>
                             <span className="text-[10px] sm:text-[12px] font-medium text-teal-600 hover:underline">{r.tenant_name || (r.tenant_id ? r.tenant_id.substring(0, 8) : 'Unknown')}</span>

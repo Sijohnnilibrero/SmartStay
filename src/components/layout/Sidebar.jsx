@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const getAdminNav = (user) => {
   const isSuper = user?.role === 'super_admin'
@@ -134,9 +135,21 @@ export default function Sidebar() {
       setUnreadMessages(data.filter((n) => !n.is_read).length)
     }
     load()
-    const id = setInterval(load, 30000)
-    return () => clearInterval(id)
-  }, [user?.role])
+    
+    // Listen for realtime message changes (new messages or marked as read)
+    const channel = supabase.channel('sidebar-messages-changes')
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user?.id}` },
+      () => {
+        load() // Silently refresh unread count
+      }
+    ).subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.role, user?.id])
 
   const handleLogout = () => {
     logout()

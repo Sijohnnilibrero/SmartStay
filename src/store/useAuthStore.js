@@ -1278,6 +1278,25 @@ export const useAuthStore = create(
           })
           
         if (error) throw new Error('Failed to submit review: ' + error.message)
+        
+        // Update average rating and trust score
+        try {
+          const { data: revs } = await supabase.from('user_reviews').select('rating').eq('reviewee_id', payload.reviewee_id)
+          if (revs && revs.length > 0) {
+            const totalRev = revs.length
+            const avgRating = Number((revs.reduce((acc, r) => acc + r.rating, 0) / totalRev).toFixed(1))
+            const newTrustScore = Math.min(100, Math.max(0, Math.round(50 + (totalRev * 2) + ((avgRating - 3) * 5))))
+            
+            await supabase.from('profiles').update({
+              total_reviews: totalRev,
+              average_rating: avgRating,
+              trust_score: newTrustScore
+            }).eq('id', payload.reviewee_id)
+          }
+        } catch (e) {
+          console.error('Failed to update stats:', e)
+        }
+        
         return true
       },
     }),

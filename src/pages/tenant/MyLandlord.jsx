@@ -117,7 +117,7 @@ export default function MyLandlord() {
           {/* Left Column - Landlord Contact Card & Quick Message */}
           <div className="md:col-span-1 space-y-4 sm:space-y-6">
             <Card className="p-4 sm:p-6 text-center flex flex-col items-center">
-              <Avatar initials={landlordInitials} size="lg" className="w-12 h-12 sm:w-16 sm:h-16 text-base sm:text-lg mb-3 sm:mb-4 bg-[#E1F5EE] text-[#0F6E56]" />
+              <Avatar url={landlord.avatar_url} initials={landlordInitials} size="lg" className="w-12 h-12 sm:w-16 sm:h-16 text-base sm:text-lg mb-3 sm:mb-4 bg-[#E1F5EE] text-[#0F6E56]" />
               <h2 className="text-[14px] sm:text-[15px] font-bold text-stone-800 mb-0.5">{landlord.full_name}</h2>
               <Badge variant="teal" className="mb-4 sm:mb-6">Homeowner</Badge>
 

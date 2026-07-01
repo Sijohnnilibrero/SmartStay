@@ -115,7 +115,7 @@ export function StatCard({ label, value, delta, deltaUp = true, accent = '#0F6E5
 }
 
 /* ── Avatar ──────────────────────────────────────────── */
-export function Avatar({ initials, size = 'md', className }) {
+export function Avatar({ url, initials, size = 'md', className }) {
   const sizeMap = {
     sm: 'w-6 h-6 text-[10px]',
     md: 'w-8 h-8 text-[11px]',
@@ -124,12 +124,16 @@ export function Avatar({ initials, size = 'md', className }) {
   return (
     <div
       className={cn(
-        'rounded-full bg-[--teal-light] flex items-center justify-center font-semibold text-[--teal] flex-shrink-0',
+        'rounded-full bg-[--teal-light] flex items-center justify-center font-semibold text-[--teal] flex-shrink-0 overflow-hidden',
         sizeMap[size],
         className
       )}
     >
-      {initials}
+      {url ? (
+        <img src={url} alt={initials} className="w-full h-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   )
 }

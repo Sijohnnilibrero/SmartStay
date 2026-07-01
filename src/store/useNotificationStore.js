@@ -60,6 +60,26 @@ export const useNotificationStore = create((set, get) => ({
       .eq('is_read', false)
   },
 
+  markMessageNotificationsAsRead: async () => {
+    const user = useAuthStore.getState().user
+    if (!user) return
+
+    const { notifications } = get()
+    // Optimistic update - assume any notification with "message" in title is a message
+    const updated = notifications.map((n) => 
+      (n.title && n.title.toLowerCase().includes('message')) ? { ...n, is_read: true } : n
+    )
+    const unreadCount = updated.filter((n) => !n.is_read).length
+    set({ notifications: updated, unreadCount })
+
+    await supabase
+      .from('app_notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false)
+      .ilike('title', '%message%')
+  },
+
   addNotification: (notification) => {
     const { notifications } = get()
     const updated = [notification, ...notifications]
