@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
+import { supabase } from '@/lib/supabase'
 import { DollarSign, Upload, Clock, CheckCircle, XCircle, Search, Calendar, Eye, AlertTriangle } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { calculateNextDueDate, formatCurrency } from '@/lib/utils'
@@ -51,8 +52,30 @@ export default function MyPayments() {
     })
   }
 
+  // Silent refresh — no loading spinner, data just swaps in
+  const refreshData = () => {
+    Promise.all([
+      fetchTransactions(),
+      fetchReservations()
+    ]).then(([txs, resps]) => {
+      setTransactions(txs.filter(t => t.tenant_id === user.id))
+      setReservations(resps.filter(r => r.tenant_id === user.id && ['approved', 'confirmed'].includes(r.status)))
+    }).catch(err => console.error('Silent refresh error:', err))
+  }
+
   useEffect(() => {
     loadData()
+  }, [])
+
+  // Realtime: silently update when transactions change
+  useEffect(() => {
+    const channel = supabase
+      .channel('tenant-payments-transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+        refreshData()
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
   }, [])
 
   const handleLogPayment = async (e) => {

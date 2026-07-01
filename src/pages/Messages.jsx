@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -46,6 +46,12 @@ export default function Messages() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
 
   const isOwner = user?.role === 'owner'
+  const messagesEndRef = useRef(null)
+
+  // Auto-scroll to bottom whenever thread updates
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [thread])
 
   const loadConversations = useCallback(async () => {
     setLoading(true)
@@ -87,19 +93,34 @@ export default function Messages() {
     setThreadLoading(false)
   }, [fetchMessages])
 
+  // Silent thread refresh — no spinner, just swaps data in
+  const silentRefreshThread = useCallback(async (otherId) => {
+    if (!otherId) return
+    const data = await fetchMessages(otherId)
+    setThread(data)
+  }, [fetchMessages])
+
+  // Silent conversations refresh — sidebar updates without flash
+  const silentRefreshConversations = useCallback(async () => {
+    const data = await fetchConversations()
+    setConversations(data)
+  }, [fetchConversations])
+
   useEffect(() => {
     if (!user) return
     const channel = supabase.channel('messages-page-changes')
     channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
       if (payload.new.sender_id === user.id || payload.new.receiver_id === user.id) {
-        loadConversations()
+        // Silently refresh sidebar — no flash
+        silentRefreshConversations()
+        // Silently append new message to thread — no flash
         if (selected && (payload.new.sender_id === selected.otherId || payload.new.receiver_id === selected.otherId)) {
-          loadThread(selected.otherId)
+          silentRefreshThread(selected.otherId)
         }
       }
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [user, selected, loadConversations, loadThread])
+  }, [user, selected, silentRefreshConversations, silentRefreshThread])
 
   const handleSelectConversation = async (conv) => {
     setSelected(conv)
@@ -121,17 +142,32 @@ export default function Messages() {
   const handleSendReply = async (e) => {
     e.preventDefault()
     if (!replyText.trim() || !selected) return
+
+    // Optimistic update — instantly show message in chat
+    const optimisticMsg = {
+      id: `optimistic-${Date.now()}`,
+      sender_id: user.id,
+      receiver_id: selected.otherId,
+      body: replyText.trim(),
+      created_at: new Date().toISOString(),
+    }
+    setThread((prev) => [...prev, optimisticMsg])
+    setReplyText('')
+
     setReplying(true)
     try {
       await sendMessage({
         owner_id: selected.otherId,
         property_id: null,
-        body: replyText.trim(),
+        body: optimisticMsg.body,
       })
-      setReplyText('')
-      await loadThread(selected.otherId)
-      await loadConversations()
+      // Silently replace optimistic message with real one from server
+      silentRefreshThread(selected.otherId)
+      silentRefreshConversations()
     } catch (err) {
+      // Remove optimistic message on failure
+      setThread((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
+      setReplyText(optimisticMsg.body)
       addToast(err.message || 'Failed to send.', 'error')
     } finally {
       setReplying(false)
@@ -242,7 +278,7 @@ export default function Messages() {
         </div>
 
         {/* ── Right: Thread view ── */}
-        <div className={`flex-1 flex flex-col min-w-0 bg-stone-50/50 ${mobilePanelOpen ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-stone-50/50 ${mobilePanelOpen ? 'flex' : 'hidden md:flex'}`}>
           {!selected ? (
             <div className="flex-1 flex flex-col items-center justify-center p-10 text-center text-stone-400">
               <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-3">
@@ -252,7 +288,7 @@ export default function Messages() {
               <p className="text-xs mt-1">Click a name on the left to open the thread.</p>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col h-full min-h-0">
               {/* Thread header */}
               <div className="px-4 py-3.5 bg-white border-b border-stone-100 flex items-center gap-3 shrink-0">
                 {/* Mobile back button */}
@@ -285,8 +321,8 @@ export default function Messages() {
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              {/* Messages — scrollable area, reply bar stays fixed below */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
                 {threadLoading ? (
                   <div className="flex items-center justify-center py-10 text-stone-400 text-sm">
                     Loading conversation…
@@ -314,6 +350,8 @@ export default function Messages() {
                     </div>
                   )
                 })}
+                {/* Invisible anchor — always scrolled into view */}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Reply box */}
@@ -339,7 +377,7 @@ export default function Messages() {
                   </Button>
                 </form>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

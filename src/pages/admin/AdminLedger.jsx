@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
+import { supabase } from '@/lib/supabase'
 import { Eye, ShieldAlert } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
@@ -25,8 +26,26 @@ export default function AdminLedger() {
     })
   }
 
+  // Silent refresh — no loading spinner, data just swaps in
+  const refreshData = () => {
+    fetchTransactions().then(txs => {
+      setTransactions(txs)
+    }).catch(err => console.error('Silent refresh error:', err))
+  }
+
   useEffect(() => {
     loadData()
+  }, [])
+
+  // Realtime: silently update when transactions change
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-ledger-transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+        refreshData()
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
   }, [])
 
   const handleStatusChange = async (id, status) => {
