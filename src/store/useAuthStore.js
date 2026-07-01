@@ -665,6 +665,36 @@ export const useAuthStore = create(
         const { data, error } = await supabase.from('reservations').update(updateData).eq('id', id).select().single()
         if (error) throw error
         
+        // --- AUTO-INJECT INITIAL PAYMENT ---
+        if (status === 'confirmed') {
+          // Check if a transaction for initial deposit already exists to prevent duplicates
+          const { data: existingTx } = await supabase.from('transactions')
+            .select('id')
+            .eq('reservation_id', id)
+            .eq('payment_type', 'initial_deposit')
+            .limit(1)
+
+          if (!existingTx || existingTx.length === 0) {
+            // Create a verified transaction automatically
+            const { error: txErr } = await supabase.from('transactions').insert({
+              reservation_id: id,
+              tenant_id: data.tenant_id,
+              owner_id: data.owner_id,
+              property_id: data.property_id,
+              amount: data.amount_total, // 1 month rent
+              payment_type: 'initial_deposit',
+              payment_date: new Date().toISOString(),
+              receipt_url: data.payment_receipt_url || null, // Might be null if they paid cash/in-person
+              status: 'verified',
+              verified_by: data.owner_id,
+              verified_at: new Date().toISOString(),
+              notes: 'Automatically generated from initial reservation payment'
+            })
+            if (txErr) console.error("Failed to auto-inject transaction:", txErr)
+          }
+        }
+        // -----------------------------------
+
         if (data.room_id) {
           const isAvailable = !['confirmed', 'awaiting_payment'].includes(status);
           const roomStatus = status === 'confirmed' ? 'occupied' : (status === 'awaiting_payment' ? 'ongoing_transaction' : 'available');
