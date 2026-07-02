@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { Card, Button } from '@/components/ui'
 import { MessageSquare, CheckCheck, Send, ArrowLeft } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -185,13 +186,14 @@ export default function Messages() {
       <div className="px-6 pt-5 pb-4 bg-white border-b border-stone-100 shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-bold text-2xl text-stone-800">Messages</p>
+            <p className="font-bold text-lg md:text-xl text-stone-800">Messages</p>
             <p className="text-sm text-stone-400 mt-0.5">
               {totalUnread > 0
                 ? `${totalUnread} unread message${totalUnread > 1 ? 's' : ''}`
                 : 'All caught up'}
             </p>
           </div>
+          <NotificationBell />
           {totalUnread > 0 && (
             <button
               onClick={async () => {

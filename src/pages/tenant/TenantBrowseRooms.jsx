@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import { BedDouble, MapPin, Search, SlidersHorizontal } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 const PROPERTY_IMAGES = [
   '/images/property_1.png',
@@ -89,9 +90,12 @@ export default function TenantBrowseRooms() {
 
   return (
     <div className="page-enter">
-      <div className="px-6 pt-5 pb-1">
-        <p className="font-bold text-2xl text-stone-800 flex items-center gap-2"><BedDouble size={22} className="text-[--teal]" /> Browse Rooms</p>
-        <p className="text-sm text-stone-400 mt-0.5">{filtered.length} rooms available across all properties</p>
+      <div className="px-6 pt-5 pb-1 flex items-start justify-between">
+        <div>
+          <p className="font-bold text-lg md:text-xl text-stone-800 flex items-center gap-2"><BedDouble size={22} className="text-[--teal]" /> Browse Rooms</p>
+          <p className="text-sm text-stone-400 mt-0.5">{filtered.length} rooms available across all properties</p>
+        </div>
+        <NotificationBell />
       </div>
 
       <div className="p-6">

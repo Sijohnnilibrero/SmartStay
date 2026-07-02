@@ -4,6 +4,7 @@ import { Card, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import { formatCurrency, calculateNextDueDate } from '@/lib/utils'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function TenantDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
@@ -48,11 +49,13 @@ export default function TenantDashboard() {
 
   return (
     <div className="page-enter">
-      <div className="px-6 pt-5 pb-1">
-        <p className="font-bold text-2xl text-stone-800">{greeting()}, {user?.name ? user.name.split(' ')[0] : 'User'} 👋</p>
-        <p className="text-sm text-stone-400 mt-0.5">Here's what's happening with your stays</p>
+      <div className="px-6 pt-5 pb-1 flex items-start justify-between">
+        <div>
+          <p className="font-bold text-lg md:text-xl text-stone-800">{greeting()}, {user?.name ? user.name.split(' ')[0] : 'User'} 👋</p>
+          <p className="text-sm text-stone-400 mt-0.5">Here's what's happening with your stays</p>
+        </div>
+        <NotificationBell />
       </div>
-
       <div className="p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#0F6E56' }}>

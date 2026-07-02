@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import PropertyMap from '@/components/map/PropertyMap'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function AdminMap() {
   const navigate = useNavigate()
@@ -42,15 +43,15 @@ export default function AdminMap() {
       {/* Header */}
       <div className="px-6 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
         <div>
-          <p className="font-bold text-2xl text-stone-800">
+          <p className="font-bold text-lg md:text-xl text-stone-800">
             {user?.role === 'super_admin' ? 'Global System Map' : `${user?.admin_region || 'Regional'} Map`}
           </p>
           <p className="text-sm text-stone-400 mt-0.5">
             {loading ? 'Loading…' : `${pinned.length} properties on map · ${unpinned.length} without location`}
           </p>
         </div>
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-[11px] text-stone-500">
+        <div className="flex items-center gap-3 text-[11px] text-stone-500">
+          <NotificationBell />
           <span className="flex items-center gap-1.5">
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D9E75', display: 'inline-block' }} />
             Active

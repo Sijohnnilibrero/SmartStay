@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { DollarSign, Upload, Clock, CheckCircle, XCircle, Search, Calendar, Eye, AlertTriangle } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { calculateNextDueDate, formatCurrency } from '@/lib/utils'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function MyPayments() {
   const { user, fetchTransactions, fetchReservations, createTransaction, uploadTransactionReceipt, deleteTransaction, updateTransaction } = useAuthStore()
@@ -175,12 +176,15 @@ export default function MyPayments() {
       <div className="page-enter max-w-5xl w-full mx-auto space-y-6 px-4 sm:px-6 pt-5 overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">My Payments</h1>
+          <h1 className="text-lg md:text-xl font-bold text-stone-800">My Payments</h1>
           <p className="text-sm text-stone-500 mt-1">Track your rent payments and deposits</p>
         </div>
-        <Button onClick={() => setShowLogModal(true)}>
-          <Upload size={16} className="mr-2" /> Log New Payment
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Button onClick={() => setShowLogModal(true)}>
+            <Upload size={16} className="mr-2" /> Log New Payment
+          </Button>
+        </div>
       </div>
 
       {/* Due Date Banners */}

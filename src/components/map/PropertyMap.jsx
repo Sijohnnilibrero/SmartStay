@@ -163,7 +163,7 @@ export default function PropertyMap({
       const marker = L.marker([p.latitude, p.longitude], { icon })
         .bindPopup(popup)
         .on('click', () => {
-          mapRef.current.setView([p.latitude, p.longitude], 16, { animate: true })
+          mapRef.current.setView([p.latitude, p.longitude], 19, { animate: true })
         })
         .addTo(mapRef.current)
       markersRef.current.push(marker)
@@ -223,7 +223,7 @@ export default function PropertyMap({
           const { lat: la, lng: lg } = e.target.getLatLng()
           onPick && onPick(parseFloat(la.toFixed(7)), parseFloat(lg.toFixed(7)))
         })
-        mapRef.current.setView([lat, lng], 15)
+        mapRef.current.setView([lat, lng], 18)
       }
     }
 

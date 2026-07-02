@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
 import { Eye, ShieldAlert } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function AdminLedger() {
   const { fetchTransactions, updateTransactionStatus } = useAuthStore()
@@ -72,12 +73,13 @@ export default function AdminLedger() {
   return (
     <>
       <div className="page-enter w-full max-w-full space-y-6 px-4 sm:px-6 pt-5 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-800">Master Ledger</h1>
-          <p className="text-sm text-stone-500 mt-1">Global view of all platform transactions for auditing.</p>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-lg md:text-xl font-bold text-stone-800">Master Ledger</h1>
+            <p className="text-sm text-stone-500 mt-1">Global view of all platform transactions for auditing.</p>
+          </div>
+          <NotificationBell />
         </div>
-      </div>
 
       <Card className="w-full overflow-hidden border border-stone-200">
         <div className="w-full overflow-x-auto pb-2">

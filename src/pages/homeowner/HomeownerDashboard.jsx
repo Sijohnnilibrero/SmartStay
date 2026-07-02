@@ -4,6 +4,7 @@ import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Home, Users, BedDouble, FileText, Plus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function HomeownerDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
@@ -82,10 +83,13 @@ export default function HomeownerDashboard() {
     <div className="page-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-5">
         <div>
-          <p className="font-bold text-2xl text-stone-800">Homeowner Dashboard</p>
+          <p className="font-bold text-lg md:text-xl text-stone-800">Homeowner Dashboard</p>
           <p className="text-sm text-stone-400 mt-0.5">Manage your properties</p>
         </div>
-        <Link to="/owner/properties"><Button><Plus size={16} /> Add Property</Button></Link>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Link to="/owner/properties"><Button><Plus size={16} /> Add Property</Button></Link>
+        </div>
       </div>
 
       <div className="p-6 space-y-5">
@@ -129,19 +133,19 @@ export default function HomeownerDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Total Properties</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#0F6E56' }}>{stats.properties}</p>
+            <p className="font-bold text-xl sm:text-2xl" style={{ color: '#0F6E56' }}>{stats.properties}</p>
           </Card>
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Total Rooms</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#534AB7' }}>{stats.rooms}</p>
+            <p className="font-bold text-xl sm:text-2xl" style={{ color: '#534AB7' }}>{stats.rooms}</p>
           </Card>
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Occupied</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#BA7517' }}>{stats.occupied}</p>
+            <p className="font-bold text-xl sm:text-2xl" style={{ color: '#BA7517' }}>{stats.occupied}</p>
           </Card>
           <Card className="p-3 sm:p-4">
             <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Vacant</p>
-            <p className="font-bold text-2xl sm:text-3xl" style={{ color: '#1D9E75' }}>{stats.vacant}</p>
+            <p className="font-bold text-xl sm:text-2xl" style={{ color: '#1D9E75' }}>{stats.vacant}</p>
           </Card>
         </div>
 

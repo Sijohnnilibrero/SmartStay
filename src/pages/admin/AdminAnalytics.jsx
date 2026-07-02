@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts'
 import { TrendingUp, Home, BedDouble, MapPin, DollarSign } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 const MUNICIPALITIES = ['Basco', 'Mahatao', 'Ivana', 'Uyugan', 'Sabtang', 'Itbayat']
 const COLORS = ['#1D9E75', '#534AB7', '#BA7517', '#D85A30', '#0F6E56', '#7C3AED']
@@ -104,11 +105,14 @@ export default function AdminAnalytics() {
 
   return (
     <div className="page-enter">
-      <div className="px-6 pt-5 pb-4">
-        <p className="font-bold text-2xl text-stone-800">Analytics & Insights</p>
-        <p className="text-sm text-stone-400 mt-0.5">
-          {user?.admin_region ? `${user.admin_region} Territory Overview` : 'System-wide Metrics and Trends'}
-        </p>
+      <div className="px-6 pt-5 pb-4 flex items-start justify-between">
+        <div>
+          <p className="font-bold text-lg md:text-xl text-stone-800">Analytics &amp; Insights</p>
+          <p className="text-sm text-stone-400 mt-0.5">
+            {user?.admin_region ? `${user.admin_region} Territory Overview` : 'System-wide Metrics and Trends'}
+          </p>
+        </div>
+        <NotificationBell />
       </div>
 
       <div className="p-6 space-y-6">
@@ -120,7 +124,7 @@ export default function AdminAnalytics() {
               <Home size={16} className="text-[#534AB7]" />
               <p className="text-xs uppercase tracking-wider text-stone-500 font-bold">Total Properties</p>
             </div>
-            <p className="font-bold text-3xl text-stone-800">{totalProps}</p>
+            <p className="font-bold text-xl sm:text-2xl text-stone-800">{totalProps}</p>
           </Card>
           
           <Card className="p-4 flex flex-col justify-between border-l-4 border-l-[#1D9E75]">
@@ -128,7 +132,7 @@ export default function AdminAnalytics() {
               <BedDouble size={16} className="text-[#1D9E75]" />
               <p className="text-xs uppercase tracking-wider text-stone-500 font-bold">Total Rooms</p>
             </div>
-            <p className="font-bold text-3xl text-stone-800">{totalRooms}</p>
+            <p className="font-bold text-xl sm:text-2xl text-stone-800">{totalRooms}</p>
           </Card>
 
           <Card className="p-4 flex flex-col justify-between border-l-4 border-l-[#BA7517]">
@@ -136,7 +140,7 @@ export default function AdminAnalytics() {
               <TrendingUp size={16} className="text-[#BA7517]" />
               <p className="text-xs uppercase tracking-wider text-stone-500 font-bold">Available</p>
             </div>
-            <p className="font-bold text-3xl text-stone-800">{availableRooms} <span className="text-sm font-normal text-stone-400">rooms</span></p>
+            <p className="font-bold text-xl sm:text-2xl text-stone-800">{availableRooms} <span className="text-sm font-normal text-stone-400">rooms</span></p>
           </Card>
 
           <Card className="p-4 flex flex-col justify-between border-l-4 border-l-[#D85A30]">
@@ -144,7 +148,7 @@ export default function AdminAnalytics() {
               <MapPin size={16} className="text-[#D85A30]" />
               <p className="text-xs uppercase tracking-wider text-stone-500 font-bold">Coverage</p>
             </div>
-            <p className="font-bold text-3xl text-stone-800">{propsPerMuni.length} <span className="text-sm font-normal text-stone-400">towns</span></p>
+            <p className="font-bold text-xl sm:text-2xl text-stone-800">{propsPerMuni.length} <span className="text-sm font-normal text-stone-400">towns</span></p>
           </Card>
         </div>
 
@@ -205,7 +209,7 @@ export default function AdminAnalytics() {
                 </ResponsiveContainer>
                 {/* Center Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                  <p className="text-3xl font-bold text-stone-800">{Math.round((availableRooms / totalRooms) * 100)}%</p>
+                  <p className="text-xl sm:text-2xl font-bold text-stone-800">{Math.round((availableRooms / totalRooms) * 100)}%</p>
                   <p className="text-xs text-stone-400 uppercase tracking-wider font-bold">Vacant</p>
                 </div>
               </div>

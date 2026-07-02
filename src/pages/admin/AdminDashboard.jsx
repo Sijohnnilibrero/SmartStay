@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Users, Home, Calendar, Shield, AlertTriangle, TrendingUp } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState([])
@@ -71,11 +72,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="page-enter">
-      <div className="px-6 pt-5 pb-1">
-        <p className="font-bold text-2xl text-stone-800">
-          {useAuthStore(s => s.user)?.role === 'super_admin' ? 'Super Admin Dashboard' : 'Regional Admin Dashboard'}
-        </p>
-        <p className="text-sm text-stone-400 mt-0.5">Platform overview and quick actions</p>
+      <div className="px-6 pt-5 pb-1 flex items-start justify-between">
+        <div>
+          <p className="font-bold text-lg md:text-xl text-stone-800">
+            {useAuthStore(s => s.user)?.role === 'super_admin' ? 'Super Admin Dashboard' : 'Regional Admin Dashboard'}
+          </p>
+          <p className="text-sm text-stone-400 mt-0.5">Platform overview and quick actions</p>
+        </div>
+        <NotificationBell />
       </div>
 
       <div className="p-6 space-y-5">
@@ -84,7 +88,7 @@ export default function AdminDashboard() {
             return (
               <Card key={s.label} className="p-3 sm:p-4 flex flex-col justify-between">
                 <p className="text-[9px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">{s.label}</p>
-                <p className="font-bold text-2xl sm:text-3xl" style={{ color: s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#534AB7' : s.color === 'emerald' ? '#1D9E75' : s.color === 'amber' ? '#BA7517' : '#D85A30' }}>{s.value}</p>
+                <p className="font-bold text-xl sm:text-2xl" style={{ color: s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#534AB7' : s.color === 'emerald' ? '#1D9E75' : s.color === 'amber' ? '#BA7517' : '#D85A30' }}>{s.value}</p>
               </Card>
             )
           })}

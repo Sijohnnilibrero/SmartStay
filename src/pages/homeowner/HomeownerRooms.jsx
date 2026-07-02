@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Plus, Trash2, Edit2, MapPin, ImagePlus, X, Upload, Loader2, BedDouble, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
 const EMPTY_FORM = { room_number: '', floor: 1, price_monthly: '', price_daily: '', amenities: [], notes: '', is_available: true, image_urls: [] }
@@ -235,16 +236,19 @@ export default function HomeownerRooms() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-bold text-2xl text-stone-800">Manage Rooms</h1>
+          <h1 className="font-bold text-lg md:text-xl text-stone-800">Manage Rooms</h1>
           {property && (
             <p className="text-[12px] text-stone-400 flex items-center gap-1 mt-0.5">
               <MapPin size={11} className="text-[--teal]" /> {property.name} · {property.address}
             </p>
           )}
         </div>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/owner/properties')}>
-          ← Back to Properties
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Button variant="ghost" size="sm" onClick={() => navigate('/owner/properties')}>
+            ← Back to Properties
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -261,7 +265,7 @@ export default function HomeownerRooms() {
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider text-stone-400">{s.label}</p>
-              <p className="font-bold text-2xl" style={{ color: s.accent }}>{s.value}</p>
+              <p className="font-bold text-xl" style={{ color: s.accent }}>{s.value}</p>
             </div>
           </div>
         ))}

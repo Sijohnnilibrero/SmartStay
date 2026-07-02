@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
 import { Shield, MapPin, UserPlus, Eye, EyeOff } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function AdminStaff() {
   const { createAdminAccount } = useAuthStore()
@@ -59,9 +60,10 @@ export default function AdminStaff() {
     <div className="page-enter">
       <div className="px-6 pt-5 pb-4 flex items-center justify-between">
         <div>
-          <p className="font-bold text-2xl text-stone-800">Manage Staff</p>
+          <p className="font-bold text-lg md:text-xl text-stone-800">Manage Staff</p>
           <p className="text-sm text-stone-400 mt-0.5">Super Admin privileges: Create and assign territories to Regional Admins.</p>
         </div>
+        <NotificationBell />
       </div>
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
