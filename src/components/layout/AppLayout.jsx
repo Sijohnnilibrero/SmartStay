@@ -14,25 +14,29 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-stone-50">
-      {/* Desktop Sidebar (always visible on md+) */}
-      <div className="hidden md:block">
+
+      {/* Single Sidebar instance — CSS handles both desktop sticky and mobile overlay */}
+      {/* Mobile backdrop (only visible on small screens when open) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-40 md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
+      {/* Sidebar: fixed overlay on mobile, sticky side panel on desktop */}
+      <div
+        className={[
+          // Desktop: always visible, sticky, not fullscreen
+          'md:block md:sticky md:top-0 md:h-screen md:flex-shrink-0 md:w-[220px] md:translate-x-0',
+          // Mobile: fixed overlay drawer, slides in/out
+          'fixed top-0 left-0 h-full z-50 w-[260px] transition-transform duration-300',
+          'md:static md:z-auto md:transition-none',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        ].join(' ')}
+      >
         <Sidebar />
       </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity" 
-            onClick={toggleSidebar}
-          />
-          {/* Sidebar Drawer */}
-          <div className="relative flex w-[260px] flex-col bg-white h-full shadow-2xl animate-in slide-in-from-left duration-300">
-            <Sidebar />
-          </div>
-        </div>
-      )}
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-auto flex flex-col h-screen">
@@ -42,15 +46,15 @@ export default function AppLayout() {
             <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-sm">🏠</div>
             <div className="flex items-center gap-1.5">
               <p className="font-bold text-lg text-stone-900 leading-tight">SmartStay</p>
-              <span 
-                className="px-1.5 py-0.5 bg-stone-100 text-stone-600 text-[9px] font-bold tracking-wider rounded border border-stone-200 cursor-help" 
+              <span
+                className="px-1.5 py-0.5 bg-stone-100 text-stone-600 text-[9px] font-bold tracking-wider rounded border border-stone-200 cursor-help"
                 title="SmartStay is in early beta development. You may encounter bugs."
               >
                 BETA
               </span>
             </div>
           </div>
-          <button 
+          <button
             onClick={toggleSidebar}
             className="p-2 -mr-2 text-stone-500 hover:bg-stone-100 rounded-lg transition-colors"
             aria-label="Toggle Menu"

@@ -163,9 +163,9 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col w-full md:w-[220px] flex-shrink-0 bg-white md:border-r border-stone-200 h-screen sticky top-0">
+    <aside className="flex flex-col w-full h-full bg-white border-r border-stone-200 overflow-hidden">
       {/* Brand Header */}
-      <div className="px-5 py-5 relative overflow-hidden" style={{ background: headerBg }}>
+      <div className="shrink-0 px-5 py-5 relative overflow-hidden" style={{ background: headerBg }}>
         {/* Decorative circle */}
         <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10" />
         <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10" />
@@ -189,7 +189,7 @@ export default function Sidebar() {
       </div>
 
       {/* Role Pill */}
-      <div className="px-4 py-2.5 border-b border-stone-100">
+      <div className="shrink-0 px-4 py-2.5 border-b border-stone-100">
         <span
           className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
           style={{ background: roleColors.bg, color: roleColors.text }}
@@ -242,7 +242,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User Profile & Logout */}
-      <div className="p-3 border-t border-stone-100 space-y-1">
+      <div className="shrink-0 p-3 border-t border-stone-100 space-y-1">
         <div 
           className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${user?.role === 'tenant' || user?.role === 'owner' ? 'cursor-pointer hover:bg-stone-100' : 'bg-stone-50'}`}
           onClick={() => {
