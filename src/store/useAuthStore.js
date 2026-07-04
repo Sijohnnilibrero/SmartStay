@@ -516,6 +516,7 @@ export const useAuthStore = create(
           room_number: roomData.room_number,
           floor: roomData.floor || 1,
           price_monthly: roomData.price_monthly,
+          price_daily: roomData.price_daily || null,
           amenities: roomData.amenities || [],
           is_available: roomData.is_available !== undefined ? roomData.is_available : true,
           notes: roomData.notes || null,

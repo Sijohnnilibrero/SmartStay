@@ -349,7 +349,7 @@ export default function Reservations() {
                                 className="px-2 py-1 flex items-center gap-1 rounded bg-[#1D9E75] text-white text-[9px] sm:text-[11px] hover:bg-[#0F6E56] transition-colors"
                                 onClick={() => setReviewModal({ isOpen: true, propertyId: r.property_id, propertyName: getPropName(r.property_id) })}
                               >
-                                <Star size={10} fill="currentColor" /> Review
+                                <Star size={10} fill="currentColor" /> Review Property
                               </button>
                             )}
                           </div>
