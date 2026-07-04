@@ -75,7 +75,12 @@ export default function AdminDashboard() {
       <div className="px-6 pt-5 pb-1 flex items-start justify-between">
         <div>
           <p className="font-bold text-lg md:text-xl text-stone-800">
-            {useAuthStore(s => s.user)?.role === 'super_admin' ? 'Super Admin Dashboard' : 'Regional Admin Dashboard'}
+            {(() => {
+              const u = useAuthStore(s => s.user);
+              if (u?.role === 'super_admin') return 'System Admin Dashboard';
+              const region = u?.admin_region ? u.admin_region.replace(' Island', '') : 'Regional';
+              return `${region} Admin Dashboard`;
+            })()}
           </p>
           <p className="text-sm text-stone-400 mt-0.5">Platform overview and quick actions</p>
         </div>
