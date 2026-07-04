@@ -48,8 +48,8 @@ export default function TenantPropertyDetails() {
   var [checkInDate, setCheckInDate] = useState(new Date().toISOString().split('T')[0])
   var [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0])
 
-  var loadProperty = useCallback(function() {
-    setLoading(true)
+  var loadProperty = useCallback(function(silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([
       fetchProperty(id),
       fetchReviews(id),
@@ -61,14 +61,13 @@ export default function TenantPropertyDetails() {
       setRooms(results[2] || [])
       
       if (prop && prop.owner_id) {
-        var { data: owner } = await supabase.from('profiles').select('id, full_name, role, avatar_url, email, contact, municipality').eq('id', prop.owner_id).single()
-        setOwnerProfile(owner)
+        var ownerRes = await supabase.from('profiles').select('*').eq('id', prop.owner_id).single()
+        setOwnerProfile(ownerRes.data)
       }
-
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function(err) {
       console.error('Failed to load property:', err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [id, fetchProperty, fetchReviews, fetchRooms])
 
@@ -110,7 +109,7 @@ export default function TenantPropertyDetails() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadProperty()
+        loadProperty(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

@@ -24,18 +24,18 @@ export default function Reviews() {
   var loading = loadingState[0], setLoading = loadingState[1]
   var wasHiddenRef = useRef(false)
 
-  var loadData = useCallback(function() {
-    setLoading(true)
+  var loadData = useCallback(function(silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([
       fetchProperties({ status: 'active' }),
       fetchReviews(selectedProperty === 'all' ? null : selectedProperty),
     ]).then(function(results) {
       setProperties(results[0])
       setReviews(results[1])
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function(err) {
       console.error('Failed to load reviews:', err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [selectedProperty, fetchProperties, fetchReviews])
 
@@ -47,7 +47,7 @@ export default function Reviews() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadData()
+        loadData(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

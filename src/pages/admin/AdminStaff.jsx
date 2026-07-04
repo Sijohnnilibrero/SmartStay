@@ -22,8 +22,8 @@ export default function AdminStaff() {
     region: 'Batan Island'
   })
 
-  const loadAdmins = async () => {
-    setLoading(true)
+  const loadAdmins = async (silent = false) => {
+    if (!silent) setLoading(true)
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -31,7 +31,7 @@ export default function AdminStaff() {
       .order('created_at', { ascending: false })
       
     if (!error && data) setAdmins(data)
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   useEffect(() => { loadAdmins() }, [])

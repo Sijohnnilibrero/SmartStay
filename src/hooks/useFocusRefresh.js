@@ -6,7 +6,7 @@ export function useFocusRefresh(fetchFn, deps) {
   depsRef.current = deps
 
   var refresh = useCallback(function() {
-    if (fetchFn) fetchFn()
+    if (fetchFn) fetchFn(true)
   }, [fetchFn])
 
   useEffect(function() {

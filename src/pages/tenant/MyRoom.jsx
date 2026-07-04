@@ -6,6 +6,7 @@ import Topbar from '@/components/layout/Topbar'
 import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
+import { supabase } from '@/lib/supabase'
 
 export default function MyRoom() {
   const navigate = useNavigate()
@@ -16,19 +17,30 @@ export default function MyRoom() {
   const [viewContractUrl, setViewContractUrl] = useState(null)
   const wasHiddenRef = useRef(false)
 
-  const loadRoom = useCallback(function() {
+  const loadRoom = useCallback(function(silent = false) {
     if (!user?.id) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     useAuthStore.getState().fetchMyRoom(user.id).then(function(res) {
       setData(res)
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function(err) {
       console.error('Failed to load room:', err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [user?.id])
 
   useEffect(function() { loadRoom() }, [loadRoom])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('my-room-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+      loadRoom(true)
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+      loadRoom(true)
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadRoom])
 
   useEffect(function() {
     function handleVisibility() {
@@ -36,7 +48,7 @@ export default function MyRoom() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadRoom()
+        loadRoom(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

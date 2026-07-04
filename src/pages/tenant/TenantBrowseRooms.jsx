@@ -34,8 +34,8 @@ export default function TenantBrowseRooms() {
   const [budget, setBudget] = useState('All')
   const [loading, setLoading] = useState(true)
 
-  const loadData = useCallback(function() {
-    setLoading(true)
+  const loadData = useCallback(function(silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([
       fetchProperties({ status: 'active' }),
     ]).then(function(results) {
@@ -53,11 +53,11 @@ export default function TenantBrowseRooms() {
           })
         })
         setAllRooms(rooms)
-        setLoading(false)
+        if (!silent) setLoading(false)
       })
     }).catch(function(err) {
       console.error('Failed to load rooms:', err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [fetchProperties, fetchRooms])
 

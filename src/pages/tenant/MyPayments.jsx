@@ -75,6 +75,9 @@ export default function MyPayments() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
         refreshData()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+        refreshData()
+      })
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [])

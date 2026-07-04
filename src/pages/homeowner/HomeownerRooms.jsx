@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Plus, Trash2, Edit2, MapPin, ImagePlus, X, Upload, Loader2, BedDouble, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import NotificationBell from '@/components/layout/NotificationBell'
 
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
@@ -105,19 +106,30 @@ export default function HomeownerRooms() {
   const [existingUrls, setExistingUrls] = useState([])
   const wasHiddenRef = useRef(false)
 
-  const loadData = useCallback(function() {
-    setLoading(true)
+  const loadData = useCallback(function(silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([fetchRooms(propertyId), fetchProperty(propertyId), fetchReservations()])
       .then(([r, p, res]) => { 
         setRooms(r || []); 
         setProperty(p); 
         setReservations(res || []);
-        setLoading(false) 
+        if (!silent) setLoading(false) 
       })
-      .catch(() => setLoading(false))
+      .catch(() => { if (!silent) setLoading(false) })
   }, [propertyId, fetchRooms, fetchProperty, fetchReservations])
 
   useEffect(() => { loadData() }, [loadData])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('homeowner-rooms-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+      loadData(true)
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+      loadData(true)
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadData])
 
   useEffect(() => {
     if (window.location.hash === '#add') {
@@ -129,7 +141,7 @@ export default function HomeownerRooms() {
   useEffect(() => {
     function onVisibility() {
       if (document.hidden) wasHiddenRef.current = true
-      else if (wasHiddenRef.current) { wasHiddenRef.current = false; loadData() }
+      else if (wasHiddenRef.current) { wasHiddenRef.current = false; loadData(true) }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)

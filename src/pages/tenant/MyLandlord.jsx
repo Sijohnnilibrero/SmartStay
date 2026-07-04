@@ -8,6 +8,7 @@ import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink,
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
 import ReviewModal from '@/components/ui/ReviewModal'
+import { supabase } from '@/lib/supabase'
 
 export default function MyLandlord() {
   const navigate = useNavigate()
@@ -22,21 +23,32 @@ export default function MyLandlord() {
   const wasHiddenRef = useRef(false)
   const submitReview = useAuthStore(s => s.submitReview)
 
-  const loadLandlord = useCallback(function () {
+  const loadLandlord = useCallback(function (silent = false) {
     if (!user?.id) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     setErrorMsg(null)
     useAuthStore.getState().fetchMyLandlord(user.id).then(function (res) {
       setData(res)
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function (err) {
       console.error('Failed to load landlord:', err)
       setErrorMsg(err.message || 'An unknown error occurred')
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [user?.id])
 
   useEffect(function () { loadLandlord() }, [loadLandlord])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('my-landlord-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+      loadLandlord(true)
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+      loadLandlord(true)
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadLandlord])
 
   useEffect(function () {
     function handleVisibility() {
@@ -44,7 +56,7 @@ export default function MyLandlord() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadLandlord()
+        loadLandlord(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

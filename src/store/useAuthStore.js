@@ -563,6 +563,17 @@ export const useAuthStore = create(
       },
 
       deleteRoom: async (id) => {
+        // SAFETY CHECK: Prevent deletion if there are active or pending reservations
+        const { data: activeReservations } = await supabase
+          .from('reservations')
+          .select('id, status')
+          .eq('room_id', id)
+          .in('status', ['pending', 'awaiting_payment', 'confirmed'])
+        
+        if (activeReservations && activeReservations.length > 0) {
+          throw new Error('Cannot delete room: It is currently assigned to an active or pending tenant reservation.')
+        }
+
         const { data: room } = await supabase.from('rooms').select('property_id').eq('id', id).single()
         const { error } = await supabase.from('rooms').delete().eq('id', id)
         if (error) {

@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Users, Search, MessageSquare, X, AlertTriangle, Star } from 'lucide-react'
 import ReviewModal from '@/components/ui/ReviewModal'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
+import { supabase } from '@/lib/supabase'
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
   professional: 'bg-teal-100 text-teal-700',
@@ -40,13 +41,14 @@ export default function HomeownerTenants() {
   var errorState = useState(null)
   var errorMsg = errorState[0], setErrorMsg = errorState[1]
   var wasHiddenRef = useRef(false)
+  var [isActioning, setIsActioning] = useState(false)
   var addToast = useAppStore(function(s) { return s.addToast })
   var [ratingTenant, setRatingTenant] = useState(null)
   var [selectedTenant, setSelectedTenant] = useState(null)
   var submitReview = useAuthStore(s => s.submitReview)
 
-  var loadTenants = useCallback(function() {
-    setLoading(true)
+  var loadTenants = useCallback(function(silent = false) {
+    if (!silent) setLoading(true)
     setErrorMsg(null)
     Promise.all([
       fetchProperties({ ownerId: user?.id }),
@@ -78,16 +80,25 @@ export default function HomeownerTenants() {
           }
         })
         setTenants(myTenants)
-        setLoading(false)
+        if (!silent) setLoading(false)
       })
     }).catch(function(err) {
       console.error('Failed to load tenants:', err)
       setErrorMsg(err.message || 'An unknown error occurred')
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [user?.id, fetchProperties, fetchReservations, fetchTenants])
 
   useEffect(function() { loadTenants() }, [loadTenants])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('homeowner-tenants-changes')
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+      loadTenants(true)
+    }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, loadTenants])
 
   useEffect(function() {
     function handleVisibility() {
@@ -95,7 +106,7 @@ export default function HomeownerTenants() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadTenants()
+        loadTenants(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -104,13 +115,14 @@ export default function HomeownerTenants() {
 
   function handleEndContract() {
     if (!endingTenant) return;
-    setLoading(true)
+    setIsActioning(true)
     updateReservationStatus(endingTenant.reservation_id, 'completed').then(function() {
+      setIsActioning(false)
       setEndingTenant(null)
-      loadTenants()
+      loadTenants(true)
     }).catch(function(err) {
       addToast('Failed to end contract: ' + err.message, 'error')
-      setLoading(false)
+      setIsActioning(false)
     })
   }
 
@@ -312,8 +324,17 @@ export default function HomeownerTenants() {
             </p>
             <div className="flex gap-3">
               <Button variant="ghost" className="flex-1 border border-stone-200" onClick={() => setEndingTenant(null)}>Cancel</Button>
-              <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleEndContract}>
-                Yes, End Contract
+              <Button 
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white" 
+                onClick={handleEndContract}
+                disabled={isActioning}
+              >
+                {isActioning ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </div>
+                ) : 'Yes, End Contract'}
               </Button>
             </div>
           </div>
@@ -328,7 +349,7 @@ export default function HomeownerTenants() {
         onSubmit={async (payload) => {
           await submitReview(payload)
           addToast('Review submitted successfully!', 'success')
-          loadTenants()
+          loadTenants(true)
         }}
       />
 

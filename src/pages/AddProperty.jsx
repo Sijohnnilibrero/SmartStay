@@ -261,17 +261,28 @@ export default function AddProperty() {
     }
     
     if (!isEdit) {
-      if (form.accepts_long_term && roomDrafts.some(r => !r.room_number || !r.price_monthly)) {
-        setError('Please provide a Room # and Monthly Price for all rooms on the right.')
-        return
-      }
-      if (form.accepts_transient && roomDrafts.some(r => !r.room_number || !r.price_daily)) {
-        setError('Please provide a Room # and Daily Price for all rooms on the right.')
-        return
-      }
       if (!form.accepts_long_term && !form.accepts_transient) {
         setError('Please select who you cater to (Long-term or Transients).')
         return
+      }
+      
+      for (const r of roomDrafts) {
+        if (!r.room_number) {
+          setError('Please provide a Room # for all rooms on the right.')
+          return
+        }
+        if (form.accepts_long_term && !form.accepts_transient && !r.price_monthly) {
+          setError('Please provide a Monthly Price for all rooms on the right.')
+          return
+        }
+        if (form.accepts_transient && !form.accepts_long_term && !r.price_daily) {
+          setError('Please provide a Daily Price for all rooms on the right.')
+          return
+        }
+        if (form.accepts_long_term && form.accepts_transient && !r.price_monthly && !r.price_daily) {
+          setError('Please provide at least a Monthly or Daily Price for each room.')
+          return
+        }
       }
     }
 

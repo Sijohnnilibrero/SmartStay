@@ -13,6 +13,7 @@ export default function HomeownerDashboard() {
   const [stats, setStats] = useState({ properties: 0, rooms: 0, occupied: 0, vacant: 0, pending: 0, approved: 0 })
   const [recent, setRecent] = useState([])
   const [expiringPermits, setExpiringPermits] = useState([])
+  const [rejectedProperties, setRejectedProperties] = useState([])
   const [actioningId, setActioningId] = useState(null)
   const wasHiddenRef = useRef(false)
 
@@ -25,6 +26,9 @@ export default function HomeownerDashboard() {
       var houses = results[0] || []
       var activeHouses = houses.filter(function(h) { return h.status !== 'pending_review' })
       
+      var rejected = houses.filter(function(h) { return h.status === 'inactive' && h.rejection_reason })
+      setRejectedProperties(rejected)
+
       var now = new Date()
       var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
       
@@ -93,6 +97,39 @@ export default function HomeownerDashboard() {
       </div>
 
       <div className="p-6 space-y-5">
+        {rejectedProperties.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-100 text-red-600 rounded-xl flex-shrink-0">
+                <XCircle size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-red-900 text-sm sm:text-base mb-1">Properties Rejected</h3>
+                <p className="text-red-700 text-xs sm:text-sm mb-3">
+                  The following properties were rejected by an Admin. Please review the reasons and edit them to resubmit for approval.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {rejectedProperties.map(p => (
+                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-start justify-between bg-white/60 p-2.5 sm:p-3 rounded-xl border border-red-100 gap-3">
+                      <div>
+                        <p className="font-semibold text-stone-800 text-xs sm:text-sm">{p.name}</p>
+                        <p className="text-[11px] sm:text-xs text-red-700 mt-1 bg-red-100/50 p-2 rounded border border-red-100 inline-block">
+                          <strong>Reason:</strong> {p.rejection_reason}
+                        </p>
+                      </div>
+                      <Link to={`/owner/properties/edit/${p.id}`} className="flex-shrink-0">
+                        <Button size="sm" variant="danger" className="w-full sm:w-auto text-xs py-1.5 px-3 h-auto">
+                          Edit Property
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {expiringPermits.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5">
             <div className="flex items-start gap-3">

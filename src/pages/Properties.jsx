@@ -44,8 +44,8 @@ export default function Properties() {
   const [confirmAction, setConfirmAction] = useState(null)
   const wasHiddenRef = useRef(false)
 
-  const loadProperties = useCallback(function () {
-    setLoading(true)
+  const loadProperties = useCallback(function (silent = false) {
+    if (!silent) setLoading(true)
     setError('')
     fetchProperties(isAdmin ? {} : { ownerId: user?.id }).then(function (data) {
       if (user?.role === 'admin' && user?.admin_region) {
@@ -56,10 +56,10 @@ export default function Properties() {
         }
       }
       setProperties(data)
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function (err) {
       setError(err.message || 'Failed to load properties.')
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [isAdmin, user?.id, fetchProperties])
 
@@ -69,7 +69,7 @@ export default function Properties() {
     if (!user) return
     const channel = supabase.channel('properties-page-changes')
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-      loadProperties()
+      loadProperties(true)
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [user, loadProperties])
@@ -80,7 +80,7 @@ export default function Properties() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadProperties()
+        loadProperties(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)

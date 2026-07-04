@@ -17,8 +17,8 @@ export default function AdminAnalytics() {
   const user = useAuthStore(s => s.user)
   const fetchProperties = useAuthStore(s => s.fetchProperties)
 
-  const loadData = useCallback(() => {
-    setLoading(true)
+  const loadData = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     fetchProperties({}).then(data => {
       // Only include approved/active properties in the analytics
       let filtered = data.filter(p => p.status === 'approved' || p.status === 'active')
@@ -30,10 +30,10 @@ export default function AdminAnalytics() {
         }
       }
       setProperties(filtered)
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(err => {
       setError('Failed to load analytics data: ' + err.message)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [user, fetchProperties])
 

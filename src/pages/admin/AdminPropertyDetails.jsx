@@ -32,8 +32,8 @@ export default function AdminPropertyDetails() {
   const [permitModalUrl, setPermitModalUrl] = useState(null)
   const [rejectionReasonText, setRejectionReasonText] = useState('')
 
-  const loadProperty = useCallback(() => {
-    setLoading(true)
+  const loadProperty = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     Promise.all([
       fetchProperty(id),
       fetchRooms(id),
@@ -48,10 +48,10 @@ export default function AdminPropertyDetails() {
         const { data: owner } = await supabase.from('profiles').select('*').eq('id', prop.owner_id).single()
         setOwnerProfile(owner)
       }
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch((err) => {
       console.error(err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [id, fetchProperty, fetchRooms, fetchProperties])
 

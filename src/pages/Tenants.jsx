@@ -139,12 +139,13 @@ export default function Tenants() {
   const [filter, setFilter] = useState('All')
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isActioning, setIsActioning] = useState(false)
   const [actionUser, setActionUser] = useState(null)
   const [selectedProfile, setSelectedProfile] = useState(null)
   const wasHiddenRef = useRef(false)
 
-  var loadTenants = useCallback(function () {
-    setLoading(true)
+  var loadTenants = useCallback(function (silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([
       isAdmin ? fetchAllUsers() : fetchTenants(),
       fetchReservations(),
@@ -166,9 +167,9 @@ export default function Tenants() {
         }
         setTenants(allTenants)
       }
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function (err) {
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [isAdmin, user, fetchTenants, fetchAllUsers, fetchReservations, fetchProperties])
 
@@ -176,7 +177,7 @@ export default function Tenants() {
   useEffect(function () {
     function handleVisibility() {
       if (document.hidden) { wasHiddenRef.current = true }
-      else if (wasHiddenRef.current) { wasHiddenRef.current = false; loadTenants() }
+      else if (wasHiddenRef.current) { wasHiddenRef.current = false; loadTenants(true) }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return function () { document.removeEventListener('visibilitychange', handleVisibility) }
@@ -334,15 +335,22 @@ export default function Tenants() {
               <Button 
                 className="flex-1 text-white" 
                 style={{ background: actionUser.status === 'active' ? '#0F6E56' : actionUser.status === 'suspended' ? '#D97706' : '#DC2626' }}
+                disabled={isActioning}
                 onClick={() => {
-                  setLoading(true)
+                  setIsActioning(true)
                   updateUserStatus(actionUser.user.id, actionUser.status).then(() => {
+                    setIsActioning(false)
                     setActionUser(null)
-                    loadTenants()
+                    loadTenants(true)
                   })
                 }}
               >
-                Confirm
+                {isActioning ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </div>
+                ) : 'Confirm'}
               </Button>
             </div>
           </div>

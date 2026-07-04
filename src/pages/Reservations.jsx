@@ -46,8 +46,8 @@ export default function Reservations() {
   const [viewContractUrl, setViewContractUrl] = useState(null)
   const [viewingImage, setViewingImage] = useState(null)
 
-  var loadReservations = useCallback(function () {
-    setLoading(true)
+  var loadReservations = useCallback(function (silent = false) {
+    if (!silent) setLoading(true)
     Promise.all([
       fetchReservations(),
       fetchProperties(),
@@ -73,10 +73,10 @@ export default function Reservations() {
       }
 
       setReservations(data)
-      setLoading(false)
+      if (!silent) setLoading(false)
     }).catch(function (err) {
       console.error('Failed to load reservations:', err)
-      setLoading(false)
+      if (!silent) setLoading(false)
     })
   }, [isAdmin, isOwner, user?.id, fetchReservations, fetchProperties])
 
@@ -86,7 +86,7 @@ export default function Reservations() {
     if (!user) return
     const channel = supabase.channel('reservations-page-changes')
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
-      loadReservations()
+      loadReservations(true)
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [user, loadReservations])
@@ -97,7 +97,7 @@ export default function Reservations() {
         wasHiddenRef.current = true
       } else if (wasHiddenRef.current) {
         wasHiddenRef.current = false
-        loadReservations()
+        loadReservations(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
