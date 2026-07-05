@@ -48,7 +48,25 @@ export default function NotificationBell() {
       await markAsRead(n.id)
     }
     setOpen(false)
-    if (n.link) navigate(n.link)
+    if (n.link) {
+      let finalLink = n.link
+      // If the link is relative and missing a role prefix, automatically prepend the correct role prefix
+      if (
+        finalLink.startsWith('/') &&
+        !finalLink.startsWith('/owner') &&
+        !finalLink.startsWith('/tenant') &&
+        !finalLink.startsWith('/admin')
+      ) {
+        const prefix =
+          user?.role === 'owner'
+            ? '/owner'
+            : user?.role === 'admin' || user?.role === 'super_admin'
+            ? '/admin'
+            : '/tenant'
+        finalLink = `${prefix}${finalLink}`
+      }
+      navigate(finalLink)
+    }
   }
 
   const handleMarkAll = async () => {
