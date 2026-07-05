@@ -17,11 +17,14 @@ export default function AdminDashboard() {
       useAuthStore.getState().fetchAllUsers(),
       useAuthStore.getState().fetchProperties(),
       useAuthStore.getState().fetchReservations(),
+      useAuthStore.getState().fetchComplaints(),
     ]).then(function(results) {
       const userState = useAuthStore.getState().user
       var users = results[0] || []
       var properties = results[1] || []
       var reservations = results[2] || []
+      var allComplaints = results[3] || []
+      var openComplaints = allComplaints.filter(c => c.status === 'open')
 
       if (userState?.role === 'admin' && userState?.admin_region) {
         if (userState.admin_region === 'Batan Island') {
@@ -41,7 +44,7 @@ export default function AdminDashboard() {
         { label: 'Total Properties', value: properties.length, icon: Home, color: 'emerald' },
         { label: 'Total Reservations', value: reservations.length, icon: Calendar, color: 'amber' },
         { label: 'Pending Approvals', value: properties.filter(function(p) { return p.status === 'pending_review' }).length, icon: Shield, color: 'amber' },
-        { label: 'Open Complaints', value: 0, icon: AlertTriangle, color: 'rose' },
+        { label: 'Open Complaints', value: openComplaints.length, icon: AlertTriangle, color: 'rose' },
       ])
       setRecent(reservations.slice(0, 5))
 

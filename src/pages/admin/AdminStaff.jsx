@@ -61,7 +61,7 @@ export default function AdminStaff() {
       <div className="px-6 pt-5 pb-4 flex items-center justify-between">
         <div>
           <p className="font-bold text-lg md:text-xl text-stone-800">Manage Staff</p>
-          <p className="text-sm text-stone-400 mt-0.5">Super Admin privileges: Create and assign territories to Regional Admins.</p>
+          <p className="text-sm text-stone-400 mt-0.5">Super Admin privileges: Create and assign territories to Island Admins.</p>
         </div>
         <NotificationBell />
       </div>
@@ -110,7 +110,7 @@ export default function AdminStaff() {
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                 <UserPlus size={16} />
               </div>
-              <h3 className="font-bold text-stone-800">Add Regional Admin</h3>
+              <h3 className="font-bold text-stone-800">Add Island Admin</h3>
             </div>
             
             <form onSubmit={handleCreate} className="space-y-4">

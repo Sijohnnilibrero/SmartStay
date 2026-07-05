@@ -4,10 +4,11 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
-import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight, Star } from 'lucide-react'
+import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight, Star, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
 import ReviewModal from '@/components/ui/ReviewModal'
+import ReportIssueModal from '@/components/ui/ReportIssueModal'
 import { supabase } from '@/lib/supabase'
 
 export default function MyLandlord() {
@@ -20,6 +21,7 @@ export default function MyLandlord() {
   const [errorMsg, setErrorMsg] = useState(null)
   const [viewContractUrl, setViewContractUrl] = useState(null)
   const [ratingLandlord, setRatingLandlord] = useState(false)
+  const [reportingIssue, setReportingIssue] = useState(false)
   const wasHiddenRef = useRef(false)
   const submitReview = useAuthStore(s => s.submitReview)
 
@@ -216,6 +218,13 @@ export default function MyLandlord() {
               >
                 Rate Landlord <Star size={14} />
               </Button>
+              <Button
+                variant="ghost"
+                className="w-full mt-2 justify-center gap-1.5 text-rose-600 hover:bg-rose-50"
+                onClick={() => setReportingIssue(true)}
+              >
+                <AlertTriangle size={14} /> Report Issue
+              </Button>
             </Card>
           </div>
 
@@ -326,6 +335,16 @@ export default function MyLandlord() {
           addToast('Review submitted successfully!', 'success')
           loadLandlord()
         }}
+      />
+
+      <ReportIssueModal
+        isOpen={reportingIssue}
+        onClose={() => setReportingIssue(false)}
+        type="tenant_vs_homeowner"
+        accusedId={landlord?.id}
+        accusedName={landlord?.full_name}
+        reservationId={reservation?.id}
+        propertyId={property?.id}
       />
     </div>
   )

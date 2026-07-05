@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
 import Topbar from '@/components/layout/Topbar'
-import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText } from 'lucide-react'
+import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle, MessageSquare } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
+import ReportIssueModal from '@/components/ui/ReportIssueModal'
 import { supabase } from '@/lib/supabase'
 
 export default function MyRoom() {
@@ -15,6 +16,7 @@ export default function MyRoom() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [viewContractUrl, setViewContractUrl] = useState(null)
+  const [reportingIssue, setReportingIssue] = useState(false)
   const wasHiddenRef = useRef(false)
 
   const loadRoom = useCallback(function(silent = false) {
@@ -127,6 +129,7 @@ export default function MyRoom() {
     : formatCurrency(reservation?.amount_total / (reservation?.duration_months || 1))
 
   return (
+    <>
     <div className="page-enter flex flex-col h-screen">
       <Topbar title="My Room" />
 
@@ -292,8 +295,19 @@ export default function MyRoom() {
               </p>
             </Card>
           </div>
+
+          {/* Report Issue */}
+          <div className="pt-1 flex items-center justify-end">
+            <button
+              onClick={() => navigate('/tenant/messages')}
+              className="flex items-center gap-1.5 text-[11px] text-stone-500 hover:text-stone-700 transition-colors"
+            >
+              <MessageSquare size={12} /> Contact Landlord for Maintenance
+            </button>
+          </div>
         </div>
       </div>
     </div>
+  </>
   )
 }

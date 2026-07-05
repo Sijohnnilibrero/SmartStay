@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Sparkles,
-  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare, DollarSign
+  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare, DollarSign, AlertTriangle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -28,7 +28,10 @@ const getAdminNav = (user) => {
       { to: '/admin/analytics', label: 'Analytics' }
     ] },
     { label: 'Manage', icon: Users, routes: manageRoutes },
-    { label: 'Discover', icon: Sparkles, routes: [{ to: '/admin/map', label: 'System Map', icon: Map }] }
+    { label: 'Discover', icon: Sparkles, routes: [
+      { to: '/admin/map', label: 'System Map', icon: Map },
+      { to: '/admin/complaints', label: 'Complaints', icon: AlertTriangle },
+    ] }
   ]
 }
 

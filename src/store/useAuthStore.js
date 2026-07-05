@@ -329,6 +329,21 @@ export const useAuthStore = create(
           })
         }
 
+        const { data: rooms } = await supabase.from('rooms').select('property_id, price_daily, is_available').in('property_id', propIds)
+        if (rooms) {
+          const priceDailyMap = {}
+          rooms.forEach(r => {
+            if (r.is_available && r.price_daily > 0) {
+              if (!priceDailyMap[r.property_id] || r.price_daily < priceDailyMap[r.property_id]) {
+                priceDailyMap[r.property_id] = r.price_daily
+              }
+            }
+          })
+          data.forEach(p => {
+            p.price_daily = priceDailyMap[p.id] || 0
+          })
+        }
+
         return data.map(p => {
           const owner = ownersMap[p.owner_id] || {}
           return {
@@ -1098,7 +1113,7 @@ export const useAuthStore = create(
 
         const { data: property, error: propError } = await supabase
           .from('properties')
-          .select('*')
+          .select('*, owner:profiles!properties_owner_id_fkey(full_name)')
           .eq('id', resObj.property_id)
           .single()
 
@@ -1313,7 +1328,76 @@ export const useAuthStore = create(
         
         return true
       },
+
+      // ==================== COMPLAINTS ====================
+
+      submitComplaint: async (payload) => {
+        const user = get().user
+        if (!user?.id) throw new Error('Not authenticated')
+
+        // Auto-determine island from property if not provided
+        let island = payload.island || null
+        if (!island && payload.property_id) {
+          const { data: prop } = await supabase.from('properties').select('island').eq('id', payload.property_id).single()
+          if (prop?.island) island = prop.island
+        }
+
+        const { data, error } = await supabase.from('complaints').insert({
+          reporter_id: user.id,
+          accused_id: payload.accused_id || null,
+          reservation_id: payload.reservation_id || null,
+          property_id: payload.property_id || null,
+          island,
+          type: payload.type,
+          subject: payload.subject,
+          description: payload.description,
+          status: 'open',
+        }).select().single()
+
+        if (error) throw new Error('Failed to submit complaint: ' + error.message)
+        return data
+      },
+
+      fetchComplaints: async (filters = {}) => {
+        const user = get().user
+        let query = supabase.from('complaints')
+          .select(`
+            *,
+            reporter:profiles!complaints_reporter_id_fkey(id, full_name, email, role, municipality, avatar_url),
+            accused:profiles!complaints_accused_id_fkey(id, full_name, email, role, municipality, avatar_url),
+            resolved_by_profile:profiles!complaints_resolved_by_fkey(id, full_name)
+          `)
+          .order('created_at', { ascending: false })
+
+        // Island admins can only see their island's complaints
+        if (user?.role === 'admin' && user?.admin_region) {
+          // Derive island from admin_region (e.g. 'Batan Island' -> 'Batan')
+          const island = user.admin_region.replace(' Island', '')
+          query = query.eq('island', island)
+        }
+
+        if (filters.status) query = query.eq('status', filters.status)
+        if (filters.type) query = query.eq('type', filters.type)
+
+        const { data, error } = await query
+        if (error) throw error
+        return data || []
+      },
+
+      updateComplaintStatus: async (id, status, adminNotes = null) => {
+        const user = get().user
+        const updateData = { status }
+        if (adminNotes !== null) updateData.admin_notes = adminNotes
+        if (status === 'resolved' || status === 'escalated') {
+          updateData.resolved_by = user?.id || null
+        }
+
+        const { data, error } = await supabase.from('complaints').update(updateData).eq('id', id).select().single()
+        if (error) throw new Error('Failed to update complaint: ' + error.message)
+        return data
+      },
     }),
+
     {
       name: 'smartstay-auth',
       partialize: (s) => ({ user: s.user }),

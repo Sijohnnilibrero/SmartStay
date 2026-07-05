@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Users, Search, MessageSquare, X, AlertTriangle, Star } from 'lucide-react'
 import ReviewModal from '@/components/ui/ReviewModal'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
+import ReportIssueModal from '@/components/ui/ReportIssueModal'
 import { supabase } from '@/lib/supabase'
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
@@ -45,6 +46,7 @@ export default function HomeownerTenants() {
   var addToast = useAppStore(function(s) { return s.addToast })
   var [ratingTenant, setRatingTenant] = useState(null)
   var [selectedTenant, setSelectedTenant] = useState(null)
+  var [reportingTenant, setReportingTenant] = useState(null)
   var submitReview = useAuthStore(s => s.submitReview)
 
   var loadTenants = useCallback(function(silent = false) {
@@ -73,6 +75,7 @@ export default function HomeownerTenants() {
               reservation_status: r.status,
               ended_at: r.ended_at,
               property_name: propName,
+              property_id: r.property_id,
               reservation_created: r.created_at,
               check_in: r.check_in,
               duration_months: r.duration_months
@@ -289,6 +292,15 @@ export default function HomeownerTenants() {
                             <Star size={14} className="sm:mr-1.5" />
                             <span className="hidden sm:inline">Rate</span>
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="px-2 py-1 h-auto text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                            onClick={() => setReportingTenant(t)}
+                          >
+                            <AlertTriangle size={14} className="sm:mr-1.5" />
+                            <span className="hidden sm:inline">Report</span>
+                          </Button>
                           {activeTab === 'active' && (
                             <Button 
                               variant="ghost" 
@@ -357,6 +369,16 @@ export default function HomeownerTenants() {
         isOpen={!!selectedTenant} 
         tenantId={selectedTenant?.id} 
         onClose={() => setSelectedTenant(null)} 
+      />
+
+      <ReportIssueModal
+        isOpen={!!reportingTenant}
+        onClose={() => setReportingTenant(null)}
+        type="homeowner_vs_tenant"
+        accusedId={reportingTenant?.id}
+        accusedName={reportingTenant?.full_name}
+        reservationId={reportingTenant?.reservation_id}
+        propertyId={reportingTenant?.property_id}
       />
     </div>
   )

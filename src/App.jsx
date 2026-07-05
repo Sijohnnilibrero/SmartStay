@@ -29,6 +29,7 @@ import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
 import AdminLedger    from '@/pages/admin/AdminLedger'
 import AdminStaff     from '@/pages/admin/AdminStaff'
 import AdminMap       from '@/pages/admin/AdminMap'
+import AdminComplaints from '@/pages/admin/AdminComplaints'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="ledger" element={<AdminLedger />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="map" element={<AdminMap />} />
+            <Route path="complaints" element={<AdminComplaints />} />
           </Route>
         </Route>
       </Route>
