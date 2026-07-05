@@ -652,8 +652,10 @@ export const useAuthStore = create(
           property_id: reservationData.property_id,
           room_id: reservationData.room_id || null,
           check_in: reservationData.check_in,
+          check_out: reservationData.check_out || null,
           duration_months: reservationData.duration_months || 1,
           amount_total: reservationData.amount_total,
+          stay_type: reservationData.stay_type || 'long_term',
           status: 'pending',
           notes: reservationData.notes || null,
         }).select().single()

@@ -93,12 +93,38 @@ export default function MyRoom() {
 
   const { room, property, reservation } = data
 
+  const isTransient = reservation?.stay_type === 'transient'
   let expirationDate = '—'
-  if (reservation?.check_in) {
-    const d = new Date(reservation.check_in)
-    d.setMonth(d.getMonth() + (reservation.duration_months || 1))
-    expirationDate = d.toISOString().split('T')[0]
+  let durationText = ''
+
+  if (isTransient) {
+    if (reservation?.check_out) {
+      expirationDate = reservation.check_out
+      if (reservation?.check_in) {
+        const diffTime = Math.abs(new Date(reservation.check_out) - new Date(reservation.check_in))
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        durationText = `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`
+      }
+    }
+    if (!durationText) durationText = '—'
+  } else {
+    if (reservation?.check_in) {
+      const d = new Date(reservation.check_in)
+      d.setMonth(d.getMonth() + (reservation.duration_months || 1))
+      expirationDate = d.toISOString().split('T')[0]
+    }
+    const months = reservation?.duration_months || 1
+    durationText = `${months} ${months === 1 ? 'month' : 'months'}`
   }
+
+  const roomRentText = isTransient 
+    ? `${formatCurrency(room?.price_daily || 0)}/day` 
+    : `${formatCurrency(room?.price_monthly || 0)}/mo`
+
+  const leaseRentLabel = isTransient ? 'Daily Rent' : 'Monthly Rent'
+  const leaseRentValue = isTransient 
+    ? formatCurrency(room?.price_daily || 0)
+    : formatCurrency(reservation?.amount_total / (reservation?.duration_months || 1))
 
   return (
     <div className="page-enter flex flex-col h-screen">
@@ -126,7 +152,7 @@ export default function MyRoom() {
               <div className="p-3 sm:p-5 grid grid-cols-3 gap-2 sm:gap-4">
                 <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
                   <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Rent</p>
-                  <p className="text-sm sm:text-lg font-bold text-[--teal]">{formatCurrency(room.price_monthly)}</p>
+                  <p className="text-sm sm:text-lg font-bold text-[--teal]">{roomRentText}</p>
                 </div>
                 <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
                   <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Move-in</p>
@@ -134,7 +160,7 @@ export default function MyRoom() {
                 </div>
                 <div className="p-2 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
                   <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-0.5 sm:mb-1 truncate">Duration</p>
-                  <p className="text-[11px] sm:text-[14px] font-semibold text-stone-800 truncate">{reservation.duration_months || 1} mo</p>
+                  <p className="text-[11px] sm:text-[14px] font-semibold text-stone-800 truncate">{durationText}</p>
                 </div>
               </div>
 
@@ -202,7 +228,7 @@ export default function MyRoom() {
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
                   <Calendar className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Duration
                 </div>
-                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{reservation.duration_months || 1} {(reservation.duration_months || 1) === 1 ? 'month' : 'months'}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{durationText}</span>
               </div>
                 <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
                   <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
@@ -235,9 +261,9 @@ export default function MyRoom() {
                 </div>
               <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
-                  <CreditCard className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> Monthly Rent
+                  <CreditCard className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px]" /> {leaseRentLabel}
                 </div>
-                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{formatCurrency(reservation.amount_total / (reservation.duration_months || 1))}</span>
+                <span className="text-[11px] sm:text-[12px] font-medium text-stone-800">{leaseRentValue}</span>
               </div>
               <div className="flex items-center justify-between py-1.5 sm:py-2">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">

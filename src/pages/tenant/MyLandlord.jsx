@@ -112,12 +112,37 @@ export default function MyLandlord() {
     ? landlord.full_name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '??'
 
+  const isTransient = reservation?.stay_type === 'transient'
   let expirationDate = '—'
-  if (reservation?.check_in) {
-    const d = new Date(reservation.check_in)
-    d.setMonth(d.getMonth() + (reservation.duration_months || 1))
-    expirationDate = d.toISOString().split('T')[0]
+  let durationText = ''
+  let leaseRentValue = '—'
+
+  if (isTransient) {
+    if (reservation?.check_out) {
+      expirationDate = reservation.check_out
+      if (reservation?.check_in) {
+        const diffTime = Math.abs(new Date(reservation.check_out) - new Date(reservation.check_in))
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        durationText = `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`
+        leaseRentValue = formatCurrency((reservation.amount_total || 0) / (diffDays || 1))
+      }
+    }
+    if (!durationText) {
+      durationText = '—'
+      leaseRentValue = formatCurrency(reservation?.amount_total || 0)
+    }
+  } else {
+    if (reservation?.check_in) {
+      const d = new Date(reservation.check_in)
+      d.setMonth(d.getMonth() + (reservation.duration_months || 1))
+      expirationDate = d.toISOString().split('T')[0]
+    }
+    const months = reservation?.duration_months || 1
+    durationText = `${months} mo`
+    leaseRentValue = formatCurrency((reservation?.amount_total || 0) / months)
   }
+
+  const leaseRentLabel = isTransient ? 'Daily Rent' : 'Monthly Rent'
 
   return (
     <div className="page-enter flex flex-col h-screen">
@@ -200,14 +225,14 @@ export default function MyLandlord() {
               <div className="p-3 sm:p-5 border-b border-stone-100 flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">My Tenancy</h3>
-                  <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5">Lease details & property info</p>
+                  <p className="text-[9px] sm:text-[11px] text-stone-400 mt-0.5">Lease details</p>
                 </div>
                 <Badge variant={reservation.status === 'confirmed' ? 'teal' : reservation.status === 'pending' ? 'amber' : 'gray'} className="text-[9px] sm:text-[11px]">
                   {reservation.status === 'confirmed' ? 'Active' : reservation.status === 'pending' ? 'Pending Approval' : reservation.status}
                 </Badge>
               </div>
 
-              <div className="p-3 sm:p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 border-b border-stone-100 bg-stone-50/30">
+              <div className="p-3 sm:p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 bg-stone-50/30">
                 <div className="flex gap-2 sm:gap-3">
                   <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white border border-stone-200/60 flex items-center justify-center text-stone-400 shadow-sm flex-shrink-0">
                     <Calendar className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-[--teal]" />
@@ -215,7 +240,7 @@ export default function MyLandlord() {
                   <div className="min-w-0">
                     <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Move-in Date</p>
                     <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{reservation.check_in || '—'}</p>
-                    <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Duration: {reservation.duration_months || 1} mo</p>
+                    <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Duration: {durationText}</p>
                   </div>
                 </div>
 
@@ -252,41 +277,23 @@ export default function MyLandlord() {
                     <CreditCard className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] text-[#BA7517]" />
                   </div>
                   <div>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">Monthly Rent</p>
-                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{formatCurrency(reservation.amount_total / (reservation.duration_months || 1))}</p>
+                    <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">{leaseRentLabel}</p>
+                    <p className="text-[11px] sm:text-sm font-semibold text-stone-700 truncate">{leaseRentValue}</p>
                     <p className="text-[8px] sm:text-[10px] text-stone-400 mt-0.5 truncate">Total: {formatCurrency(reservation.amount_total)}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
-                <div>
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 mb-1.5 sm:mb-2">Rented Property</p>
-                  <div className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-stone-50 border border-stone-200/60 rounded-lg sm:rounded-xl">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">🏠</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] sm:text-[13px] font-bold text-stone-800 truncate">{property.name}</p>
-                      <p className="text-[9px] sm:text-[11px] text-stone-500 flex items-center gap-1 mt-0.5 truncate">
-                        <MapPin className="w-[9px] h-[9px] sm:w-[11px] sm:h-[11px] text-stone-400 flex-shrink-0" />
-                        {property.address}, {property.municipality}
-                      </p>
-                    </div>
-                    <Button variant="default" size="sm" onClick={() => navigate(`/tenant/property/${property.id}`)} className="flex-shrink-0 px-2 sm:px-3 text-[10px] sm:text-sm">
-                      View
-                    </Button>
-                  </div>
+              {reservation.notes && (
+                <div className="p-3 sm:p-5 border-t border-stone-100">
+                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Reservation Notes</p>
+                  <p className="text-xs text-stone-600 bg-stone-50 p-3 rounded-lg border border-stone-100 leading-relaxed italic">
+                    "{reservation.notes}"
+                  </p>
                 </div>
-
-                {reservation.notes && (
-                  <div className="pt-2">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Reservation Notes</p>
-                    <p className="text-xs text-stone-600 bg-stone-50 p-3 rounded-lg border border-stone-100 leading-relaxed italic">
-                      "{reservation.notes}"
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
             </Card>
+
 
             {/* Emergency & Rules Reminder */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
