@@ -9,6 +9,7 @@ import { ArrowLeft, MapPin, CheckCircle2, BedDouble, X, MessageSquare, ExternalL
 import PropertyMap from '@/components/map/PropertyMap'
 import { supabase } from '@/lib/supabase'
 import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
+import TenantProfileModal from '@/components/ui/TenantProfileModal'
 
 export default function TenantPropertyDetails() {
   var idState = useParams()
@@ -28,6 +29,7 @@ export default function TenantPropertyDetails() {
   var ownerProfileState = useState(null)
   var ownerProfile = ownerProfileState[0], setOwnerProfile = ownerProfileState[1]
   var [showOwnerModal, setShowOwnerModal] = useState(false)
+  var [selectedReviewerId, setSelectedReviewerId] = useState(null)
   var reviewsState = useState([])
   var reviews = reviewsState[0], setReviews = reviewsState[1]
   var roomsState = useState([])
@@ -282,10 +284,18 @@ export default function TenantPropertyDetails() {
                 {reviews.map(function(r) {
                   return (
                     <div key={r.id} className="py-3 border-b border-stone-50 last:border-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="w-6 h-6 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[10px] font-semibold text-[#0F6E56]">
-                          {(r.tenant_id || '??').substring(0, 2).toUpperCase()}
-                        </div>
+                      <div 
+                        className="flex items-center gap-2 mb-1.5 cursor-pointer hover:bg-stone-50 p-1 -ml-1 rounded transition-colors w-max"
+                        onClick={() => r.tenant_id && setSelectedReviewerId(r.tenant_id)}
+                      >
+                        {r.reviewer?.avatar_url ? (
+                          <img src={r.reviewer.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-[#E1F5EE] flex items-center justify-center text-[10px] font-semibold text-[#0F6E56]">
+                            {(r.reviewer?.full_name || r.tenant_id || '??').substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-[12px] font-semibold text-stone-700 hover:underline">{r.reviewer?.full_name || 'Anonymous'}</span>
                         <StarRating rating={r.rating || 0} size={10} />
                         <span className="text-[10px] text-stone-400 ml-auto">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</span>
                       </div>
@@ -579,9 +589,17 @@ export default function TenantPropertyDetails() {
             owner_contact: ownerProfile.contact,
             owner_municipality: ownerProfile.municipality
           }}
+          isOpen={showOwnerModal}
           onClose={() => setShowOwnerModal(false)}
+          ownerId={property.owner_id}
         />
       )}
+
+      <TenantProfileModal 
+        isOpen={!!selectedReviewerId} 
+        onClose={() => setSelectedReviewerId(null)} 
+        tenantId={selectedReviewerId} 
+      />
     </div>
   )
 }

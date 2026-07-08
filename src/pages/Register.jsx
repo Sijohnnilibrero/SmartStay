@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
+import AuthModal from '@/components/ui/AuthModal'
 
 const ROLE_OPTIONS = [
   {
@@ -40,15 +41,16 @@ export default function Register() {
   })
   const [errors,   setErrors]   = useState({})
   const [showPw,   setShowPw]   = useState(false)
-const [success,  setSuccess]  = useState(false)
-const [registerError, setRegisterError] = useState('')
+  const [modalType,      setModalType]      = useState(null) // 'account_created' | 'account_created_instant'
+  const [registerError, setRegisterError] = useState('')
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
   const validateStep2 = () => {
     const e = {}
     if (!form.name.trim())         e.name = 'Full name is required.'
-    if (!form.email.includes('@')) e.email = 'Enter a valid email.'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email)) e.email = 'Enter a valid email address (e.g. name@gmail.com).'
     if (form.password.length < 6)  e.password = 'Password must be at least 6 characters.'
     if (form.password !== form.confirmPw) e.confirmPw = 'Passwords do not match.'
     setErrors(e)
@@ -70,14 +72,10 @@ const [registerError, setRegisterError] = useState('')
   })
 
   if (result.success) {
-    setSuccess(true)
-    if (role === 'tenant') {
-      // Clear onboarding flag for new user so they see the wizard
-      // We don't know the ID yet so we'll let the login handle it
-      setTimeout(() => navigate('/login'), 2200)
-    } else {
-      setTimeout(() => navigate('/login'), 2200)
-    }
+    // Automatically detect if Supabase requires email confirmation:
+    // - result.needsConfirmation = true  → confirmation ON  → "check inbox" modal
+    // - result.needsConfirmation = false → confirmation OFF → "you can login" modal
+    setModalType(result.needsConfirmation ? 'account_created' : 'account_created_instant')
   } else {
     setRegisterError(result.authError || 'Registration failed. Please try again.')
   }
@@ -115,22 +113,13 @@ const [registerError, setRegisterError] = useState('')
           </div>
         )}
 
-        {/* Success message */}
-        {success && (
-          <div style={{
-            background: '#E1F5EE', border: '0.5px solid #1D9E75',
-            borderRadius: 12, padding: '16px 20px', marginBottom: 20,
-            textAlign: 'center',
-          }}>
-            <p style={{ fontSize: 24, marginBottom: 6 }}>✅</p>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#085041' }}>
-              Account created successfully!
-            </p>
-            <p style={{ fontSize: 12, color: '#0F6E56', marginTop: 4 }}>
-              Redirecting you to the login page...
-            </p>
-          </div>
-        )}
+        {/* Account created modal — type is auto-detected from Supabase response */}
+        <AuthModal
+          type={modalType}
+          isOpen={!!modalType}
+          onClose={() => navigate('/login')}
+          email={form.email}
+        />
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>

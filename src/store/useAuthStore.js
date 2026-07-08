@@ -126,8 +126,12 @@ export const useAuthStore = create(
           // A Supabase database trigger will automatically catch the metadata
           // passed in 'options.data' above and insert the row into 'profiles' for us!
 
+          // If data.session is null, Supabase requires email confirmation before login.
+          // If data.session exists, confirmation is OFF and the user can log in immediately.
+          const needsConfirmation = !data.session
+
           set({ isLoading: false })
-          return { success: true }
+          return { success: true, needsConfirmation }
         } catch (err) {
           set({ isLoading: false, authError: 'Registration failed: ' + (err.message || err) })
           return { success: false, authError: 'Registration failed: ' + (err.message || err) }

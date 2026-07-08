@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
+import { supabase } from '@/lib/supabase'
+import AuthModal from '@/components/ui/AuthModal'
 
 const ROLE_META = {
   admin: { color: '#534AB7', bg: '#EEEDFE', label: 'Administrator', initials: 'AD' },
@@ -15,16 +17,35 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
+  const [emailUnconfirmed, setEmailUnconfirmed] = useState(false)
+  const [resendStatus, setResendStatus] = useState('')
+  const [modalType, setModalType] = useState(null) // 'email_unconfirmed' | 'banned' | 'suspended'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setEmailUnconfirmed(false)
+    setResendStatus('')
+    setModalType(null)
     const result = await login(email, password)
     if (result.success) {
       var role = result.user?.role
       if (role === 'admin') navigate('/admin')
       else if (role === 'owner') navigate('/owner')
       else navigate('/tenant')
+    } else if (result.authError?.toLowerCase().includes('email not confirmed')) {
+      setEmailUnconfirmed(true)
+      setModalType('email_unconfirmed')
+    } else if (result.authError?.toLowerCase().includes('banned')) {
+      setModalType('banned')
+    } else if (result.authError?.toLowerCase().includes('suspended')) {
+      setModalType('suspended')
     }
+  }
+
+  const handleResend = async () => {
+    setResendStatus('sending')
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() })
+    setResendStatus(error ? 'error' : 'sent')
   }
   const quickFill = (account) => {
     clearError()
@@ -70,7 +91,18 @@ export default function Login() {
             Sign in to your account
           </h2>
 
-          {authError && (
+          {/* Significant account-level events → modal */}
+          <AuthModal
+            type={modalType}
+            isOpen={!!modalType}
+            onClose={() => { setModalType(null); setEmailUnconfirmed(false) }}
+            email={email}
+            onResend={handleResend}
+            resendStatus={resendStatus}
+          />
+
+          {/* Simple form errors stay inline */}
+          {!emailUnconfirmed && authError && !authError.toLowerCase().includes('banned') && !authError.toLowerCase().includes('suspended') && (
             <div style={{
               background: '#FAECE7', border: '0.5px solid #D85A30',
               borderRadius: 8, padding: '10px 14px', marginBottom: 16,

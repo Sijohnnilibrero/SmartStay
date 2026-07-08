@@ -161,7 +161,7 @@ export default function NotificationBell() {
                       {n.title}
                     </p>
                     <p className={`text-xs mt-0.5 line-clamp-2 ${n.is_read ? 'text-stone-400' : 'text-stone-500'}`}>
-                      {n.body}
+                      {n.body?.replace('awaiting_payment', 'Awaiting Payment')}
                     </p>
                     <p className="text-[10px] text-stone-400 mt-1 uppercase tracking-wider font-semibold">
                       {timeAgo(n.created_at)}
