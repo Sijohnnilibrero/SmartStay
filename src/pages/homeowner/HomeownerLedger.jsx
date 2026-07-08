@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { DollarSign, Eye, CheckCircle, XCircle, Clock, Search, Filter } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import NotificationBell from '@/components/layout/NotificationBell'
+import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 export default function HomeownerLedger() {
   const { user, fetchTransactions, updateTransactionStatus, fetchReservations } = useAuthStore()
@@ -121,10 +122,10 @@ export default function HomeownerLedger() {
 
   return (
     <>
-      <div className="page-enter w-full max-w-full space-y-6 px-4 sm:px-6 pt-5 overflow-hidden">
+      <div className="page-enter w-full max-w-full flex flex-col h-[calc(100vh-80px)] space-y-4 px-4 sm:px-6 pt-5 pb-6">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-lg md:text-xl font-bold text-stone-800">Transaction Ledger</h1>
             <p className="text-sm text-stone-500 mt-1">Manage and verify tenant payments</p>
@@ -235,10 +236,10 @@ export default function HomeownerLedger() {
               </select>
             </div>
 
-            <div className="w-full overflow-x-auto pb-2">
+            <div className="w-full flex-1 overflow-auto bg-white">
               <table className="w-full text-left border-collapse min-w-[800px]">
-                <thead>
-                  <tr className="bg-stone-50/80 border-b border-stone-200">
+                <thead className="sticky top-0 z-20 bg-stone-100 shadow-sm">
+                  <tr>
                     <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Date</th>
                     <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Tenant</th>
                     <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Property</th>
@@ -258,7 +259,10 @@ export default function HomeownerLedger() {
                   {sortedTransactions.map(tx => (
                     <tr key={tx.id} className={`hover:bg-stone-50/50 transition-colors ${tx.status === 'pending_verification' ? 'bg-amber-50/30' : ''}`}>
                       <td className="px-4 py-4 text-sm text-stone-800 font-medium">
-                        {new Date(tx.payment_date).toLocaleDateString()}
+                    <div className="flex flex-col">
+                      <span>{new Date(tx.created_at || tx.payment_date).toLocaleDateString()}</span>
+                      <span className="text-[10px] text-stone-400">{new Date(tx.created_at || tx.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-stone-800">
                         {tx.tenant?.full_name || 'Unknown Tenant'}
@@ -301,16 +305,11 @@ export default function HomeownerLedger() {
       </div>
 
       {/* Image View Modal */}
-      {viewImageUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/80 backdrop-blur-sm" onClick={() => setViewImageUrl(null)}>
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button className="absolute -top-10 right-0 text-white hover:text-stone-300 font-bold transition-colors" onClick={() => setViewImageUrl(null)}>
-              Close
-            </button>
-            <img src={viewImageUrl} alt="Receipt" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
-          </div>
-        </div>
-      )}
+      <ImageViewerModal
+        isOpen={!!viewImageUrl}
+        imageUrl={viewImageUrl}
+        onClose={() => setViewImageUrl(null)}
+      />
     </>
   )
 }

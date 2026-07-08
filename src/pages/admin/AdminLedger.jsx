@@ -6,11 +6,13 @@ import { supabase } from '@/lib/supabase'
 import { Eye, ShieldAlert } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import NotificationBell from '@/components/layout/NotificationBell'
+import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 export default function AdminLedger() {
-  const { fetchTransactions, updateTransactionStatus } = useAuthStore()
+  const { user, fetchTransactions, updateTransactionStatus } = useAuthStore()
   const { addToast, systemConfirm } = useAppStore()
   const [transactions, setTransactions] = useState([])
+  const [regionFilter, setRegionFilter] = useState('All')
   const [loading, setLoading] = useState(true)
   const [viewImageUrl, setViewImageUrl] = useState(null)
   const [actioningId, setActioningId] = useState(null)
@@ -18,6 +20,7 @@ export default function AdminLedger() {
   const loadData = () => {
     setLoading(true)
     fetchTransactions().then(txs => {
+      console.log('RAW FETCHED TRANSACTIONS:', txs)
       setTransactions(txs)
     }).catch(err => {
       console.error('FETCH ERROR:', err)
@@ -70,22 +73,67 @@ export default function AdminLedger() {
 
   if (loading) return <div className="p-12 text-center text-stone-400">Loading master ledger...</div>
 
+  // Filter transactions based on admin role and region selection
+  const filteredTransactions = transactions.filter(tx => {
+    const propMunicipality = tx.property?.municipality || ''
+    
+    // Regular admin: forcefully filter to their region only
+    if (user?.role === 'admin' && user?.admin_region) {
+      if (user.admin_region === 'Batan Island') {
+        const batanMunis = ['Basco', 'Mahatao', 'Ivana', 'Uyugan']
+        if (!batanMunis.includes(propMunicipality)) return false
+      } else {
+        if (propMunicipality !== user.admin_region) return false
+      }
+    }
+    
+    // Super admin: filter manually if selected
+    if (user?.role === 'super_admin' && regionFilter !== 'All') {
+      if (regionFilter === 'Batan Island') {
+        const batanMunis = ['Basco', 'Mahatao', 'Ivana', 'Uyugan']
+        if (!batanMunis.includes(propMunicipality)) return false
+      } else {
+        if (propMunicipality !== regionFilter) return false
+      }
+    }
+    
+    return true
+  })
+
   return (
     <>
-      <div className="page-enter w-full max-w-full space-y-6 px-4 sm:px-6 pt-5 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="page-enter w-full max-w-full flex flex-col h-[calc(100vh-80px)] space-y-4 px-4 sm:px-6 pt-5 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 shrink-0">
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-stone-800">Master Ledger</h1>
-            <p className="text-sm text-stone-500 mt-1">Global view of all platform transactions for auditing.</p>
+            <h1 className="text-lg md:text-xl font-bold text-stone-800">
+              {user?.role === 'super_admin' ? 'Global System Ledger' : `${user?.admin_region} Territory Ledger`}
+            </h1>
+            <p className="text-sm text-stone-500 mt-1">
+              {user?.role === 'super_admin' ? 'Global view of all platform transactions for auditing.' : `View all transactions for properties in ${user?.admin_region}.`}
+            </p>
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-3">
+            {user?.role === 'super_admin' && (
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-stone-200 rounded-lg text-sm text-stone-700 font-medium focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none shadow-sm cursor-pointer"
+              >
+                <option value="All">🌍 All Regions</option>
+                <option value="Batan Island">🏝️ Batan Island</option>
+                <option value="Sabtang">🏝️ Sabtang Island</option>
+                <option value="Itbayat">🏝️ Itbayat Island</option>
+              </select>
+            )}
+            <NotificationBell />
+          </div>
         </div>
 
-      <Card className="w-full overflow-hidden border border-stone-200">
-        <div className="w-full overflow-x-auto pb-2">
+      <Card className="w-full flex-1 flex flex-col min-h-0 border border-stone-200 p-0 overflow-hidden">
+        <div className="w-full flex-1 overflow-auto bg-white">
           <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-stone-50/80 border-b border-stone-200">
+            <thead className="sticky top-0 z-20 bg-stone-100 shadow-sm ring-1 ring-stone-200">
+              <tr>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Date</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Tenant</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">Owner</th>
@@ -96,17 +144,20 @@ export default function AdminLedger() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {transactions.length === 0 && (
+              {filteredTransactions.length === 0 && (
                 <tr>
                   <td colSpan="7" className="px-4 py-8 text-center text-stone-400 text-sm">
-                    No transactions yet.
+                    No transactions found for this region.
                   </td>
                 </tr>
               )}
-              {transactions.map(tx => (
+              {filteredTransactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-stone-50/50 transition-colors">
                   <td className="px-4 py-4 text-sm text-stone-800 font-medium">
-                    {new Date(tx.payment_date).toLocaleDateString()}
+                    <div className="flex flex-col">
+                      <span>{new Date(tx.created_at || tx.payment_date).toLocaleDateString()}</span>
+                      <span className="text-[10px] text-stone-400">{new Date(tx.created_at || tx.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-4 text-sm font-semibold text-stone-800">
                     {tx.tenant?.full_name || 'Unknown'}
@@ -150,16 +201,11 @@ export default function AdminLedger() {
       </div>
 
       {/* Image View Modal */}
-      {viewImageUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/80 backdrop-blur-sm" onClick={() => setViewImageUrl(null)}>
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button className="absolute -top-10 right-0 text-white hover:text-stone-300 font-bold" onClick={() => setViewImageUrl(null)}>
-              Close
-            </button>
-            <img src={viewImageUrl} alt="Receipt" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
-          </div>
-        </div>
-      )}
+      <ImageViewerModal
+        isOpen={!!viewImageUrl}
+        imageUrl={viewImageUrl}
+        onClose={() => setViewImageUrl(null)}
+      />
     </>
   )
 }

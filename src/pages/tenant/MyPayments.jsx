@@ -7,6 +7,7 @@ import { DollarSign, Upload, Clock, CheckCircle, XCircle, Search, Calendar, Eye,
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { calculateNextDueDate, formatCurrency } from '@/lib/utils'
 import NotificationBell from '@/components/layout/NotificationBell'
+import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 export default function MyPayments() {
   const { user, fetchTransactions, fetchReservations, createTransaction, uploadTransactionReceipt, deleteTransaction, updateTransaction } = useAuthStore()
@@ -244,7 +245,10 @@ export default function MyPayments() {
               {transactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-stone-50/50 transition-colors">
                   <td className="px-4 py-4 text-sm text-stone-800 font-medium">
-                    {new Date(tx.payment_date).toLocaleDateString()}
+                    <div className="flex flex-col">
+                      <span>{new Date(tx.created_at || tx.payment_date).toLocaleDateString()}</span>
+                      <span className="text-[10px] text-stone-400">{new Date(tx.created_at || tx.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-stone-800">
@@ -502,16 +506,11 @@ export default function MyPayments() {
       )}
 
       {/* Image View Modal */}
-      {viewImageUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/80 backdrop-blur-sm" onClick={() => setViewImageUrl(null)}>
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button className="absolute -top-10 right-0 text-white hover:text-stone-300 font-bold" onClick={() => setViewImageUrl(null)}>
-              Close
-            </button>
-            <img src={viewImageUrl} alt="Receipt" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
-          </div>
-        </div>
-      )}
+      <ImageViewerModal
+        isOpen={!!viewImageUrl}
+        imageUrl={viewImageUrl}
+        onClose={() => setViewImageUrl(null)}
+      />
     </>
   )
 }

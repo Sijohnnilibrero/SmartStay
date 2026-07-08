@@ -808,7 +808,7 @@ export const useAuthStore = create(
         let query = supabase.from('transactions').select(`
           *,
           reservation:reservations(status, room_id, rooms(room_number)),
-          property:properties(name, address),
+          property:properties(name, address, municipality),
           tenant:profiles!tenant_id(full_name),
           owner:profiles!owner_id(full_name)
         `).order('payment_date', { ascending: false })

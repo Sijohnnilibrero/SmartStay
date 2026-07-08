@@ -15,10 +15,10 @@ const getAdminNav = (user) => {
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/properties', label: 'Properties' },
     { to: '/admin/reservations', label: 'Reservations' },
+    { to: '/admin/ledger', label: 'Ledger', icon: DollarSign }
   ]
   
   if (isSuper) {
-    manageRoutes.push({ to: '/admin/ledger', label: 'Ledger', icon: DollarSign })
     manageRoutes.push({ to: '/admin/staff', label: 'Manage Staff', icon: Users })
   }
 
