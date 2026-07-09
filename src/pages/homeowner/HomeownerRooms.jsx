@@ -90,6 +90,7 @@ export default function HomeownerRooms() {
   const fetchProperty    = useAuthStore((s) => s.fetchProperty)
   const uploadRoomImages = useAuthStore((s) => s.uploadRoomImages)
   const fetchReservations = useAuthStore((s) => s.fetchReservations)
+  const user             = useAuthStore((s) => s.user)
   const addToast = useAppStore((s) => s.addToast)
   const systemConfirm = useAppStore((s) => s.systemConfirm)
 

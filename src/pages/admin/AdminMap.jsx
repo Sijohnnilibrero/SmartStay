@@ -5,6 +5,12 @@ import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import PropertyMap from '@/components/map/PropertyMap'
 import NotificationBell from '@/components/layout/NotificationBell'
 
+const ISLAND_CENTERS = {
+  'Batan Island': [20.4284, 121.9706],
+  'Sabtang':      [20.3153, 121.8672],
+  'Itbayat':      [20.7907, 121.8484],
+}
+
 export default function AdminMap() {
   const navigate = useNavigate()
   const { fetchProperties, user } = useAuthStore()
@@ -85,6 +91,7 @@ export default function AdminMap() {
                 mode="browse"
                 properties={pinned}
                 height="100%"
+                initialCenter={user?.admin_region ? ISLAND_CENTERS[user.admin_region] : null}
                 onSelect={(id) => navigate(`/admin/property/${id}`)}
               />
             </>

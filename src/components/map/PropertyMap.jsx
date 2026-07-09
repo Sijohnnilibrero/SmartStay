@@ -10,7 +10,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-// Batanes geographic center
+// Island geographic centers
+const ISLAND_CENTERS = {
+  'Batan Island': [20.4284, 121.9706],
+  'Sabtang':      [20.3153, 121.8672],
+  'Itbayat':      [20.7907, 121.8484],
+}
 const BATANES_CENTER = [20.4284, 121.9706]
 const DEFAULT_ZOOM = 11
 
@@ -54,6 +59,7 @@ export default function PropertyMap({
   onPick,
   onSelect,
   height = '320px',
+  initialCenter = null,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -65,8 +71,10 @@ export default function PropertyMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
+    const startCenter = initialCenter || BATANES_CENTER
+
     const map = L.map(containerRef.current, {
-      center: BATANES_CENTER,
+      center: startCenter,
       zoom: DEFAULT_ZOOM,
       zoomControl: true,
       scrollWheelZoom: mode !== 'view',
