@@ -27,10 +27,7 @@ export function useGlobalRealtime() {
         { event: 'INSERT', schema: 'public', table: 'app_notifications' },
         (payload) => {
           if (payload.new.user_id === user.id) {
-            // Add to store
             addNotification(payload.new)
-            // Fire toast
-            addToast(`🔔 ${payload.new.title}: ${payload.new.body}`, 'info')
           }
         }
       )
