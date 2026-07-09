@@ -267,6 +267,11 @@ export default function AddProperty() {
         return
       }
 
+      if (!form.total_rooms || parseInt(form.total_rooms) < 1) {
+        setError('Please enter the number of rooms. At least 1 room is required.')
+        return
+      }
+
       if (parseInt(form.total_rooms) > 0 && roomDrafts.length === 0) {
         setError('You entered ' + form.total_rooms + ' room(s) but have not filled in any room details. Please scroll right and fill in the room information.')
         return
@@ -331,7 +336,7 @@ export default function AddProperty() {
       barangay: form.barangay.trim(),
       landmark: form.landmark.trim(),
       price_monthly: 0,
-      total_rooms: parseInt(form.total_rooms) || 1,
+      total_rooms: parseInt(form.total_rooms),
       amenities: form.amenities,
       latitude: form.latitude,
       longitude: form.longitude,
@@ -606,7 +611,7 @@ export default function AddProperty() {
 
                     <div>
                       <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5 text-[--teal] font-bold">Total Rooms *</label>
-                      <input type="number" min="1" max="50" value={form.total_rooms} onChange={handleTotalRoomsChange} placeholder="0" className="w-full px-3 py-2 text-sm rounded-xl border border-teal-200 bg-teal-50/50 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all font-semibold text-stone-800" />
+                      <input type="number" min="1" max="50" value={form.total_rooms} onChange={handleTotalRoomsChange} placeholder="e.g. 5" required className={'w-full px-3 py-2 text-sm rounded-xl border bg-teal-50/50 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all font-semibold text-stone-800 ' + (!form.total_rooms || parseInt(form.total_rooms) < 1 ? 'border-red-300 bg-red-50/30' : 'border-teal-200')} />
                     </div>
                   </div>
 
