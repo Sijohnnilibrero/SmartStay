@@ -212,9 +212,9 @@ export default function Properties() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredList.map(function (p, idx) {
               const imgSrc = p.image_url || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]
-              const occupied = p.total_rooms - (p.available_rooms || 0)
+              const availableRooms = p.available_rooms || 0
               const amenities = Array.isArray(p.amenities) ? p.amenities.slice(0, 3) : []
-              const isFull = (p.available_rooms || 0) === 0
+              const isFull = availableRooms === 0 && p.total_rooms > 0
 
               return (
                 <div key={p.id}
@@ -309,8 +309,8 @@ export default function Properties() {
 
                     {/* Occupancy */}
                     <OccupancyBar
-                      label={`${occupied}/${p.total_rooms} rooms unavailable`}
-                      value={occupied}
+                      label={`${availableRooms}/${p.total_rooms} rooms available`}
+                      value={availableRooms}
                       max={p.total_rooms}
                       color={isFull ? '#D85A30' : '#1D9E75'}
                     />
