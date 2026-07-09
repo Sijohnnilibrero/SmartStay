@@ -123,7 +123,7 @@ export default function Properties() {
   })
 
   var stats = {
-    total: properties.filter(function (p) { return p.status !== 'pending_review' }).length,
+    total: properties.length,
     active: properties.filter(function (p) { return p.status === 'active' }).length,
     available: properties.reduce(function (sum, p) { return sum + (p.status !== 'pending_review' ? (p.available_rooms || 0) : 0) }, 0),
     pending: properties.filter(function (p) { return p.status === 'pending_review' }).length,
