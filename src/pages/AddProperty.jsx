@@ -40,6 +40,7 @@ export default function AddProperty() {
   var createRoom = useAuthStore(function(s) { return s.createRoom })
   var uploadRoomImages = useAuthStore(function(s) { return s.uploadRoomImages })
   var isLoading = useAuthStore(function(s) { return s.isLoading })
+  var user = useAuthStore(function(s) { return s.user })
   var addToast = useAppStore(function(s) { return s.addToast })
 
   var [error, setError] = useState('')
@@ -265,22 +266,27 @@ export default function AddProperty() {
         setError('Please select who you cater to (Long-term or Transients).')
         return
       }
+
+      if (parseInt(form.total_rooms) > 0 && roomDrafts.length === 0) {
+        setError('You entered ' + form.total_rooms + ' room(s) but have not filled in any room details. Please scroll right and fill in the room information.')
+        return
+      }
       
       for (const r of roomDrafts) {
         if (!r.room_number) {
           setError('Please provide a Room # for all rooms on the right.')
           return
         }
-        if (form.accepts_long_term && !form.accepts_transient && !r.price_monthly) {
-          setError('Please provide a Monthly Price for all rooms on the right.')
+        if (form.accepts_long_term && !form.accepts_transient && (!r.price_monthly || parseFloat(r.price_monthly) <= 0)) {
+          setError(`Room #${r.room_number}: Please provide a valid Monthly Price (must be greater than ₱0).`)
           return
         }
-        if (form.accepts_transient && !form.accepts_long_term && !r.price_daily) {
-          setError('Please provide a Daily Price for all rooms on the right.')
+        if (form.accepts_transient && !form.accepts_long_term && (!r.price_daily || parseFloat(r.price_daily) <= 0)) {
+          setError(`Room #${r.room_number}: Please provide a valid Daily Price (must be greater than ₱0).`)
           return
         }
-        if (form.accepts_long_term && form.accepts_transient && !r.price_monthly && !r.price_daily) {
-          setError('Please provide at least a Monthly or Daily Price for each room.')
+        if (form.accepts_long_term && form.accepts_transient && (!r.price_monthly || parseFloat(r.price_monthly) <= 0) && (!r.price_daily || parseFloat(r.price_daily) <= 0)) {
+          setError(`Room #${r.room_number}: Please provide at least a valid Monthly or Daily Price (must be greater than ₱0).`)
           return
         }
       }
@@ -353,6 +359,7 @@ export default function AddProperty() {
           }
           await createRoom({
             property_id: finalPropertyId,
+            owner_id: user?.id,
             room_number: draft.room_number,
             floor: parseInt(draft.floor) || 1,
             price_monthly: parseFloat(draft.price_monthly) || 0,
