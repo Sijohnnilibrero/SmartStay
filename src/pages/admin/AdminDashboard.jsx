@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                   {expiringPermits.map(p => {
                     const isExpired = new Date(p.permit_expires_on) < new Date()
                     return (
-                      <Link key={p.id} to={`/admin/properties/${p.id}`} className="block px-3 py-2 hover:bg-stone-50 transition-colors">
+                      <Link key={p.id} to={`/admin/property/${p.id}`} className="block px-3 py-2 hover:bg-stone-50 transition-colors">
                         <p className="text-[12px] sm:text-sm font-semibold text-stone-800 truncate">{p.name}</p>
                         <p className={`text-[10px] sm:text-xs font-medium ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
                           {isExpired ? 'Expired: ' : 'Expires: '} {new Date(p.permit_expires_on).toLocaleDateString()}
