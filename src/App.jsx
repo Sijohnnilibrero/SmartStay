@@ -24,12 +24,9 @@ import HomeownerProfile from '@/pages/homeowner/HomeownerProfile'
 import HomeownerLedger  from '@/pages/homeowner/HomeownerLedger'
 import Messages from '@/pages/Messages'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
-import AdminAnalytics from '@/pages/admin/AdminAnalytics'
 import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
-import AdminLedger    from '@/pages/admin/AdminLedger'
 import AdminStaff     from '@/pages/admin/AdminStaff'
 import AdminMap       from '@/pages/admin/AdminMap'
-import AdminComplaints from '@/pages/admin/AdminComplaints'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
@@ -93,15 +90,11 @@ export default function App() {
           {/* Admin routes - view only */}
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']} />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="users" element={<Tenants />} />
             <Route path="properties" element={<Properties />} />
             <Route path="property/:id" element={<AdminPropertyDetails />} />
-            <Route path="reservations" element={<Reservations />} />
-            <Route path="ledger" element={<AdminLedger />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="map" element={<AdminMap />} />
-            <Route path="complaints" element={<AdminComplaints />} />
           </Route>
         </Route>
       </Route>

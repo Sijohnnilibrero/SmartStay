@@ -14,8 +14,6 @@ const getAdminNav = (user) => {
   const manageRoutes = [
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/properties', label: 'Properties' },
-    { to: '/admin/reservations', label: 'Reservations' },
-    { to: '/admin/ledger', label: 'Ledger', icon: DollarSign }
   ]
   
   if (isSuper) {
@@ -25,12 +23,10 @@ const getAdminNav = (user) => {
   return [
     { label: 'Dashboard', icon: LayoutDashboard, routes: [
       { to: '/admin', label: 'Overview' },
-      { to: '/admin/analytics', label: 'Analytics' }
     ] },
     { label: 'Manage', icon: Users, routes: manageRoutes },
     { label: 'Discover', icon: Sparkles, routes: [
       { to: '/admin/map', label: 'System Map', icon: Map },
-      { to: '/admin/complaints', label: 'Complaints', icon: AlertTriangle },
     ] }
   ]
 }

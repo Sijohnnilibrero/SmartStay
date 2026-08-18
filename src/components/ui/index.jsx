@@ -73,7 +73,7 @@ export function Button({ children, variant = 'default', size = 'md', className, 
 export function Card({ children, className, ...props }) {
   return (
     <div
-      className={cn('bg-white rounded-xl border border-stone-200 p-4', className)}
+      className={cn('glass-card rounded-xl p-4 transition-all duration-300', className)}
       {...props}
     >
       {children}

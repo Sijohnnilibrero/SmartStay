@@ -22,9 +22,38 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: #f5f4f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-attachment: fixed;
   color: #1a1a18;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Premium animated background orbs */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    radial-gradient(circle at 15% 50%, rgba(83, 74, 183, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(29, 158, 117, 0.06), transparent 40%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Glassmorphism Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* Leaflet map fix inside flex containers */

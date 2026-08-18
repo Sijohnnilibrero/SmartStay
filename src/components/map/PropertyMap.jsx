@@ -177,10 +177,10 @@ export default function PropertyMap({
       markersRef.current.push(marker)
     })
 
-    // Default to Basco municipality
-    const BASCO_CENTER = [20.4485, 121.9708]
-    mapRef.current.setView(BASCO_CENTER, 14)
-  }, [mode, properties])
+    // Default to Basco municipality or initialCenter
+    const startCenter = initialCenter || [20.4485, 121.9708]
+    mapRef.current.setView(startCenter, initialCenter ? 12 : 14)
+  }, [mode, properties, initialCenter])
 
   // ── Global handler for popup "View Details" button ────────────────
   useEffect(() => {
