@@ -1,14 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { supabase } from '@/lib/supabase'
 import AuthModal from '@/components/ui/AuthModal'
-
-const ROLE_META = {
-  admin: { color: '#534AB7', bg: '#EEEDFE', label: 'Administrator', initials: 'AD' },
-  owner: { color: '#0F6E56', bg: '#E1F5EE', label: 'Homeowner', initials: 'OW' },
-  tenant: { color: '#BA7517', bg: '#FAEEDA', label: 'Tenant / Tourist', initials: 'TN' },
-}
+import ThemeToggle from '@/components/layout/ThemeToggle'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Home } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -19,7 +15,7 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false)
   const [emailUnconfirmed, setEmailUnconfirmed] = useState(false)
   const [resendStatus, setResendStatus] = useState('')
-  const [modalType, setModalType] = useState(null) // 'email_unconfirmed' | 'banned' | 'suspended'
+  const [modalType, setModalType] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -28,7 +24,7 @@ export default function Login() {
     setModalType(null)
     const result = await login(email, password)
     if (result.success) {
-      var role = result.user?.role
+      const role = result.user?.role
       if (role === 'admin') navigate('/admin')
       else if (role === 'owner') navigate('/owner')
       else navigate('/tenant')
@@ -47,49 +43,91 @@ export default function Login() {
     const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() })
     setResendStatus(error ? 'error' : 'sent')
   }
-  const quickFill = (account) => {
-    clearError()
-    setEmail(account.email)
-    setPassword(account.password)
-  }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f5f4f0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-stone-100 dark:bg-stone-950 transition-colors duration-300">
+      {/* ── Top-Right Floating Theme Toggle ── */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <div className="p-1 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl border border-stone-200/80 dark:border-white/10 shadow-lg hover:shadow-xl transition-all duration-200">
+          <ThemeToggle />
+        </div>
+      </div>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 14,
-            background: '#0F6E56', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 12px', fontSize: 24,
-          }}>🏠</div>
-          <h1 className="text-[26px] text-[#1a1a18] m-0 font-bold">
-            SmartStay
-          </h1>
-          <p style={{ fontSize: 12, color: '#888780', marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Batanes Boarding House Platform
-          </p>
+      {/* ── Rich Scenic Background Gradients ── */}
+      {/* Light Mode Gradient */}
+      <div 
+        className="absolute inset-0 z-0 dark:hidden opacity-90"
+        style={{
+          background: `
+            radial-gradient(circle at 15% 15%, rgba(15, 110, 86, 0.15) 0%, transparent 45%),
+            radial-gradient(circle at 85% 20%, rgba(83, 74, 183, 0.12) 0%, transparent 45%),
+            radial-gradient(circle at 50% 85%, rgba(186, 117, 23, 0.12) 0%, transparent 50%),
+            linear-gradient(145deg, #e6f4ef 0%, #ece9f8 45%, #fdf4e3 100%)
+          `
+        }}
+      />
+
+      {/* Dark Mode Gradient */}
+      <div 
+        className="absolute inset-0 z-0 hidden dark:block"
+        style={{
+          background: `
+            radial-gradient(circle at 15% 20%, rgba(15, 110, 86, 0.45) 0%, transparent 45%),
+            radial-gradient(circle at 85% 25%, rgba(83, 74, 183, 0.4) 0%, transparent 45%),
+            radial-gradient(circle at 50% 85%, rgba(186, 117, 23, 0.3) 0%, transparent 50%),
+            linear-gradient(145deg, #091a15 0%, #0d111d 50%, #171109 100%)
+          `
+        }}
+      />
+
+      {/* Floating Animated Mesh Ambient Glow Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[450px] h-[450px] rounded-full bg-teal-500/20 dark:bg-teal-500/20 blur-[100px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-amber-400/20 dark:bg-amber-500/15 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[40%] right-[15%] w-[350px] h-[350px] rounded-full bg-purple-400/20 dark:bg-indigo-500/20 blur-[100px] pointer-events-none" />
+
+      {/* Subtle Dot Grid Accent */}
+      <div 
+        className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(currentColor 1px, transparent 1px)`,
+          backgroundSize: '24px 24px'
+        }}
+      />
+
+      {/* ── Main Login Container ── */}
+      <div className="relative z-10 w-full max-w-[440px] space-y-6">
+        
+        {/* Brand Header */}
+        <div className="text-center space-y-2 select-none">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 shadow-xl shadow-teal-900/20 dark:shadow-teal-900/30 border border-teal-500/30 text-white mb-1 transition-transform hover:scale-105 duration-300">
+            <Home size={28} className="stroke-[2.5]" />
+          </div>
+          <div className="space-y-0.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight flex items-center justify-center gap-2">
+              SmartStay
+              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/30">
+                Batanes
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium">
+              Batanes Boarding House & Transient Platform
+            </p>
+          </div>
         </div>
 
-        {/* Card */}
-        <div style={{
-          background: '#fff', borderRadius: 16,
-          border: '0.5px solid #e5e2da', padding: 28,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-        }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1a1a18', marginBottom: 20, marginTop: 0 }}>
-            Sign in to your account
-          </h2>
+        {/* Glassmorphism Card */}
+        <div className="bg-white/85 dark:bg-stone-900/85 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 border border-white/90 dark:border-white/10 shadow-2xl shadow-stone-900/10 dark:shadow-black/60 relative overflow-hidden transition-colors duration-300">
+          {/* Top highlight bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 via-emerald-400 to-amber-500" />
+
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
+              Sign in to your account
+            </h2>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              Access your bookings, boarding houses, and profile
+            </p>
+          </div>
 
           {/* Significant account-level events → modal */}
           <AuthModal
@@ -101,95 +139,104 @@ export default function Login() {
             resendStatus={resendStatus}
           />
 
-          {/* Simple form errors stay inline */}
+          {/* Simple form errors inline */}
           {!emailUnconfirmed && authError && !authError.toLowerCase().includes('banned') && !authError.toLowerCase().includes('suspended') && (
-            <div style={{
-              background: '#FAECE7', border: '0.5px solid #D85A30',
-              borderRadius: 8, padding: '10px 14px', marginBottom: 16,
-              fontSize: 13, color: '#993C1D',
-            }}>
-              {authError}
+            <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/80 rounded-xl p-3.5 mb-5 text-xs text-red-700 dark:text-red-200 flex items-start gap-2.5 animate-fadeIn">
+              <span className="text-red-500 dark:text-red-400 text-sm">⚠️</span>
+              <span className="leading-relaxed">{authError}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            {/* Email */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Email
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Input */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                Email Address
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { clearError(); setEmail(e.target.value) }}
-                placeholder="you@smartstay.ph"
-                required
-                style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 8,
-                  border: '0.5px solid #d6d3ca', fontSize: 13, color: '#1a1a18',
-                  background: '#fff', outline: 'none', boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                }}
-              />
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { clearError(); setEmail(e.target.value) }}
+                  placeholder="you@smartstay.ph"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 transition-all shadow-sm"
+                />
+              </div>
             </div>
 
-            {/* Password */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {/* Password Input */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
                 Password
               </label>
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { clearError(); setPassword(e.target.value) }}
                   placeholder="••••••••"
                   required
-                  style={{
-                    width: '100%', padding: '10px 40px 10px 12px', borderRadius: 8,
-                    border: '0.5px solid #d6d3ca', fontSize: 13, color: '#1a1a18',
-                    background: '#fff', outline: 'none', boxSizing: 'border-box',
-                    fontFamily: 'inherit',
-                  }}
+                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 transition-all shadow-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  style={{
-                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 14, color: '#888780', padding: 4,
-                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-1 transition-colors"
+                  aria-label={showPw ? "Hide password" : "Show password"}
                 >
-                  {showPw ? '🙈' : '👁'}
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              style={{
-                width: '100%', padding: '11px', borderRadius: 8,
-                background: isLoading ? '#9FE1CB' : '#0F6E56',
-                color: '#fff', fontSize: 14, fontWeight: 600,
-                border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', transition: 'background 0.15s',
-              }}
+              className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-700 hover:from-teal-500 hover:to-emerald-600 text-white font-bold text-sm shadow-lg shadow-teal-900/20 dark:shadow-teal-950/40 hover:shadow-teal-900/35 active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-              {isLoading ? 'Signing in…' : 'Sign In'}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Signing in…</span>
+                </div>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </>
+              )}
             </button>
           </form>
+
+          {/* Bottom link to Register */}
+          <div className="mt-6 pt-5 border-t border-stone-200 dark:border-stone-800 text-center">
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              Don't have an account yet?{' '}
+              <Link 
+                to="/register" 
+                className="font-bold text-teal-700 dark:text-teal-400 hover:underline transition-colors ml-1"
+              >
+                Register here
+              </Link>
+            </p>
+          </div>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: '#5F5E5A' }}>
-          No account? <a href="/register" style={{ color: '#0F6E56', fontWeight: 600, textDecoration: 'none' }}>Register here</a>
-        </p>
+        {/* Security badge & copyright footer */}
+        <div className="text-center space-y-2 select-none">
+          <div className="inline-flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+            <ShieldCheck size={14} className="text-teal-600 dark:text-teal-400" />
+            <span>Secure Batanes Housing Network</span>
+          </div>
+          <p className="text-[11px] text-stone-400 dark:text-stone-500">
+            © {new Date().getFullYear()} SmartStay • Province of Batanes
+          </p>
+        </div>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa8a0', marginTop: 24 }}>
-          © 2026 SmartStay
-        </p>
       </div>
     </div>
   )

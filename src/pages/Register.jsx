@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import AuthModal from '@/components/ui/AuthModal'
+import ThemeToggle from '@/components/layout/ThemeToggle'
+import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, ShieldCheck, Home, CheckCircle2 } from 'lucide-react'
 
 const ROLE_OPTIONS = [
   {
@@ -9,16 +11,18 @@ const ROLE_OPTIONS = [
     label: 'Tenant / Tourist / Boarder',
     desc: 'I am looking for a boarding house or transient room.',
     icon: '🎒',
-    color: '#BA7517',
-    bg: '#FAEEDA',
+    color: '#0F6E56',
+    border: 'border-teal-500/50',
+    bgActive: 'bg-teal-50 dark:bg-teal-950/60 border-teal-500 dark:border-teal-400',
   },
   {
     value: 'owner',
     label: 'Homeowner',
-    desc: 'I own a boarding house and want to list it.',
+    desc: 'I own a boarding house and want to list it for rent.',
     icon: '🏠',
-    color: '#0F6E56',
-    bg: '#E1F5EE',
+    color: '#BA7517',
+    border: 'border-amber-500/50',
+    bgActive: 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 dark:border-amber-400',
   },
 ]
 
@@ -33,316 +37,439 @@ export default function Register() {
   const navigate = useNavigate()
   const { register, isLoading } = useAuthStore()
 
-  const [step,     setStep]     = useState(1)  // 1 = role pick, 2 = details form
-  const [role,     setRole]     = useState('')
-  const [form,     setForm]     = useState({
-    name: '', email: '', password: '', confirmPw: '',
+  const [step, setStep] = useState(1)
+  const [role, setRole] = useState('')
+  const [form, setForm] = useState({
+    name: '', email: '', contact: '', password: '', confirmPw: '',
     tenantType: 'student', propertyName: '', municipality: 'Basco',
   })
-  const [errors,   setErrors]   = useState({})
-  const [showPw,   setShowPw]   = useState(false)
-  const [modalType,      setModalType]      = useState(null) // 'account_created' | 'account_created_instant'
+  const [errors, setErrors] = useState({})
+  const [showPw, setShowPw] = useState(false)
+  const [modalType, setModalType] = useState(null)
   const [registerError, setRegisterError] = useState('')
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
   const validateStep2 = () => {
     const e = {}
-    if (!form.name.trim())         e.name = 'Full name is required.'
+    if (!form.name.trim()) e.name = 'Full name is required.'
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(form.email)) e.email = 'Enter a valid email address (e.g. name@gmail.com).'
-    if (form.password.length < 6)  e.password = 'Password must be at least 6 characters.'
+    if (!form.contact.trim()) {
+      e.contact = 'Contact number is required.'
+    } else if (!/^(09|\+639)\d{9}$|^[0-9+() -]{7,15}$/.test(form.contact.trim())) {
+      e.contact = 'Enter a valid contact number (e.g. 09123456789).'
+    }
+    if (form.password.length < 6) e.password = 'Password must be at least 6 characters.'
     if (form.password !== form.confirmPw) e.confirmPw = 'Passwords do not match.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const handleRegister = async (e) => {
-  e.preventDefault()
-  setRegisterError('')
-  if (!validateStep2()) return
+    e.preventDefault()
+    setRegisterError('')
+    if (!validateStep2()) return
 
-  const result = await register({
-    email:        form.email,
-    password:     form.password,
-    name:         form.name,
-    role:         role,
-    tenantType:   form.tenantType,
-    municipality: role === 'tenant' ? form.municipality : 'Basco',
-  })
+    const result = await register({
+      email: form.email,
+      password: form.password,
+      name: form.name,
+      contact: form.contact.trim(),
+      role: role,
+      tenantType: form.tenantType,
+      municipality: role === 'tenant' ? form.municipality : 'Basco',
+    })
 
-  if (result.success) {
-    // Automatically detect if Supabase requires email confirmation:
-    // - result.needsConfirmation = true  → confirmation ON  → "check inbox" modal
-    // - result.needsConfirmation = false → confirmation OFF → "you can login" modal
-    setModalType(result.needsConfirmation ? 'account_created' : 'account_created_instant')
-  } else {
-    setRegisterError(result.authError || 'Registration failed. Please try again.')
-  }
-}
-
-  const inputStyle = (err) => ({
-    width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box',
-    border: `0.5px solid ${err ? '#D85A30' : '#d6d3ca'}`,
-    fontSize: 13, color: '#1a1a18', background: '#fff', outline: 'none',
-    fontFamily: 'inherit',
-  })
-
-  const labelStyle = {
-    display: 'block', fontSize: 11, fontWeight: 500, color: '#5F5E5A',
-    marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em',
+    if (result.success) {
+      setModalType(result.needsConfirmation ? 'account_created' : 'account_created_instant')
+    } else {
+      setRegisterError(result.authError || 'Registration failed. Please try again.')
+    }
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', background: '#f5f4f0',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px', fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      <div style={{ width: '100%', maxWidth: 460 }}>
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-stone-100 dark:bg-stone-950 font-sans transition-colors duration-300">
+      {/* ── Top-Right Floating Theme Toggle ── */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <div className="p-1 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl border border-stone-200/80 dark:border-white/10 shadow-lg hover:shadow-xl transition-all duration-200">
+          <ThemeToggle />
+        </div>
+      </div>
 
+      {/* ── Rich Scenic Background Gradients ── */}
+      {/* Light Mode Gradient */}
+      <div 
+        className="absolute inset-0 z-0 dark:hidden opacity-90"
+        style={{
+          background: `
+            radial-gradient(circle at 85% 15%, rgba(15, 110, 86, 0.15) 0%, transparent 45%),
+            radial-gradient(circle at 15% 30%, rgba(83, 74, 183, 0.12) 0%, transparent 45%),
+            radial-gradient(circle at 50% 90%, rgba(186, 117, 23, 0.12) 0%, transparent 50%),
+            linear-gradient(145deg, #e6f4ef 0%, #ece9f8 45%, #fdf4e3 100%)
+          `
+        }}
+      />
 
-        {/* Error message */}
-        {registerError && (
-          <div style={{
-            background: '#FAECE7', border: '0.5px solid #D85A30',
-            borderRadius: 8, padding: '10px 14px', marginBottom: 16,
-            fontSize: 13, color: '#993C1D',
-          }}>
-            {registerError}
+      {/* Dark Mode Gradient */}
+      <div 
+        className="absolute inset-0 z-0 hidden dark:block"
+        style={{
+          background: `
+            radial-gradient(circle at 85% 15%, rgba(15, 110, 86, 0.45) 0%, transparent 45%),
+            radial-gradient(circle at 15% 30%, rgba(83, 74, 183, 0.4) 0%, transparent 45%),
+            radial-gradient(circle at 50% 90%, rgba(186, 117, 23, 0.3) 0%, transparent 50%),
+            linear-gradient(145deg, #091a15 0%, #0d111d 50%, #171109 100%)
+          `
+        }}
+      />
+
+      {/* Floating Animated Mesh Ambient Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[450px] h-[450px] rounded-full bg-teal-500/20 blur-[100px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-amber-400/20 dark:bg-amber-500/15 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[35%] left-[20%] w-[350px] h-[350px] rounded-full bg-purple-400/20 dark:bg-indigo-500/20 blur-[100px] pointer-events-none" />
+
+      {/* Subtle Dot Grid Accent */}
+      <div 
+        className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(currentColor 1px, transparent 1px)`,
+          backgroundSize: '24px 24px'
+        }}
+      />
+
+      {/* ── Main Container ── */}
+      <div className="relative z-10 w-full max-w-[480px] space-y-6">
+        
+        {/* Brand Header */}
+        <div className="text-center space-y-2 select-none">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 shadow-xl shadow-teal-900/20 dark:shadow-teal-900/30 border border-teal-500/30 text-white mb-1 transition-transform hover:scale-105 duration-300">
+            <Home size={26} className="stroke-[2.5]" />
           </div>
-        )}
-
-        {/* Account created modal — type is auto-detected from Supabase response */}
-        <AuthModal
-          type={modalType}
-          isOpen={!!modalType}
-          onClose={() => navigate('/login')}
-          email={form.email}
-        />
-
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 13, background: '#0F6E56',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 10px', fontSize: 22,
-          }}>🏠</div>
-          <h1 className="text-[24px] text-[#1a1a18] m-0 font-bold">
-            Create an account
-          </h1>
-          <p style={{ fontSize: 12, color: '#888780', marginTop: 4 }}>
-            Already have one?{' '}
-            <Link to="/login" style={{ color: '#0F6E56', fontWeight: 600, textDecoration: 'none' }}>
-              Sign in
-            </Link>
-          </p>
+          <div className="space-y-0.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight">
+              Create an Account
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium">
+              Join SmartStay Batanes Housing Network
+            </p>
+          </div>
         </div>
 
-        {/* Step indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, justifyContent: 'center' }}>
-          {[1, 2].map((s) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 26, height: 26, borderRadius: '50%', fontSize: 11, fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: step >= s ? '#0F6E56' : '#e5e2da',
-                color: step >= s ? '#fff' : '#888780',
-                transition: 'all 0.2s',
-              }}>{s}</div>
-              {s < 2 && <div style={{ width: 40, height: 1, background: step > s ? '#0F6E56' : '#e5e2da' }} />}
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-3 select-none">
+          <div className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+              step >= 1 ? 'bg-teal-600 dark:bg-teal-500 text-white shadow-lg shadow-teal-500/30' : 'bg-stone-200 dark:bg-stone-800 text-stone-500 border border-stone-300 dark:border-stone-700'
+            }`}>
+              1
             </div>
-          ))}
+            <span className={`text-xs font-semibold ${step >= 1 ? 'text-teal-700 dark:text-teal-300' : 'text-stone-400 dark:text-stone-500'}`}>
+              Account Type
+            </span>
+          </div>
+
+          <div className={`w-12 h-0.5 rounded-full transition-colors ${step > 1 ? 'bg-teal-600 dark:bg-teal-500' : 'bg-stone-300 dark:bg-stone-800'}`} />
+
+          <div className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+              step >= 2 ? 'bg-teal-600 dark:bg-teal-500 text-white shadow-lg shadow-teal-500/30' : 'bg-stone-200 dark:bg-stone-800 text-stone-500 border border-stone-300 dark:border-stone-700'
+            }`}>
+              2
+            </div>
+            <span className={`text-xs font-semibold ${step >= 2 ? 'text-teal-700 dark:text-teal-300' : 'text-stone-400 dark:text-stone-500'}`}>
+              Your Details
+            </span>
+          </div>
         </div>
 
-        <div style={{
-          background: '#fff', borderRadius: 16,
-          border: '0.5px solid #e5e2da', padding: 28,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-        }}>
+        {/* Glassmorphism Card */}
+        <div className="bg-white/85 dark:bg-stone-900/85 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 border border-white/90 dark:border-white/10 shadow-2xl shadow-stone-900/10 dark:shadow-black/60 relative overflow-hidden transition-colors duration-300">
+          {/* Top highlight bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 via-emerald-400 to-amber-500" />
 
-          {/* STEP 1: Choose role */}
+          {/* Error Message */}
+          {registerError && (
+            <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/80 rounded-xl p-3.5 mb-5 text-xs text-red-700 dark:text-red-200 flex items-start gap-2.5 animate-fadeIn">
+              <span className="text-red-500 dark:text-red-400 text-sm">⚠️</span>
+              <span className="leading-relaxed">{registerError}</span>
+            </div>
+          )}
+
+          {/* Account created modal */}
+          <AuthModal
+            type={modalType}
+            isOpen={!!modalType}
+            onClose={() => navigate('/login')}
+            email={form.email}
+          />
+
+          {/* STEP 1: Choose Role */}
           {step === 1 && (
-            <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18', marginTop: 0, marginBottom: 6 }}>
-                Who are you?
-              </h2>
-              <p style={{ fontSize: 13, color: '#888780', marginBottom: 20, marginTop: 0 }}>
-                Choose your account type to get started.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            <div className="space-y-5 animate-fadeIn">
+              <div>
+                <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
+                  Who are you?
+                </h2>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                  Choose your role to customize your experience
+                </p>
+              </div>
+
+              <div className="space-y-3">
                 {ROLE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
+                    type="button"
                     onClick={() => setRole(opt.value)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 16px', borderRadius: 10, cursor: 'pointer',
-                      textAlign: 'left', fontFamily: 'inherit',
-                      background: role === opt.value ? opt.bg : '#fff',
-                      border: `${role === opt.value ? '1.5px' : '0.5px'} solid ${role === opt.value ? opt.color : '#e5e2da'}`,
-                      transition: 'all 0.15s',
-                    }}
+                    className={`w-full p-4 rounded-2xl text-left transition-all duration-200 border flex items-center gap-4 cursor-pointer select-none ${
+                      role === opt.value
+                        ? `${opt.bgActive} border-2 shadow-md`
+                        : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700/70 hover:bg-white dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
+                    }`}
                   >
-                    <span style={{ fontSize: 24 }}>{opt.icon}</span>
-                    <div>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: role === opt.value ? opt.color : '#1a1a18' }}>
+                    <span className="text-3xl p-2 rounded-xl bg-white dark:bg-stone-800/80 border border-stone-200 dark:border-white/5 shadow-sm">{opt.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold truncate ${role === opt.value ? 'text-teal-900 dark:text-white' : 'text-stone-900 dark:text-stone-200'}`}>
                         {opt.label}
                       </p>
-                      <p style={{ margin: 0, fontSize: 12, color: '#888780', marginTop: 2 }}>{opt.desc}</p>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 line-clamp-2">
+                        {opt.desc}
+                      </p>
                     </div>
                     {role === opt.value && (
-                      <span style={{ marginLeft: 'auto', fontSize: 16, color: opt.color }}>✓</span>
+                      <CheckCircle2 size={20} className="text-teal-600 dark:text-teal-400 flex-shrink-0" />
                     )}
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  style={{
-                    flex: 1, padding: 11, borderRadius: 8, fontSize: 14,
-                    background: '#fff', border: '0.5px solid #d6d3ca',
-                    color: '#5F5E5A', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800/80 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  ← Login
+                  <ArrowLeft size={14} />
+                  <span>Login</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => { if (role) setStep(2) }}
                   disabled={!role}
-                  style={{
-                    flex: 2, padding: 11, borderRadius: 8,
-                    background: role ? '#0F6E56' : '#d6d3ca',
-                    color: '#fff', fontSize: 14, fontWeight: 600,
-                    border: 'none', cursor: role ? 'pointer' : 'not-allowed',
-                    fontFamily: 'inherit',
-                  }}
+                  className="flex-[2] py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-teal-900/20 dark:shadow-teal-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  Continue →
+                  <span>Continue</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
           )}
 
-          {/* STEP 2: Details form */}
+          {/* STEP 2: Details Form */}
           {step === 2 && (
-            <form onSubmit={handleRegister}>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18', marginTop: 0, marginBottom: 18 }}>
-                Your details
-              </h2>
-
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Full Name</label>
-                <input
-                  style={inputStyle(errors.name)}
-                  placeholder="Juan dela Cruz"
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                />
-                {errors.name && <p style={{ fontSize: 11, color: '#D85A30', margin: '4px 0 0' }}>{errors.name}</p>}
+            <form onSubmit={handleRegister} className="space-y-4 animate-fadeIn">
+              <div>
+                <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
+                  Your details
+                </h2>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                  Creating {role === 'tenant' ? 'Tenant' : 'Homeowner'} account
+                </p>
               </div>
 
-              <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Email Address</label>
-                <input
-                  type="email"
-                  style={inputStyle(errors.email)}
-                  placeholder="juan@email.com"
-                  value={form.email}
-                  onChange={(e) => set('email', e.target.value)}
-                />
-                {errors.email && <p style={{ fontSize: 11, color: '#D85A30', margin: '4px 0 0' }}>{errors.email}</p>}
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => set('name', e.target.value)}
+                    placeholder="Juan dela Cruz"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
+                      errors.name ? 'border-red-500 focus:ring-red-400/25' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-teal-500/20 dark:focus:ring-teal-400/25'
+                    } focus:outline-none focus:ring-2 transition-all shadow-sm`}
+                  />
+                </div>
+                {errors.name && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{errors.name}</p>}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                <div>
-                  <label style={labelStyle}>Password</label>
-                  <div style={{ position: 'relative' }}>
+              {/* Email */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => set('email', e.target.value)}
+                    placeholder="juan@email.com"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
+                      errors.email ? 'border-red-500 focus:ring-red-400/25' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-teal-500/20 dark:focus:ring-teal-400/25'
+                    } focus:outline-none focus:ring-2 transition-all shadow-sm`}
+                  />
+                </div>
+                {errors.email && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{errors.email}</p>}
+              </div>
+
+              {/* Contact */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                  Contact Number
+                </label>
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                  <input
+                    type="tel"
+                    value={form.contact}
+                    onChange={(e) => set('contact', e.target.value)}
+                    placeholder="09123456789"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
+                      errors.contact ? 'border-red-500 focus:ring-red-400/25' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-teal-500/20 dark:focus:ring-teal-400/25'
+                    } focus:outline-none focus:ring-2 transition-all shadow-sm`}
+                  />
+                </div>
+                {errors.contact && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">{errors.contact}</p>}
+              </div>
+
+              {/* Passwords (2 Columns) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                    Password
+                  </label>
+                  <div className="relative">
                     <input
                       type={showPw ? 'text' : 'password'}
-                      style={{ ...inputStyle(errors.password), paddingRight: 36 }}
-                      placeholder="Min. 6 chars"
                       value={form.password}
                       onChange={(e) => set('password', e.target.value)}
+                      placeholder="Min. 6 chars"
+                      className={`w-full pl-3 pr-8 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
+                        errors.password ? 'border-red-500' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400'
+                      } focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 transition-all shadow-sm`}
                     />
-                    <button type="button" onClick={() => setShowPw((v) => !v)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
-                      {showPw ? '🙈' : '👁'}
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-1"
+                    >
+                      {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  {errors.password && <p style={{ fontSize: 11, color: '#D85A30', margin: '4px 0 0' }}>{errors.password}</p>}
+                  {errors.password && <p className="text-[10px] text-red-500 dark:text-red-400 mt-1">{errors.password}</p>}
                 </div>
-                <div>
-                  <label style={labelStyle}>Confirm Password</label>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                    Confirm Password
+                  </label>
                   <input
                     type="password"
-                    style={inputStyle(errors.confirmPw)}
-                    placeholder="Repeat password"
                     value={form.confirmPw}
                     onChange={(e) => set('confirmPw', e.target.value)}
+                    placeholder="Repeat password"
+                    className={`w-full px-3 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
+                      errors.confirmPw ? 'border-red-500' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400'
+                    } focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 transition-all shadow-sm`}
                   />
-                  {errors.confirmPw && <p style={{ fontSize: 11, color: '#D85A30', margin: '4px 0 0' }}>{errors.confirmPw}</p>}
+                  {errors.confirmPw && <p className="text-[10px] text-red-500 dark:text-red-400 mt-1">{errors.confirmPw}</p>}
                 </div>
               </div>
 
               {/* Role-specific fields */}
               {role === 'tenant' && (
-                <div style={{ marginBottom: 14 }}>
-                  <label style={labelStyle}>I am a</label>
-                  <select
-                    style={inputStyle(false)}
-                    value={form.tenantType}
-                    onChange={(e) => set('tenantType', e.target.value)}
-                  >
-                    {TENANT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                      Tenant Classification
+                    </label>
+                    <select
+                      value={form.tenantType}
+                      onChange={(e) => set('tenantType', e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800 text-stone-900 dark:text-white border border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 shadow-sm"
+                    >
+                      {TENANT_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                      Target Municipality
+                    </label>
+                    <select
+                      value={form.municipality}
+                      onChange={(e) => set('municipality', e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800 text-stone-900 dark:text-white border border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 shadow-sm"
+                    >
+                      {['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Itbayat', 'Sabtang'].map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
 
-              {role === 'tenant' && (
-                <div style={{ marginBottom: 20 }}>
-                  <label style={labelStyle}>Municipality</label>
-                  <select style={inputStyle(false)} value={form.municipality} onChange={(e) => set('municipality', e.target.value)}>
-                    {['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Itbayat', 'Sabtang'].map((m) => (
-                      <option key={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 10 }}>
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  style={{
-                    flex: 1, padding: 11, borderRadius: 8, fontSize: 14,
-                    background: '#fff', border: '0.5px solid #d6d3ca',
-                    color: '#5F5E5A', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800/80 hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  ← Back
+                  <ArrowLeft size={14} />
+                  <span>Back</span>
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  style={{
-                    flex: 2, padding: 11, borderRadius: 8, fontSize: 14, fontWeight: 600,
-                    background: isLoading ? '#9FE1CB' : '#0F6E56',
-                    color: '#fff', border: 'none',
-                    cursor: isLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  }}
+                  className="flex-[2] py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-teal-900/20 dark:shadow-teal-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isLoading ? 'Creating Account…' : 'Create Account'}
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Creating Account…</span>
+                    </div>
+                  ) : (
+                    <span>Create Account</span>
+                  )}
                 </button>
               </div>
             </form>
           )}
+
+          {/* Bottom link to Login */}
+          <div className="mt-6 pt-5 border-t border-stone-200 dark:border-stone-800 text-center">
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              Already have an account?{' '}
+              <Link 
+                to="/login" 
+                className="font-bold text-teal-700 dark:text-teal-400 hover:underline transition-colors ml-1"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa8a0', marginTop: 20 }}>
-          © 2026 SmartStay
-        </p>
+        {/* Security badge & copyright footer */}
+        <div className="text-center space-y-2 select-none">
+          <div className="inline-flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+            <ShieldCheck size={14} className="text-teal-600 dark:text-teal-400" />
+            <span>Secure Batanes Housing Network</span>
+          </div>
+          <p className="text-[11px] text-stone-400 dark:text-stone-500">
+            © {new Date().getFullYear()} SmartStay • Province of Batanes
+          </p>
+        </div>
+
       </div>
     </div>
   )

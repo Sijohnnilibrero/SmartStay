@@ -93,7 +93,7 @@ export const useAuthStore = create(
       },
 
       // ── REAL Supabase register ───────────────────────────────────────────
-      register: async ({ email, password, name, role, tenantType, municipality }) => {
+      register: async ({ email, password, name, role, tenantType, municipality, contact }) => {
         set({ isLoading: true, authError: null })
         try {
           const roleValue = ['super_admin', 'admin', 'owner', 'tenant'].includes(role) ? role : 'tenant'
@@ -108,6 +108,7 @@ export const useAuthStore = create(
                 role: roleValue,
                 tenant_type: tenantTypeValue,
                 municipality: municipality || 'Basco',
+                contact: contact ? contact.trim() : null,
               }
             }
           })
@@ -122,9 +123,10 @@ export const useAuthStore = create(
             return { success: false, authError: 'User creation failed (no user id returned).' }
           }
 
-          // We no longer manually insert into 'profiles' here.
-          // A Supabase database trigger will automatically catch the metadata
-          // passed in 'options.data' above and insert the row into 'profiles' for us!
+          // If session exists immediately, ensure profiles table has the contact number as well
+          if (data.session && contact) {
+            await supabase.from('profiles').update({ contact: contact.trim() }).eq('id', data.user.id)
+          }
 
           // If data.session is null, Supabase requires email confirmation before login.
           // If data.session exists, confirmation is OFF and the user can log in immediately.
@@ -1333,71 +1335,63 @@ export const useAuthStore = create(
         return true
       },
 
-      // ==================== COMPLAINTS ====================
+      // ==================== CUSTOMER SERVICE & SUPPORT TICKETS ====================
 
-      submitComplaint: async (payload) => {
+      submitSupportTicket: async (payload) => {
         const user = get().user
         if (!user?.id) throw new Error('Not authenticated')
 
-        // Auto-determine island from property if not provided
-        let island = payload.island || null
-        if (!island && payload.property_id) {
-          const { data: prop } = await supabase.from('properties').select('island').eq('id', payload.property_id).single()
-          if (prop?.island) island = prop.island
-        }
-
-        const { data, error } = await supabase.from('complaints').insert({
-          reporter_id: user.id,
-          accused_id: payload.accused_id || null,
-          reservation_id: payload.reservation_id || null,
-          property_id: payload.property_id || null,
-          island,
-          type: payload.type,
+        const { data, error } = await supabase.from('support_tickets').insert({
+          user_id: user.id,
+          category: payload.category || 'general_inquiry',
           subject: payload.subject,
-          description: payload.description,
+          message: payload.message,
+          priority: payload.priority || 'normal',
           status: 'open',
         }).select().single()
 
-        if (error) throw new Error('Failed to submit complaint: ' + error.message)
+        if (error) throw new Error('Failed to submit support ticket: ' + error.message)
         return data
       },
 
-      fetchComplaints: async (filters = {}) => {
-        const user = get().user
-        let query = supabase.from('complaints')
-          .select(`
-            *,
-            reporter:profiles!complaints_reporter_id_fkey(id, full_name, email, role, municipality, avatar_url),
-            accused:profiles!complaints_accused_id_fkey(id, full_name, email, role, municipality, avatar_url),
-            resolved_by_profile:profiles!complaints_resolved_by_fkey(id, full_name)
-          `)
-          .order('created_at', { ascending: false })
+      fetchSupportTickets: async (filters = {}) => {
+        try {
+          let query = supabase.from('support_tickets')
+            .select(`
+              *,
+              user:profiles(id, full_name, email, role, municipality, avatar_url)
+            `)
+            .order('created_at', { ascending: false })
 
-        // Island admins can only see their island's complaints
-        if (user?.role === 'admin' && user?.admin_region) {
-          // Derive island from admin_region (e.g. 'Batan Island' -> 'Batan')
-          const island = user.admin_region.replace(' Island', '')
-          query = query.eq('island', island)
+          if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status)
+          if (filters.category && filters.category !== 'all') query = query.eq('category', filters.category)
+
+          const { data, error } = await query
+          if (error) {
+            console.warn('Could not fetch support_tickets (table may not be created yet in Supabase):', error.message)
+            return []
+          }
+          return data || []
+        } catch (e) {
+          console.warn('Support tickets fetch error:', e)
+          return []
         }
-
-        if (filters.status) query = query.eq('status', filters.status)
-        if (filters.type) query = query.eq('type', filters.type)
-
-        const { data, error } = await query
-        if (error) throw error
-        return data || []
       },
 
-      updateComplaintStatus: async (id, status, adminNotes = null) => {
+      updateSupportTicketStatus: async (id, status, adminResponse = null) => {
         const user = get().user
-        const updateData = { status }
-        if (adminNotes !== null) updateData.admin_notes = adminNotes
-        if (status === 'resolved' || status === 'escalated') {
+        const updateData = { 
+          status,
+          updated_at: new Date().toISOString()
+        }
+        if (adminResponse !== null) updateData.admin_response = adminResponse
+        if (status === 'resolved' || status === 'closed') {
           updateData.resolved_by = user?.id || null
+          updateData.resolved_at = new Date().toISOString()
         }
 
-        const { data, error } = await supabase.from('complaints').update(updateData).eq('id', id).select().single()
-        if (error) throw new Error('Failed to update complaint: ' + error.message)
+        const { data, error } = await supabase.from('support_tickets').update(updateData).eq('id', id).select().single()
+        if (error) throw new Error('Failed to update support ticket: ' + error.message)
         return data
       },
     }),

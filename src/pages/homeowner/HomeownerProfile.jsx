@@ -149,9 +149,7 @@ export default function HomeownerProfile() {
         <div>
           <p className="font-bold text-lg md:text-xl text-stone-800">My Profile</p>
           <p className="text-sm text-stone-400 mt-0.5">Update your contact details so tenants can reach you</p>
-        </div>
-        <NotificationBell />
-      </div>
+        </div>      </div>
 
       <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

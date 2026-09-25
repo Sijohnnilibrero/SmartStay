@@ -2,7 +2,6 @@ import { cn, getStatusColor } from '@/lib/utils'
 import ConfirmModal from './ConfirmModal'
 import ContractViewerModal from './ContractViewerModal'
 import ImageViewerModal from './ImageViewerModal'
-import ReviewModal from './ReviewModal'
 export { ZoomableImage } from './ZoomableImage'
 
 /* ── Badge ───────────────────────────────────────────── */
@@ -100,9 +99,9 @@ export function CardTitle({ children, className }) {
 /* ── StatCard ────────────────────────────────────────── */
 export function StatCard({ label, value, delta, deltaUp = true, accent = '#0F6E56' }) {
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
+    <div className="bg-white rounded-xl border border-stone-200 p-4 select-none cursor-default">
       <p className="text-[11px] uppercase tracking-wider text-stone-400 mb-1.5">{label}</p>
-      <p className="font-bold text-3xl leading-none mb-1" style={{ color: accent }}>
+      <p className="font-bold text-3xl leading-none mb-1 select-none cursor-default" style={{ color: accent }}>
         {value}
       </p>
       {delta && (
@@ -217,18 +216,41 @@ export function Select({ className, children, ...props }) {
 }
 
 /* ── FilterChip ──────────────────────────────────────── */
-export function FilterChip({ label, active, onClick }) {
+export function FilterChip({ label, count, active, onClick, color = 'teal', className }) {
+  const activeStyles = {
+    teal:    'bg-[#0F6E56] dark:bg-[#1D9E75] text-white border-[#0F6E56] dark:border-[#1D9E75]',
+    emerald: 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500',
+    amber:   'bg-[#BA7517] dark:bg-[#D97706] text-white border-[#BA7517] dark:border-[#D97706]',
+    purple:  'bg-[#534AB7] dark:bg-[#7C3AED] text-white border-[#534AB7] dark:border-[#7C3AED]',
+    rose:    'bg-rose-600 dark:bg-rose-500 text-white border-rose-600 dark:border-rose-500',
+    blue:    'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500',
+  }
+
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        'px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all duration-150',
+        'px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold border transition-all duration-150 flex items-center gap-1.5 shadow-sm select-none',
         active
-          ? 'bg-[--teal-light] text-[--teal] border-teal-300'
-          : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:text-stone-700'
+          ? (activeStyles[color] || activeStyles.teal)
+          : 'bg-white dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-white/10 hover:border-stone-300 dark:hover:border-white/20 hover:text-stone-900 dark:hover:text-white',
+        className
       )}
     >
-      {label}
+      <span>{label}</span>
+      {count !== undefined && (
+        <span
+          className={cn(
+            'px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none',
+            active
+              ? 'bg-white/25 text-white'
+              : 'bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-400'
+          )}
+        >
+          {count}
+        </span>
+      )}
     </button>
   )
 }

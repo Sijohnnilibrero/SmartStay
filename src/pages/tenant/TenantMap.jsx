@@ -4,7 +4,6 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import PropertyMap from '@/components/map/PropertyMap'
 import { MapPin, X } from 'lucide-react'
-import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function TenantMap() {
   const navigate = useNavigate()
@@ -38,9 +37,7 @@ export default function TenantMap() {
           </p>
         </div>
         {/* Legend + Bell */}
-        <div className="flex items-center gap-3 text-[11px] text-stone-500">
-          <NotificationBell />
-          <span className="flex items-center gap-1.5">
+        <div className="flex items-center gap-3 text-[11px] text-stone-500">          <span className="flex items-center gap-1.5">
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D9E75', display: 'inline-block' }} />
             Available
           </span>

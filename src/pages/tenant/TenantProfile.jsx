@@ -138,9 +138,7 @@ export default function TenantProfile() {
         <div>
           <p className="font-bold text-lg md:text-xl text-stone-800">My Profile</p>
           <p className="text-sm text-stone-400 mt-0.5">Manage your personal information and photo</p>
-        </div>
-        <NotificationBell />
-      </div>
+        </div>      </div>
 
       <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

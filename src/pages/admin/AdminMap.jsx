@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import PropertyMap from '@/components/map/PropertyMap'
-import NotificationBell from '@/components/layout/NotificationBell'
 
 const ISLAND_CENTERS = {
   'Batan Island': [20.4284, 121.9706],
@@ -56,9 +55,7 @@ export default function AdminMap() {
             {loading ? 'Loading…' : `${pinned.length} properties on map · ${unpinned.length} without location`}
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-stone-500">
-          <NotificationBell />
-          <span className="flex items-center gap-1.5">
+        <div className="flex items-center gap-3 text-[11px] text-stone-500">          <span className="flex items-center gap-1.5">
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D9E75', display: 'inline-block' }} />
             Active
           </span>

@@ -6,7 +6,6 @@ import { useAppStore } from '@/store/useAppStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { Card, Button } from '@/components/ui'
 import { MessageSquare, CheckCheck, Send, ArrowLeft } from 'lucide-react'
-import NotificationBell from '@/components/layout/NotificationBell'
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -182,31 +181,25 @@ export default function Messages() {
 
   return (
     <div className="page-enter flex flex-col h-screen">
-      {/* Page Header */}
-      <div className="px-6 pt-5 pb-4 bg-white border-b border-stone-100 shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-lg md:text-xl text-stone-800">Messages</p>
-            <p className="text-sm text-stone-400 mt-0.5">
-              {totalUnread > 0
-                ? `${totalUnread} unread message${totalUnread > 1 ? 's' : ''}`
-                : 'All caught up'}
-            </p>
-          </div>
-          <NotificationBell />
-          {totalUnread > 0 && (
-            <button
-              onClick={async () => {
-                await markAllNotificationsRead()
-                await useNotificationStore.getState().markMessageNotificationsAsRead()
-                setConversations((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })))
-              }}
-              className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-teal-600 transition-colors px-3 py-1.5 rounded-lg border border-stone-200 hover:border-teal-300 hover:bg-teal-50"
-            >
-              <CheckCheck size={13} /> Mark all read
-            </button>
-          )}
-        </div>
+      {/* Message Status Sub-bar */}
+      <div className="px-4 sm:px-6 py-2.5 bg-white dark:bg-[#18181b] border-b border-stone-100 dark:border-white/10 shrink-0 flex items-center justify-between">
+        <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+          {totalUnread > 0
+            ? `${totalUnread} unread conversation${totalUnread > 1 ? 's' : ''}`
+            : 'All conversations are caught up'}
+        </p>
+        {totalUnread > 0 && (
+          <button
+            onClick={async () => {
+              await markAllNotificationsRead()
+              await useNotificationStore.getState().markMessageNotificationsAsRead()
+              setConversations((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })))
+            }}
+            className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-teal-600 transition-colors px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/30"
+          >
+            <CheckCheck size={13} /> Mark all read
+          </button>
+        )}
       </div>
 
       {/* Two-panel layout */}

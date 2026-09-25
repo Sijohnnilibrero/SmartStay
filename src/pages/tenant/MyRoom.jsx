@@ -6,7 +6,6 @@ import Topbar from '@/components/layout/Topbar'
 import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle, MessageSquare } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
-import ReportIssueModal from '@/components/ui/ReportIssueModal'
 import { supabase } from '@/lib/supabase'
 
 export default function MyRoom() {
@@ -16,7 +15,6 @@ export default function MyRoom() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [viewContractUrl, setViewContractUrl] = useState(null)
-  const [reportingIssue, setReportingIssue] = useState(false)
   const wasHiddenRef = useRef(false)
 
   const loadRoom = useCallback(function(silent = false) {

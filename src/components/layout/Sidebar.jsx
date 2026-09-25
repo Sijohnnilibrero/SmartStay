@@ -1,19 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Sparkles,
-  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare, DollarSign, AlertTriangle
+  Users, Home, LogOut, BarChart3, Map, User, BedDouble, MessageSquare, DollarSign, AlertTriangle,
+  Sun, Moon, Headphones
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import SupportModal from '@/components/support/SupportModal'
 
 const getAdminNav = (user) => {
   const isSuper = user?.role === 'super_admin'
   const manageRoutes = [
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/properties', label: 'Properties' },
+    { to: '/admin/support', label: 'Customer Service', icon: Headphones },
   ]
   
   if (isSuper) {
@@ -118,12 +121,16 @@ export default function Sidebar() {
   const logout = useAuthStore((s) => s.logout)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
 
   const userRole = user?.role || 'tenant'
   const navItems = getNavForRole(user)
   const roleColors = ROLE_COLORS[userRole] || ROLE_COLORS.tenant
   const roleLabel = ROLE_LABEL[userRole] || ROLE_LABEL.tenant
   const headerBg = HEADER_GRADIENTS[userRole] || HEADER_GRADIENTS.tenant
+
+  const [supportModalOpen, setSupportModalOpen] = useState(false)
 
   // Unread message count for badge
   const [unreadMessages, setUnreadMessages] = useState(0)
@@ -162,7 +169,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col w-full h-full bg-white border-r border-stone-200 overflow-hidden">
+    <aside className="flex flex-col w-full h-full border-r overflow-hidden">
       {/* Brand Header */}
       <div className="shrink-0 px-5 py-5 relative overflow-hidden" style={{ background: headerBg }}>
         {/* Decorative circle */}
@@ -188,7 +195,7 @@ export default function Sidebar() {
       </div>
 
       {/* Role Pill */}
-      <div className="shrink-0 px-4 py-2.5 border-b border-stone-100">
+      <div className="shrink-0 px-4 py-2.5 border-b border-stone-100 dark:border-white/8">
         <span
           className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
           style={{ background: roleColors.bg, color: roleColors.text }}
@@ -202,7 +209,7 @@ export default function Sidebar() {
         {navItems.map(function (group) {
           return (
             <div key={group.label} className="mb-3">
-              <p className="text-[10px] uppercase tracking-widest text-stone-400 font-medium px-2 py-1.5 flex items-center gap-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-stone-400 dark:text-stone-500 font-medium px-2 py-1.5 flex items-center gap-1.5">
                 <group.icon size={11} className="opacity-50" />
                 {group.label}
               </p>
@@ -218,7 +225,7 @@ export default function Sidebar() {
                       'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm mb-0.5 transition-all duration-150',
                       active
                         ? 'text-white font-medium shadow-sm'
-                        : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'
+                        : 'text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-white'
                     )}
                     style={active ? { background: headerBg } : {}}
                   >
@@ -241,9 +248,9 @@ export default function Sidebar() {
       </nav>
 
       {/* User Profile & Logout */}
-      <div className="shrink-0 p-3 border-t border-stone-100 space-y-1">
+      <div className="shrink-0 p-3 border-t border-stone-100 dark:border-white/8 space-y-1">
         <div 
-          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${user?.role === 'tenant' || user?.role === 'owner' ? 'cursor-pointer hover:bg-stone-100' : 'bg-stone-50'}`}
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${user?.role === 'tenant' || user?.role === 'owner' ? 'cursor-pointer hover:bg-stone-100 dark:hover:bg-white/8' : 'bg-stone-50 dark:bg-white/5'}`}
           onClick={() => {
             if (user?.role === 'tenant') navigate('/tenant/profile')
             else if (user?.role === 'owner') navigate('/owner/profile')
@@ -260,19 +267,35 @@ export default function Sidebar() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-stone-800 truncate">{user?.name || 'Guest'}</p>
-            <p className="text-[10px] text-stone-400 truncate">{user?.email || ''}</p>
+            <p className="text-[12px] font-semibold text-stone-800 dark:text-stone-100 truncate">{user?.name || 'Guest'}</p>
+            <p className="text-[10px] text-stone-400 dark:text-stone-500 truncate">{user?.email || ''}</p>
           </div>
         </div>
 
+        {/* Customer Support for Tenants & Homeowners */}
+        {(user?.role === 'tenant' || user?.role === 'owner') && (
+          <button
+            onClick={() => setSupportModalOpen(true)}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[12px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-950/30 hover:bg-teal-100/70 dark:hover:bg-teal-900/50 transition-all duration-150 cursor-pointer"
+          >
+            <Headphones size={13} />
+            <span>Help & Support</span>
+          </button>
+        )}
+
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[12px] text-stone-500 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[12px] text-stone-500 dark:text-stone-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-all duration-150 cursor-pointer"
         >
           <LogOut size={13} />
           Sign out
         </button>
       </div>
+
+      <SupportModal
+        isOpen={supportModalOpen}
+        onClose={() => setSupportModalOpen(false)}
+      />
     </aside>
   )
 }

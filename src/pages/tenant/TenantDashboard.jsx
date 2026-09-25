@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { Card, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
-import { formatCurrency, calculateNextDueDate } from '@/lib/utils'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function TenantDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
   const [recentActivity, setRecentActivity] = useState([])
   const [landlordData, setLandlordData] = useState(null)
+  const [roomData, setRoomData] = useState(null)
   const [transactions, setTransactions] = useState([])
 
   var loadData = useCallback(function() {
@@ -17,11 +18,13 @@ export default function TenantDashboard() {
     Promise.all([
       useAuthStore.getState().fetchReservations({ tenantId: user.id }),
       useAuthStore.getState().fetchMyLandlord(user.id),
-      useAuthStore.getState().fetchTransactions()
+      useAuthStore.getState().fetchTransactions(),
+      useAuthStore.getState().fetchMyRoom(user.id)
     ]).then(function(results) {
       setRecentActivity(results[0].slice(0, 5))
       setLandlordData(results[1])
       setTransactions(results[2])
+      setRoomData(results[3])
     }).catch(function(err) {
       console.error(err)
     })
@@ -39,7 +42,11 @@ export default function TenantDashboard() {
   }
 
   function getExpirationDate(res) {
-    if (!res || !res.check_in || !res.duration_months) return 'No active contract'
+    if (!res || !res.check_in) return 'No active contract'
+    if (res.stay_type === 'transient' && res.check_out) {
+      return new Date(res.check_out).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    }
+    if (!res.duration_months) return 'No active contract'
     var d = new Date(res.check_in)
     d.setMonth(d.getMonth() + res.duration_months)
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -48,43 +55,75 @@ export default function TenantDashboard() {
   var dueData = landlordData?.reservation ? calculateNextDueDate(landlordData.reservation, transactions) : null
 
   return (
-    <div className="page-enter">
-      <div className="px-6 pt-5 pb-1 flex items-start justify-between">
-        <div>
-          <p className="font-bold text-lg md:text-xl text-stone-800">{greeting()}, {user?.name ? user.name.split(' ')[0] : 'User'} 👋</p>
-          <p className="text-sm text-stone-400 mt-0.5">Here's what's happening with your stays</p>
-        </div>
-        <NotificationBell />
-      </div>
-      <div className="p-6 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#0F6E56' }}>
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">My Landlord</p>
-            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
-              {landlordData?.landlord?.full_name || 'N/A'}
-            </p>
-            <p className="text-[12px] text-stone-500 truncate">
-              {landlordData?.landlord ? (landlordData.landlord.contact || 'No contact info provided') : 'No active landlord'}
-            </p>
-          </Card>
-          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#BA7517' }}>
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">My Contract</p>
-            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
-              {landlordData?.property?.name || 'N/A'}
-            </p>
-            <p className="text-[12px] text-stone-500 truncate">
-              {landlordData?.property && landlordData?.reservation ? formatCurrency(landlordData.reservation.amount_total / landlordData.reservation.duration_months) + ' / mo' : 'No active contract'}
-            </p>
-          </Card>
-          <Card className="p-4 sm:p-5 border-l-4" style={{ borderLeftColor: '#1D9E75' }}>
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate">Contract Expiration</p>
-            <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1">
-              {getExpirationDate(landlordData?.reservation)}
-            </p>
-            <p className="text-[12px] text-stone-500 truncate">
-              {landlordData?.reservation ? landlordData.reservation.duration_months + ' months total' : 'No active contract'}
-            </p>
-          </Card>
+    <div className="page-enter p-6 space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 select-none cursor-default">
+          {/* Card 1: My Landlord */}
+          <Link to="/tenant/landlord" className="block">
+            <Card className="p-4 sm:p-5 border-l-4 h-full flex flex-col justify-between hover:shadow-md transition-all select-none cursor-pointer" style={{ borderLeftColor: '#0F6E56' }}>
+              <div>
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 mb-1 truncate select-none">My Landlord</p>
+                <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1 select-none">
+                  {landlordData?.landlord?.full_name || 'N/A'}
+                </p>
+              </div>
+              <p className="text-[12px] text-stone-500 truncate select-none mt-2">
+                📞 {landlordData?.landlord ? (landlordData.landlord.contact || 'No contact info provided') : 'No active landlord'}
+              </p>
+            </Card>
+          </Link>
+
+          {/* Card 2: My Contract & Lease (Combined) */}
+          <Link to="/tenant/payments" className="block">
+            <Card className="p-4 sm:p-5 border-l-4 h-full flex flex-col justify-between hover:shadow-md transition-all select-none cursor-pointer" style={{ borderLeftColor: '#BA7517' }}>
+              <div>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 truncate select-none">My Contract</p>
+                  {landlordData?.reservation && (
+                    <span className="text-[10px] font-semibold text-[#BA7517] bg-[#FAEEDA] px-2 py-0.5 rounded-full">
+                      {landlordData.reservation.stay_type === 'transient' ? 'Transient' : `${landlordData.reservation.duration_months || 1} mos`}
+                    </span>
+                  )}
+                </div>
+                <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1 select-none">
+                  {landlordData?.property?.name || 'No active contract'}
+                </p>
+              </div>
+              <div className="text-[12px] text-stone-500 truncate select-none mt-2 flex flex-col gap-0.5">
+                <span className="font-medium text-stone-700">
+                  {landlordData?.property && landlordData?.reservation 
+                    ? (landlordData.reservation.stay_type === 'transient'
+                        ? `${formatCurrency(roomData?.room?.price_daily || landlordData.reservation.amount_total)} / day`
+                        : `${formatCurrency(landlordData.reservation.amount_total / (landlordData.reservation.duration_months || 1))} / mo`)
+                    : '—'}
+                </span>
+                <span className="text-[11px] text-stone-400">
+                  Expires: {getExpirationDate(landlordData?.reservation)}
+                </span>
+              </div>
+            </Card>
+          </Link>
+
+          {/* Card 3: My Room & Stay */}
+          <Link to="/tenant/room" className="block">
+            <Card className="p-4 sm:p-5 border-l-4 h-full flex flex-col justify-between hover:shadow-md transition-all select-none cursor-pointer" style={{ borderLeftColor: '#1D9E75' }}>
+              <div>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-400 truncate select-none">My Room & Stay</p>
+                  {roomData?.room && (
+                    <span className="text-[10px] font-semibold text-[#0F6E56] bg-[#E1F5EE] px-2 py-0.5 rounded-full">
+                      Floor {roomData.room.floor}
+                    </span>
+                  )}
+                </div>
+                <p className="font-bold text-lg sm:text-xl text-stone-800 truncate mb-1 select-none">
+                  {roomData?.room ? `Room ${roomData.room.room_number}` : (landlordData?.property ? 'Room Assigned' : 'No active room')}
+                </p>
+              </div>
+              <p className="text-[12px] text-stone-500 truncate select-none mt-2">
+                🛏️ {roomData?.property ? `${roomData.property.municipality}, ${roomData.property.island} Island` : 'No room assigned'}
+              </p>
+            </Card>
+          </Link>
         </div>
 
         {dueData && (dueData.isOverdue || dueData.isUpcoming) && (
@@ -135,7 +174,6 @@ export default function TenantDashboard() {
             </div>
           </Card>
         </div>
-      </div>
     </div>
   )
 }

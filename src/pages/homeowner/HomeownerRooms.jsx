@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Plus, Trash2, Edit2, MapPin, ImagePlus, X, Upload, Loader2, BedDouble, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import NotificationBell from '@/components/layout/NotificationBell'
 
 const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
@@ -105,6 +106,7 @@ export default function HomeownerRooms() {
   const [form,     setForm]     = useState(EMPTY_FORM)
   const [newFiles,     setNewFiles]     = useState([])
   const [existingUrls, setExistingUrls] = useState([])
+  const [statusFilter, setStatusFilter] = useState('all')
   const wasHiddenRef = useRef(false)
 
   const loadData = useCallback(function(silent = false) {
@@ -246,22 +248,18 @@ export default function HomeownerRooms() {
 
   return (
     <div className="page-enter p-6 space-y-5">
-      {/* Header */}
+      {/* Subheader / Breadcrumb */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-bold text-lg md:text-xl text-stone-800">Manage Rooms</h1>
           {property && (
-            <p className="text-[12px] text-stone-400 flex items-center gap-1 mt-0.5">
-              <MapPin size={11} className="text-[--teal]" /> {property.name} · {property.address}
+            <p className="text-[13px] text-stone-600 dark:text-stone-300 font-semibold flex items-center gap-1.5">
+              <MapPin size={13} className="text-[--teal]" /> {property.name} · {property.address}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <NotificationBell />
-          <Button variant="ghost" size="sm" onClick={() => navigate('/owner/properties')}>
-            ← Back to Properties
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/owner/properties')}>
+          ← Back to Properties
+        </Button>
       </div>
 
       {/* Stats */}
@@ -395,6 +393,74 @@ export default function HomeownerRooms() {
         </div>
       )}
 
+      {/* Room Filter Tabs */}
+      {!loading && rooms.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+          <span className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold mr-1">Filter Rooms:</span>
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+              statusFilter === 'all'
+                ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+            }`}
+          >
+            All <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-200/50 text-current">{rooms.length}</span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('available')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+              statusFilter === 'available'
+                ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-400 shadow-sm ring-1 ring-teal-400'
+                : 'bg-white text-teal-700 border-teal-200/80 hover:bg-teal-50/50'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Available 
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-100 text-teal-800 font-bold">
+              {rooms.filter(r => r.is_available).length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('awaiting')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+              statusFilter === 'awaiting'
+                ? 'bg-[#FAEEDA] text-[#BA7517] border-amber-400 shadow-sm ring-1 ring-amber-400'
+                : 'bg-white text-amber-700 border-amber-200/80 hover:bg-amber-50/50'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            Awaiting Payment
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold">
+              {rooms.filter(r => {
+                const s = getRoomDisplayStatus(r);
+                return s.label === 'Awaiting Payment';
+              }).length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('occupied')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+              statusFilter === 'occupied'
+                ? 'bg-[#FAECE7] text-[#D85A30] border-rose-400 shadow-sm ring-1 ring-rose-400'
+                : 'bg-white text-rose-700 border-rose-200/80 hover:bg-rose-50/50'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+            Occupied
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-800 font-bold">
+              {rooms.filter(r => {
+                const s = getRoomDisplayStatus(r);
+                return s.label === 'Occupied';
+              }).length}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Room Cards */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -418,7 +484,16 @@ export default function HomeownerRooms() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((r) => (
+          {rooms
+            .filter((r) => {
+              if (statusFilter === 'all') return true;
+              const s = getRoomDisplayStatus(r);
+              if (statusFilter === 'available') return r.is_available;
+              if (statusFilter === 'awaiting') return s.label === 'Awaiting Payment';
+              if (statusFilter === 'occupied') return s.label === 'Occupied';
+              return true;
+            })
+            .map((r) => (
             <div key={r.id} className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md transition-all group">
               {/* Room image or placeholder */}
               <div className="relative aspect-square overflow-hidden">

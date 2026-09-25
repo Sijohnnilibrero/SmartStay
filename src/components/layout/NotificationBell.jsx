@@ -97,7 +97,7 @@ export default function NotificationBell() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in"
+          className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in"
           style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
         >
           {/* Header */}

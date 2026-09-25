@@ -14,7 +14,6 @@ import TenantRecommendations from '@/pages/tenant/Recommendations'
 import TenantMap       from '@/pages/tenant/TenantMap'
 import MyLandlord      from '@/pages/tenant/MyLandlord'
 import MyRoom          from '@/pages/tenant/MyRoom'
-import TenantBrowseRooms from '@/pages/tenant/TenantBrowseRooms'
 import MyPayments        from '@/pages/tenant/MyPayments'
 import TenantProfile     from '@/pages/tenant/TenantProfile'
 import HomeownerDashboard from '@/pages/homeowner/HomeownerDashboard'
@@ -27,10 +26,10 @@ import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminPropertyDetails from '@/pages/admin/AdminPropertyDetails'
 import AdminStaff     from '@/pages/admin/AdminStaff'
 import AdminMap       from '@/pages/admin/AdminMap'
+import AdminSupport   from '@/pages/admin/AdminSupport'
 import Properties      from '@/pages/Properties'
 import AddProperty     from '@/pages/AddProperty'
 import Reservations    from '@/pages/Reservations'
-import Reviews         from '@/pages/Reviews'
 import Tenants         from '@/pages/Tenants'
 import NotFound        from '@/pages/NotFound'
 
@@ -59,12 +58,9 @@ export default function App() {
           <Route path="/tenant" element={<ProtectedRoute allowedRoles={['tenant']} />}>
             <Route index element={<TenantDashboard />} />
              <Route path="search" element={<TenantSearch />} />
-             <Route path="rooms" element={<TenantBrowseRooms />} />
             <Route path="reservations" element={<Reservations />} />
-            <Route path="reviews" element={<Reviews />} />
             <Route path="recommendations" element={<TenantRecommendations />} />
             <Route path="map" element={<TenantMap />} />
-            <Route path="favorites" element={<Reservations />} />
             <Route path="property/:id" element={<TenantPropertyDetails />} />
              <Route path="landlord" element={<MyLandlord />} />
              <Route path="room" element={<MyRoom />} />
@@ -94,6 +90,7 @@ export default function App() {
             <Route path="properties" element={<Properties />} />
             <Route path="property/:id" element={<AdminPropertyDetails />} />
             <Route path="staff" element={<AdminStaff />} />
+            <Route path="support" element={<AdminSupport />} />
             <Route path="map" element={<AdminMap />} />
           </Route>
         </Route>

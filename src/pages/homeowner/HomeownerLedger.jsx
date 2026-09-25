@@ -5,8 +5,8 @@ import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
 import { DollarSign, Eye, CheckCircle, XCircle, Clock, Search, Filter } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
-import NotificationBell from '@/components/layout/NotificationBell'
 import ImageViewerModal from '@/components/ui/ImageViewerModal'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 export default function HomeownerLedger() {
   const { user, fetchTransactions, updateTransactionStatus, fetchReservations } = useAuthStore()
@@ -130,9 +130,7 @@ export default function HomeownerLedger() {
             <h1 className="text-lg md:text-xl font-bold text-stone-800">Transaction Ledger</h1>
             <p className="text-sm text-stone-500 mt-1">Manage and verify tenant payments</p>
           </div>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <Card className="px-4 py-2 flex items-center gap-3 bg-teal-50 border-teal-100 shadow-sm">
+          <div className="flex items-center gap-3">            <Card className="px-4 py-2 flex items-center gap-3 bg-teal-50 border-teal-100 shadow-sm">
               <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
                 <DollarSign size={16} />
               </div>

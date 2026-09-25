@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Badge, Button } from '@/components/ui'
+import { Card, Badge, Button, FilterChip } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Users, Search, MessageSquare, X, AlertTriangle, Star } from 'lucide-react'
 import ReviewModal from '@/components/ui/ReviewModal'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
-import ReportIssueModal from '@/components/ui/ReportIssueModal'
 import { supabase } from '@/lib/supabase'
+
 const TYPE_COLORS = {
   student: 'bg-purple-100 text-purple-700',
   professional: 'bg-teal-100 text-teal-700',
   government_employee: 'bg-amber-100 text-amber-700',
   visitor: 'bg-stone-100 text-stone-600',
 }
+
 const TYPE_LABELS = {
   student: 'Student',
   professional: 'Professional',
@@ -28,25 +29,19 @@ export default function HomeownerTenants() {
   var fetchProperties = useAuthStore(function(s) { return s.fetchProperties })
   var navigate = useNavigate()
 
-  var queryState = useState('')
-  var query = queryState[0], setQuery = queryState[1]
-  var filterState = useState('All')
-  var filter = filterState[0], setFilter = filterState[1]
-  var tenantsState = useState([])
-  var tenants = tenantsState[0], setTenants = tenantsState[1]
+  var [query, setQuery] = useState('')
+  var [filter, setFilter] = useState('All')
+  var [tenants, setTenants] = useState([])
   var [activeTab, setActiveTab] = useState('active')
   var [endingTenant, setEndingTenant] = useState(null)
   var updateReservationStatus = useAuthStore(function(s) { return s.updateReservationStatus })
-  var loadingState = useState(true)
-  var loading = loadingState[0], setLoading = loadingState[1]
-  var errorState = useState(null)
-  var errorMsg = errorState[0], setErrorMsg = errorState[1]
+  var [loading, setLoading] = useState(true)
+  var [errorMsg, setErrorMsg] = useState(null)
   var wasHiddenRef = useRef(false)
   var [isActioning, setIsActioning] = useState(false)
   var addToast = useAppStore(function(s) { return s.addToast })
   var [ratingTenant, setRatingTenant] = useState(null)
   var [selectedTenant, setSelectedTenant] = useState(null)
-  var [reportingTenant, setReportingTenant] = useState(null)
   var submitReview = useAuthStore(s => s.submitReview)
 
   var loadTenants = useCallback(function(silent = false) {
@@ -141,31 +136,21 @@ export default function HomeownerTenants() {
     return true
   })
 
+  const tenantCategoryCounts = {
+    All: currentTenants.length,
+    student: currentTenants.filter(t => (t.tenant_type || '').toLowerCase() === 'student').length,
+    professional: currentTenants.filter(t => (t.tenant_type || '').toLowerCase() === 'professional').length,
+    government_employee: currentTenants.filter(t => (t.tenant_type || '').toLowerCase() === 'government_employee').length,
+    visitor: currentTenants.filter(t => (t.tenant_type || '').toLowerCase() === 'visitor').length,
+  }
+
   return (
-    <div className="page-enter p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="font-bold text-xl text-stone-800">My Tenants</h1>
-        <Button variant="ghost" size="sm" onClick={function() { navigate('/owner') }}>← Back to Dashboard</Button>
-      </div>
-
-      <div className="flex border-b border-stone-200 mb-6">
-        <button
-          onClick={() => setActiveTab('active')}
-          className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'active' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
-        >
-          Active Tenants
-          {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
-        </button>
-        <button
-          onClick={() => setActiveTab('past')}
-          className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'past' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
-        >
-          Past Tenants
-          {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
-        </button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+    <div className="page-enter">
+      {/* Sticky Search & Filter Toolbar - Flush with header, zero gap */}
+      <div 
+        className="sticky top-14 z-20 px-4 sm:px-6 py-2.5 backdrop-blur-md border-b flex flex-col sm:flex-row sm:items-center gap-3 transition-colors shadow-sm"
+        style={{ backgroundColor: 'var(--surface-header)', borderColor: 'var(--border-default)' }}
+      >
         <div className="relative w-full sm:flex-1 sm:max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
@@ -176,21 +161,42 @@ export default function HomeownerTenants() {
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
           {['All', 'Student', 'Professional', 'Government Employee', 'Visitor'].map(function(f) {
             var val = f === 'All' ? 'All' : f === 'Student' ? 'student' : f === 'Professional' ? 'professional' : f === 'Government Employee' ? 'government_employee' : 'visitor'
+            var count = tenantCategoryCounts[val] ?? 0
             return (
-              <button
-                key={f}
-                onClick={function() { setFilter(val) }}
-                className={'flex-shrink-0 snap-start px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium border transition-all ' + (filter === val ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300')}
-              >
-                {f}
-              </button>
+              <div key={f} className="flex-shrink-0 snap-start">
+                <FilterChip
+                  label={f}
+                  count={count}
+                  active={filter === val}
+                  onClick={function() { setFilter(val) }}
+                  color="teal"
+                />
+              </div>
             )
           })}
         </div>
       </div>
+
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex border-b border-stone-200">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'active' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
+          >
+            Active Tenants ({tenants.filter(t => t.reservation_status !== 'completed').length})
+            {activeTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('past')}
+            className={`px-4 py-2 font-medium text-sm transition-colors relative ${activeTab === 'past' ? 'text-[--teal]' : 'text-stone-500 hover:text-stone-700'}`}
+          >
+            Past Tenants ({tenants.filter(t => t.reservation_status === 'completed').length})
+            {activeTab === 'past' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--teal]" />}
+          </button>
+        </div>
 
       <Card>
         {errorMsg ? (
@@ -292,15 +298,6 @@ export default function HomeownerTenants() {
                             <Star size={14} className="sm:mr-1.5" />
                             <span className="hidden sm:inline">Rate</span>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="px-2 py-1 h-auto text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            onClick={() => setReportingTenant(t)}
-                          >
-                            <AlertTriangle size={14} className="sm:mr-1.5" />
-                            <span className="hidden sm:inline">Report</span>
-                          </Button>
                           {activeTab === 'active' && (
                             <Button 
                               variant="ghost" 
@@ -371,15 +368,7 @@ export default function HomeownerTenants() {
         onClose={() => setSelectedTenant(null)} 
       />
 
-      <ReportIssueModal
-        isOpen={!!reportingTenant}
-        onClose={() => setReportingTenant(null)}
-        type="homeowner_vs_tenant"
-        accusedId={reportingTenant?.id}
-        accusedName={reportingTenant?.full_name}
-        reservationId={reportingTenant?.reservation_id}
-        propertyId={reportingTenant?.property_id}
-      />
+      </div>
     </div>
   )
 }

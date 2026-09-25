@@ -3,128 +3,373 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════
+   GLOBAL THEME TOKENS
+   All colors defined here once. Adding .dark to <html>
+   flips every token automatically — no per-component dark: needed.
+═══════════════════════════════════════════════════════ */
+
 :root {
-  --teal: #0F6E56;
-  --teal-light: #E1F5EE;
-  --teal-mid: #1D9E75;
-  --amber: #BA7517;
+  /* Brand palette */
+  --teal:        #0F6E56;
+  --teal-mid:    #1D9E75;
+  --teal-light:  #E1F5EE;
+  --amber:       #BA7517;
   --amber-light: #FAEEDA;
-  --coral: #D85A30;
+  --coral:       #D85A30;
   --coral-light: #FAECE7;
-  --purple: #534AB7;
-  --purple-light: #EEEDFE;
-  --sidebar-w: 220px;
+  --purple:      #534AB7;
+  --purple-light:#EEEDFE;
+  --sidebar-w:   220px;
+
+  /* ── Light Mode Surfaces ── */
+  --surface-page:    linear-gradient(155deg, #e4f0eb 0%, #ece9f8 48%, #fdf4e3 100%);
+  --surface-bg:      #ffffff;
+  --surface-subtle:  #f8f7f5;
+  --surface-muted:   #f1f0ee;
+  --surface-card:    rgba(255, 255, 255, 0.92);
+  --surface-input:   #ffffff;
+  --surface-hover:   #f5f4f2;
+  --surface-aside:   #ffffff;
+  --surface-header:  rgba(255, 255, 255, 0.94);
+  --surface-modal:   #ffffff;
+  --surface-thead:   #f5f4f2;
+  --surface-tooltip: #ffffff;
+
+  /* ── Light Mode Borders ── */
+  --border-default: rgba(0, 0, 0, 0.09);
+  --border-strong:  rgba(0, 0, 0, 0.14);
+  --border-card:    rgba(255, 255, 255, 0.85);
+  --border-input:   #d8d6d2;
+  --border-divider: #eeede9;
+
+  /* ── Light Mode Text ── */
+  --text-primary:   #1a1a18;
+  --text-secondary: #44403c;
+  --text-muted:     #78716c;
+  --text-faint:     #a8a29e;
+  --text-disabled:  #c2bdb8;
+
+  /* ── Light Mode Shadows ── */
+  --shadow-card: 0 2px 16px -4px rgba(0,0,0,0.08), 0 1px 0 0 rgba(255,255,255,0.9) inset;
+  --shadow-md:   0 8px 30px -6px rgba(0,0,0,0.10);
+  --shadow-lg:   0 16px 48px -8px rgba(0,0,0,0.14);
+
+  color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
+/* ── Dark Mode Token Overrides ── */
+.dark {
+  --teal-light:  rgba(15, 110, 86, 0.22);
+  --amber-light: rgba(186, 117, 23, 0.22);
+  --coral-light: rgba(216, 90, 48, 0.22);
+  --purple-light:rgba(83, 74, 183, 0.22);
+
+  --surface-page:    linear-gradient(155deg, #090e0c 0%, #0d0c18 48%, #14100a 100%);
+  --surface-bg:      #18181b;
+  --surface-subtle:  #1e1e22;
+  --surface-muted:   #252528;
+  --surface-card:    rgba(26, 26, 30, 0.94);
+  --surface-input:   #1e1e22;
+  --surface-hover:   rgba(255, 255, 255, 0.05);
+  --surface-aside:   #101013;
+  --surface-header:  rgba(14, 14, 18, 0.96);
+  --surface-modal:   #18181b;
+  --surface-thead:   #1e1e22;
+  --surface-tooltip: #1e1e22;
+
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong:  rgba(255, 255, 255, 0.14);
+  --border-card:    rgba(255, 255, 255, 0.10);
+  --border-input:   rgba(255, 255, 255, 0.14);
+  --border-divider: rgba(255, 255, 255, 0.07);
+
+  --text-primary:   #f0f0ee;
+  --text-secondary: #d4d4d0;
+  --text-muted:     #9e9e9a;
+  --text-faint:     #6e6e6a;
+  --text-disabled:  #4e4e4a;
+
+  --shadow-card: 0 4px 24px -4px rgba(0,0,0,0.5), 0 1px 0 0 rgba(255,255,255,0.05) inset;
+  --shadow-md:   0 8px 32px -6px rgba(0,0,0,0.6);
+  --shadow-lg:   0 16px 48px -8px rgba(0,0,0,0.7);
+
+  color-scheme: dark;
 }
+
+/* ═══════════════════════════════════════════════════════
+   BASE ELEMENTS
+═══════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--surface-page);
   background-attachment: fixed;
-  color: #1a1a18;
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-/* Premium animated background orbs */
+/* Animated orb layer */
 body::before {
   content: '';
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: 
-    radial-gradient(circle at 15% 50%, rgba(83, 74, 183, 0.06), transparent 40%),
-    radial-gradient(circle at 85% 30%, rgba(29, 158, 117, 0.06), transparent 40%);
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 8%  42%, rgba(83,74,183,0.15), transparent),
+    radial-gradient(ellipse 60% 55% at 92% 22%, rgba(29,158,117,0.13), transparent),
+    radial-gradient(ellipse 45% 40% at 55% 88%, rgba(186,117,23,0.09), transparent),
+    radial-gradient(ellipse 30% 30% at 78% 68%, rgba(216,90,48,0.07),  transparent);
+  animation: orbDrift 18s ease-in-out infinite alternate;
   z-index: -1;
   pointer-events: none;
 }
 
-/* Glassmorphism Utilities */
+.dark body::before {
+  background:
+    radial-gradient(ellipse 55% 50% at 8%  42%, rgba(83,74,183,0.26), transparent),
+    radial-gradient(ellipse 60% 55% at 92% 22%, rgba(29,158,117,0.22), transparent),
+    radial-gradient(ellipse 45% 40% at 55% 88%, rgba(186,117,23,0.18), transparent),
+    radial-gradient(ellipse 30% 30% at 78% 68%, rgba(216,90,48,0.13),  transparent);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(15,110,86,0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.dark body::after {
+  background-image: radial-gradient(circle, rgba(29,158,117,0.07) 1px, transparent 1px);
+}
+
+@keyframes orbDrift {
+  0%   { transform: translate(0px,   0px); }
+  33%  { transform: translate(18px, -12px); }
+  66%  { transform: translate(-10px, 16px); }
+  100% { transform: translate(12px,  -8px); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   GLASS SURFACE CLASSES
+═══════════════════════════════════════════════════════ */
+
 .glass-card {
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.06) !important;
+  background: var(--surface-card) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-card) !important;
+  box-shadow: var(--shadow-card) !important;
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--surface-header) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-default) !important;
 }
 
-/* Leaflet map fix inside flex containers */
+/* ═══════════════════════════════════════════════════════
+   GLOBAL DARK MODE UTILITY OVERRIDES
+   These rules override Tailwind's hardcoded colour utilities
+   when .dark is on <html>. No per-component dark: classes needed.
+═══════════════════════════════════════════════════════ */
+
+/* ── Backgrounds ── */
+.dark .bg-white,
+.dark .bg-white\/100            { background-color: var(--surface-bg) !important; }
+.dark .bg-stone-50              { background-color: var(--surface-subtle) !important; }
+.dark .bg-stone-100             { background-color: var(--surface-muted) !important; }
+.dark .bg-stone-200             { background-color: #2c2c30 !important; }
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/60,
+.dark .bg-white\/50             { background-color: rgba(255,255,255,0.05) !important; }
+.dark .bg-stone-50\/50          { background-color: rgba(30,30,34,0.7) !important; }
+.dark .bg-stone-900\/40         { background-color: rgba(10,10,13,0.6) !important; }
+
+/* ── Aside / Sidebar (ALWAYS theme-aware via CSS variables) ── */
+aside {
+  background-color: var(--surface-aside) !important;
+  border-color: var(--border-default) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── Header / Topbar (ALWAYS theme-aware via CSS variables) ── */
+header {
+  background-color: var(--surface-header) !important;
+  border-color: var(--border-default) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════════════════
+   GLOBAL TEXT COLOR SYSTEM
+   All text elements inherit theme-aware colors via CSS variables.
+   --text-primary:   light=#1a1a18  dark=#f0f0ee  (headings, names, main content)
+   --text-secondary: light=#44403c  dark=#d4d4d0  (sub-labels, descriptions)
+   --text-muted:     light=#78716c  dark=#9e9e9a  (timestamps, captions)
+   No per-element dark:text-* class needed.
+═══════════════════════════════════════════════════════ */
+
+/* Headlines & titles */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+/* Body text (but NOT buttons, inputs — they have their own rules) */
+p, span:not([class*="text-"]):not([class*="bg-"]),
+label, li, dt, dd, figcaption, caption, summary {
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+/* Table cells */
+td, th {
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+/* Nav / link text (default, can be overridden per link) */
+nav a, nav span { color: inherit; }
+
+/* ── Tailwind text-* class overrides for dark mode ── */
+/* text-white on colored/dark backgrounds (buttons, badges) should stay white.
+   Only flip it on surfaces that are now light-colored in light mode. */
+.dark .text-white:not([style*="background"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-orange"]):not([class*="bg-blue"]) {
+  color: var(--text-primary) !important;
+}
+
+/* In LIGHT MODE — ensure text-white on light surfaces becomes dark */
+:not(.dark) .text-white:not([style*="background"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-orange"]):not([class*="bg-blue"]) {
+  color: var(--text-primary) !important;
+}
+
+
+/* ── Borders ── */
+.dark .border-stone-50,
+.dark .border-stone-100,
+.dark .border-stone-200,
+.dark .border-stone-300         { border-color: var(--border-default) !important; }
+.dark .border-white\/5,
+.dark .border-white\/10,
+.dark .border-white\/20         { border-color: var(--border-default) !important; }
+.dark .border-stone-200\/50,
+.dark .border-stone-100\/50     { border-color: var(--border-divider) !important; }
+
+/* ── Dividers ── */
+.dark .divide-stone-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-stone-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-stone-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-divider) !important;
+}
+
+/* ── Text — BOTH light and dark mode via variables ── */
+/* DARK MODE: stone text → bright/light */
+.dark .text-stone-950,
+.dark .text-stone-900,
+.dark .text-stone-800           { color: var(--text-primary)   !important; }
+.dark .text-stone-700,
+.dark .text-stone-600           { color: var(--text-secondary) !important; }
+.dark .text-stone-500,
+.dark .text-stone-400           { color: var(--text-muted)     !important; }
+.dark .text-stone-300           { color: var(--text-faint)     !important; }
+
+/* LIGHT MODE: stone text → rich dark (fixes faint/invisible text on white) */
+:not(.dark) .text-stone-950,
+:not(.dark) .text-stone-900,
+:not(.dark) .text-stone-800     { color: var(--text-primary)   !important; }
+:not(.dark) .text-stone-700,
+:not(.dark) .text-stone-600     { color: var(--text-secondary) !important; }
+:not(.dark) .text-stone-500     { color: var(--text-muted)     !important; }
+:not(.dark) .text-stone-400     { color: var(--text-faint)     !important; }
+
+/* ── Hover backgrounds ── */
+.dark .hover\:bg-stone-50:hover,
+.dark .hover\:bg-stone-100:hover,
+.dark .hover\:bg-stone-50\/50:hover { background-color: var(--surface-hover) !important; }
+
+/* ── Form inputs ── */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--surface-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-input) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder     { color: var(--text-faint) !important; }
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #1D9E75 !important;
+  box-shadow: 0 0 0 2px rgba(29,158,117,0.22) !important;
+}
+
+/* ── Tables ── */
+.dark thead,
+.dark thead tr                  { background-color: var(--surface-thead) !important; }
+.dark tbody tr:hover            { background-color: var(--surface-hover) !important; }
+.dark td, .dark th              { border-color: var(--border-divider) !important; }
+
+/* ── Leaflet ── */
+.dark .leaflet-popup-content-wrapper {
+  background: var(--surface-tooltip) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+.dark .leaflet-popup-tip        { background: var(--surface-tooltip) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   LEAFLET (always)
+═══════════════════════════════════════════════════════ */
+
 .leaflet-container {
-  width: 100%;
-  height: 100%;
-  border-radius: 12px;
-  z-index: 0;
+  width: 100%; height: 100%;
+  border-radius: 12px; z-index: 0;
 }
-
-/* Leaflet popup styling */
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12) !important;
   padding: 0 !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
+.leaflet-popup-content { margin: 10px 14px !important; }
+.leaflet-popup-tip { background: #fff !important; }
 
-.leaflet-popup-content {
-  margin: 10px 14px !important;
-}
+/* ═══════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════ */
 
-.leaflet-popup-tip {
-  background: #fff !important;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+.dark ::-webkit-scrollbar-thumb { background: #3a3a3e; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #4a4a4e; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS & UTILITY CLASSES
+═══════════════════════════════════════════════════════ */
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
-}
-
-/* Smooth page transitions */
-.page-enter {
-  animation: fadeSlideIn 0.25s ease both;
-}
+.page-enter { animation: fadeSlideIn 0.25s ease both; }
 
 @keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Stat card shimmer on load */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 .shimmer {
@@ -132,68 +377,32 @@ body::before {
   background-size: 200% 100%;
   animation: shimmer 1.4s ease infinite;
 }
-
-/* Card hover lift */
-.card-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.dark .shimmer {
+  background: linear-gradient(90deg, #222226 25%, #2a2a2e 50%, #222226 75%);
+  background-size: 200% 100%;
 }
 
-.card-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-}
+.card-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.card-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-/* Image overlay gradient */
-.img-overlay {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 60%);
-}
+.img-overlay { background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%); }
 
-/* Animate-in utility for modals */
 @keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-
-.animate-in {
-  animation: zoomIn 0.25s ease both;
-}
+.animate-in { animation: zoomIn 0.25s ease both; }
 
 @keyframes quickFade {
-  from {
-    opacity: 0.3;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0.3; }
+  to   { opacity: 1; }
 }
+.quick-fade { animation: quickFade 0.2s ease-out both; }
 
-.quick-fade {
-  animation: quickFade 0.2s ease-out both;
-}
-
-/* Pulse ring for attention elements */
 @keyframes pulseRing {
-  0% {
-    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.3);
-  }
-
-  70% {
-    box-shadow: 0 0 0 8px rgba(15, 110, 86, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(15, 110, 86, 0);
-  }
+  0%   { box-shadow: 0 0 0 0   rgba(15,110,86,0.3); }
+  70%  { box-shadow: 0 0 0 8px rgba(15,110,86,0); }
+  100% { box-shadow: 0 0 0 0   rgba(15,110,86,0); }
 }
 
-.pulse-ring {
-  animation: pulseRing 2s ease infinite;
-}
+

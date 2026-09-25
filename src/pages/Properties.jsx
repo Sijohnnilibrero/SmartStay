@@ -136,55 +136,58 @@ export default function Properties() {
     { label: 'Pending Review',   value: stats.pending,   accent: '#BA7517', bg: '#FAEEDA', icon: <Clock size={16} /> },
   ]
 
+  const islandCounts = {
+    All: properties.length,
+    Batan: properties.filter(p => p.island === 'Batan').length,
+    Sabtang: properties.filter(p => p.island === 'Sabtang').length,
+    Itbayat: properties.filter(p => p.island === 'Itbayat').length,
+  }
+
   return (
     <div className="page-enter">
-      <Topbar title="Properties">
+      {/* Sticky Search & Filter Toolbar - Flush with header, zero gap */}
+      <div 
+        className="sticky top-14 z-20 px-4 sm:px-6 py-2.5 backdrop-blur-md border-b flex flex-col sm:flex-row sm:items-center gap-3 transition-colors shadow-sm"
+        style={{ backgroundColor: 'var(--surface-header)', borderColor: 'var(--border-default)' }}
+      >
+        <div className="relative w-full sm:flex-1 sm:max-w-sm flex-shrink-0">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Input className="w-full pl-9" placeholder="Search by name or address…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
+          {[
+            { name: 'All', color: 'teal' },
+            { name: 'Batan', color: 'emerald' },
+            { name: 'Sabtang', color: 'amber' },
+            { name: 'Itbayat', color: 'purple' },
+          ].map(function (item) {
+            return (
+              <div key={item.name} className="flex-shrink-0 snap-start">
+                <FilterChip
+                  label={item.name}
+                  count={islandCounts[item.name] ?? 0}
+                  color={item.color}
+                  active={island === item.name}
+                  onClick={() => setIsland(item.name)}
+                />
+              </div>
+            )
+          })}
+        </div>
         {!isAdmin && (
-          <Button variant="primary" size="sm" onClick={() => navigate('/owner/properties/add')}>
-            <Plus size={13} /> Add Property
+          <Button size="sm" onClick={() => navigate('/owner/properties/add')} className="shrink-0">
+            <Plus size={14} className="mr-1" /> Add Property
           </Button>
         )}
-      </Topbar>
+        <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filteredList.length} propert{filteredList.length !== 1 ? 'ies' : 'y'}</p>
+      </div>
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 sm:p-6 space-y-4">
         {error && (
           <div className="p-3 rounded-lg bg-[#FAECE7] border border-[#D85A30] text-[13px] text-[#993C1D]">
             {error}
           </div>
         )}
-
-        {/* Stats Row */}
-        <div className="flex overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar gap-2 sm:gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_ITEMS.map(function (s) {
-            return (
-              <div key={s.label}
-                className="flex-shrink-0 w-[140px] sm:w-auto snap-start bg-white rounded-xl sm:rounded-2xl border border-stone-200 p-3 sm:p-4 flex items-center gap-2 sm:gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.bg, color: s.accent }}>
-                  {s.icon}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 truncate">{s.label}</p>
-                  <p className="font-bold text-lg sm:text-2xl leading-tight truncate" style={{ color: s.accent }}>{s.value}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="relative w-full sm:flex-1 sm:max-w-sm flex-shrink-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input className="w-full pl-9" placeholder="Search by name or address…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
-            {['All', 'Batan', 'Sabtang', 'Itbayat'].map(function (i) {
-              return <div key={i} className="flex-shrink-0 snap-start"><FilterChip label={i} active={island === i} onClick={() => setIsland(i)} /></div>
-            })}
-          </div>
-          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filteredList.length} propert{filteredList.length !== 1 ? 'ies' : 'y'}</p>
-        </div>
 
         {/* Property Cards */}
         {loading ? (

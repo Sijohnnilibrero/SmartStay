@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { DollarSign, Upload, Clock, CheckCircle, XCircle, Search, Calendar, Eye, AlertTriangle } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { calculateNextDueDate, formatCurrency } from '@/lib/utils'
-import NotificationBell from '@/components/layout/NotificationBell'
 import ImageViewerModal from '@/components/ui/ImageViewerModal'
 
 export default function MyPayments() {
@@ -184,12 +183,60 @@ export default function MyPayments() {
           <p className="text-sm text-stone-500 mt-1">Track your rent payments and deposits</p>
         </div>
         <div className="flex items-center gap-2">
-          <NotificationBell />
           <Button onClick={() => setShowLogModal(true)}>
             <Upload size={16} className="mr-2" /> Log New Payment
           </Button>
         </div>
       </div>
+
+      {/* Rejected Payments Alert Banner */}
+      {transactions.filter(t => t.status === 'rejected').length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-red-100 text-red-600 rounded-xl flex-shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-red-900 text-sm sm:text-base mb-1">Payment Rejected by Homeowner</h3>
+              <p className="text-red-700 text-xs sm:text-sm mb-3">
+                One or more of your submitted payment receipts were rejected. Please review the reason and edit your submission with a valid receipt photo.
+              </p>
+              <div className="flex flex-col gap-2">
+                {transactions.filter(t => t.status === 'rejected').map(tx => (
+                  <div key={tx.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/70 p-3 rounded-xl border border-red-100 gap-3">
+                    <div>
+                      <p className="font-semibold text-stone-800 text-xs sm:text-sm">
+                        {tx.property?.name || 'Boarding House'} — {formatCurrency(tx.amount)}
+                      </p>
+                      {tx.rejection_reason && (
+                        <p className="text-[11px] sm:text-xs text-red-700 mt-1">
+                          <strong>Reason:</strong> {tx.rejection_reason}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="w-full sm:w-auto text-xs py-1.5 px-3 h-auto"
+                      onClick={() => {
+                        setEditReceiptTx(tx)
+                        setEditForm({
+                          reservation_id: tx.reservation_id,
+                          amount: tx.amount,
+                          payment_type: tx.payment_type || 'monthly_rent',
+                          payment_date: tx.payment_date || tx.created_at?.split('T')[0] || '',
+                        })
+                      }}
+                    >
+                      Update Receipt
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Due Date Banners */}
       {reservations.map(res => {

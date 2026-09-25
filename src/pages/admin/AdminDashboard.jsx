@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Users, Home, Calendar, Shield, AlertTriangle, TrendingUp, BedDouble, MapPin, DollarSign } from 'lucide-react'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import NotificationBell from '@/components/layout/NotificationBell'
 import PropertyMap from '@/components/map/PropertyMap'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts'
@@ -98,29 +99,75 @@ export default function AdminDashboard() {
   })
   let occupiedRooms = totalRooms - availableRooms
 
-  const propsPerMuni = MUNICIPALITIES.map(muni => {
-    return { name: muni, count: activeProperties.filter(p => p.municipality === muni).length }
-  }).filter(d => d.count > 0)
+  const isSuperAdmin = user?.role === 'super_admin'
+  const adminRegion = user?.admin_region || 'Batan Island'
+
+  const ALL_MUNICIPALITIES = [
+    { name: 'Basco', island: 'Batan', color: '#1D9E75' },
+    { name: 'Mahatao', island: 'Batan', color: '#0F6E56' },
+    { name: 'Ivana', island: 'Batan', color: '#534AB7' },
+    { name: 'Uyugan', island: 'Batan', color: '#7C3AED' },
+    { name: 'Sabtang', island: 'Sabtang', color: '#BA7517' },
+    { name: 'Itbayat', island: 'Itbayat', color: '#D85A30' },
+  ]
+
+  // Filter municipalities strictly for this admin's island
+  const scopedMunicipalities = isSuperAdmin
+    ? ALL_MUNICIPALITIES
+    : ALL_MUNICIPALITIES.filter(m => {
+        if (adminRegion.includes('Sabtang')) return m.island === 'Sabtang'
+        if (adminRegion.includes('Itbayat')) return m.island === 'Itbayat'
+        return m.island === 'Batan'
+      })
+
+  const totalActiveProps = activeProperties.length
+
+  const muniStats = scopedMunicipalities.map(m => {
+    const props = activeProperties.filter(p => p.municipality === m.name)
+    const count = props.length
+    const rooms = props.reduce((sum, p) => sum + (p.total_rooms || 0), 0)
+    const avail = props.reduce((sum, p) => sum + (p.available_rooms || 0), 0)
+    const share = totalActiveProps > 0 ? Math.round((count / totalActiveProps) * 100) : 0
+    return {
+      ...m,
+      count,
+      rooms,
+      avail,
+      share
+    }
+  })
+
+  const activeMuniCount = muniStats.filter(m => m.count > 0).length
 
   const vacancyData = [
     { name: 'Available', value: availableRooms, color: '#1D9E75' },
     { name: 'Occupied', value: occupiedRooms, color: '#534AB7' },
   ]
 
-  const pricingData = MUNICIPALITIES.map(muni => {
-    const propsInMuni = activeProperties.filter(p => p.municipality === muni && p.price_monthly > 0)
-    if (propsInMuni.length === 0) return null
-    const avg = propsInMuni.reduce((sum, p) => sum + p.price_monthly, 0) / propsInMuni.length
-    return { name: muni, averagePrice: Math.round(avg) }
-  }).filter(d => d !== null)
+  // Scoped map regions
+  const availableIslands = isSuperAdmin
+    ? ['Batan', 'Sabtang', 'Itbayat']
+    : adminRegion.includes('Sabtang')
+    ? ['Sabtang']
+    : adminRegion.includes('Itbayat')
+    ? ['Itbayat']
+    : ['Batan']
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      if (adminRegion.includes('Sabtang')) setMapIsland('Sabtang')
+      else if (adminRegion.includes('Itbayat')) setMapIsland('Itbayat')
+      else setMapIsland('Batan')
+    }
+  }, [isSuperAdmin, adminRegion])
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white/95 backdrop-blur-md border border-stone-200/50 p-3 rounded-xl shadow-xl">
-          <p className="font-bold text-stone-800 text-sm mb-1">{label}</p>
+        <div className="bg-white dark:bg-[#18181b] border border-stone-200 dark:border-white/10 p-3 rounded-xl shadow-xl text-stone-900 dark:text-white">
+          <p className="font-bold text-sm mb-1">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="text-xs font-medium" style={{ color: entry.color }}>
+            <p key={index} className="text-xs font-semibold" style={{ color: entry.color || '#1D9E75' }}>
               {entry.name}: {entry.name === 'Average Price' || entry.dataKey === 'averagePrice' ? formatCurrency(entry.value) : entry.value}
             </p>
           ))}
@@ -144,33 +191,19 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="page-enter">
-      <div className="px-6 pt-5 pb-1 flex items-start justify-between relative z-10">
-        <div>
-          <p className="font-extrabold tracking-tight text-lg md:text-2xl text-stone-900">
-            {(() => {
-              if (user?.role === 'super_admin') return 'System Command Center';
-              const region = user?.admin_region ? user.admin_region.replace(' Island', '') : 'Regional';
-              return `${region} Command Center`;
-            })()}
-          </p>
-          <p className="text-sm font-medium text-stone-500 mt-0.5">Platform overview and real-time insights</p>
-        </div>
-        <NotificationBell />
-      </div>
-
-      <div className="p-6 space-y-6 relative z-10">
+    <div className="page-enter p-6 space-y-6 relative z-10">
         
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 select-none cursor-default">
           {stats.map(function(s) {
+            const accentColor = s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#7C3AED' : s.color === 'emerald' ? '#1D9E75' : '#BA7517'
             return (
-              <Card key={s.label} className="p-4 sm:p-5 flex flex-col justify-between glass-card hover:-translate-y-1 hover:shadow-lg transition-all duration-300 border-l-4" style={{ borderLeftColor: s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#7C3AED' : s.color === 'emerald' ? '#1D9E75' : '#BA7517' }}>
-                <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                  <s.icon size={16} style={{ color: s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#7C3AED' : s.color === 'emerald' ? '#1D9E75' : '#BA7517' }} />
-                  <p className="text-[10px] sm:text-xs uppercase tracking-wider text-stone-500 font-bold truncate">{s.label}</p>
+              <Card key={s.label} className="p-4 sm:p-5 flex flex-col justify-between glass-card hover:-translate-y-1 hover:shadow-lg transition-all duration-300 border-l-4 select-none cursor-default" style={{ borderLeftColor: accentColor }}>
+                <div className="flex items-center gap-2 mb-2 sm:mb-3 select-none cursor-default">
+                  <s.icon size={16} style={{ color: accentColor }} />
+                  <p className="text-[10px] sm:text-xs uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold truncate select-none cursor-default">{s.label}</p>
                 </div>
-                <p className="font-extrabold text-2xl sm:text-3xl text-stone-900">{s.value}</p>
+                <p className="font-extrabold text-2xl sm:text-3xl select-none cursor-default" style={{ color: accentColor }}>{s.value}</p>
               </Card>
             )
           })}
@@ -179,30 +212,82 @@ export default function AdminDashboard() {
         {/* Row 2: Analytics & Map Widget */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1">
           
-          {/* Properties per Municipality */}
+          {/* Properties per Municipality - Clean Scoped Table */}
           <Card className="p-5 sm:p-6 glass-card lg:col-span-2 hover:shadow-md transition-shadow">
-            <h3 className="font-extrabold text-stone-900 mb-6 flex items-center gap-2">
-              <Home size={18} className="text-[#1D9E75]" /> Coverage &amp; Properties
-            </h3>
-            {propsPerMuni.length > 0 ? (
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={propsPerMuni} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#78716C', fontWeight: 500 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#78716C', fontWeight: 500 }} allowDecimals={false} />
-                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#F5F5F4', opacity: 0.4 }} />
-                    <Bar dataKey="count" name="Properties" radius={[6, 6, 0, 0]}>
-                      {propsPerMuni.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="font-extrabold text-stone-900 dark:text-white flex items-center gap-2 text-base">
+                  <Home size={18} className="text-[#1D9E75]" /> 
+                  {isSuperAdmin ? 'Provincial Coverage & Properties' : `${adminRegion.replace(' Island', '')} Island Coverage`}
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                  {isSuperAdmin ? 'All Batanes municipalities' : `Monitoring assigned municipalities in ${adminRegion}`}
+                </p>
               </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-stone-400 text-sm font-medium">No data available</div>
-            )}
+              <span className="self-start sm:self-auto text-[11px] font-bold px-2.5 py-1 rounded-full bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                {activeMuniCount} of {scopedMunicipalities.length} Municipalities Active
+              </span>
+            </div>
+
+            {/* Clean, high-contrast overview table */}
+            <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface-bg)' }}>
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b font-bold uppercase tracking-wider text-[10px] sm:text-[11px]" style={{ backgroundColor: 'var(--surface-thead)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+                    <th className="py-2.5 px-3 sm:px-4">Municipality</th>
+                    <th className="py-2.5 px-3 sm:px-4 text-center">Properties</th>
+                    <th className="py-2.5 px-3 sm:px-4 text-center">Available Rooms</th>
+                    <th className="py-2.5 px-3 sm:px-4 text-right">Coverage Share</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 dark:divide-white/5">
+                  {muniStats.map((m) => {
+                    const isActive = m.count > 0
+                    return (
+                      <tr key={m.name} className="transition-colors" style={{ borderColor: 'var(--border-divider)' }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
+                        <td className="py-3 px-3 sm:px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
+                            <div>
+                              <p className="font-bold text-xs sm:text-sm" style={{ color: 'var(--text-primary)' }}>{m.name}</p>
+                              <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{m.island} Island</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 sm:px-4 text-center">
+                          <span className={`inline-block font-bold text-xs sm:text-sm`} style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                            {m.count}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 sm:px-4 text-center">
+                          {isActive ? (
+                            <span className="text-xs sm:text-sm font-semibold" style={{ color: 'var(--teal)' }}>
+                              {m.avail} <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>/ {m.rooms} rms</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs" style={{ color: 'var(--text-faint)' }}>—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 sm:px-4 text-right">
+                          {isActive ? (
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <div className="w-16 sm:w-20 bg-stone-100 dark:bg-stone-700 h-2 rounded-full overflow-hidden hidden sm:block">
+                                <div className="h-full rounded-full" style={{ width: `${m.share}%`, backgroundColor: m.color }} />
+                              </div>
+                              <span className="font-bold text-xs" style={{ color: m.color }}>{m.share}%</span>
+                            </div>
+                          ) : (
+                            <Badge variant="gray" className="text-[9px] py-0 px-1.5">No Listings</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           {/* Mini Map Widget */}
@@ -218,13 +303,13 @@ export default function AdminDashboard() {
               />
             </div>
             {/* Vertical Button Stack */}
-            <div className="w-24 bg-white/70 backdrop-blur-md border-l border-stone-200/50 flex flex-col p-2 gap-2 z-10">
+            <div className="w-24 border-l flex flex-col p-2 gap-2 z-10" style={{ backgroundColor: 'var(--surface-bg)', borderColor: 'var(--border-default)' }}>
               <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest text-center mt-1 mb-1">Regions</p>
-              {Object.keys(mapCenters).map(island => (
+              {availableIslands.map(island => (
                 <button
                   key={island}
                   onClick={() => setMapIsland(island)}
-                  className={`w-full py-2 px-1 rounded-md text-[11px] font-bold transition-colors ${mapIsland === island ? 'bg-[#1D9E75] text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'}`}
+                  className={`w-full py-2 px-1 rounded-md text-[11px] font-bold transition-colors ${mapIsland === island ? 'bg-[#1D9E75] text-white shadow-sm' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
                 >
                   {island}
                 </button>
@@ -243,17 +328,17 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           
           <Card className="lg:col-span-2 p-0 overflow-hidden glass-card">
-            <div className="p-4 sm:p-5 border-b border-stone-200/50 flex items-center justify-between bg-white/50">
-              <h3 className="font-extrabold text-[13px] sm:text-base text-stone-900 uppercase tracking-wide">Pending Properties</h3>
+            <div className="p-4 sm:p-5 border-b border-stone-200/50 dark:border-white/10 flex items-center justify-between bg-white/50 dark:bg-stone-800/50">
+              <h3 className="font-extrabold text-[13px] sm:text-base text-stone-900 dark:text-white uppercase tracking-wide">Pending Properties</h3>
               <Link to="/admin/properties"><Button variant="ghost" size="sm" className="px-3 py-1.5 text-xs font-semibold text-[#534AB7] hover:bg-[#534AB7]/10">View all</Button></Link>
             </div>
-            <div className="divide-y divide-stone-200/50 p-2 sm:p-0">
+            <div className="divide-y divide-stone-200/50 dark:divide-white/5 p-2 sm:p-0">
               {recent.map(function(r) {
                 return (
-                  <div key={r.id} className="px-3 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-stone-50/50 transition-colors">
+                  <div key={r.id} className="px-3 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-stone-50/50 dark:hover:bg-white/5 transition-colors">
                     <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-[12px] sm:text-[14px] font-bold text-stone-800 truncate"><span className="text-stone-900">{r.name}</span> in <span className="text-[#1D9E75]">{r.municipality}</span></p>
-                      <p className="text-[10px] sm:text-xs text-stone-500 mt-1 font-medium">By {r.owner_name || 'Owner'}</p>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-stone-800 dark:text-stone-200 truncate"><span className="text-stone-900 dark:text-white">{r.name}</span> in <span className="text-[#1D9E75]">{r.municipality}</span></p>
+                      <p className="text-[10px] sm:text-xs text-stone-500 dark:text-stone-400 mt-1 font-medium">By {r.owner_name || 'Owner'}</p>
                     </div>
                     <Badge variant="amber" className="text-[10px] px-2 py-0.5 sm:px-2.5 sm:py-1 font-bold flex-shrink-0">Pending</Badge>
                   </div>
@@ -266,7 +351,7 @@ export default function AdminDashboard() {
           <div className="space-y-4 sm:space-y-6">
             {/* Vacancy Pie moved here to be part of the right column */}
             <Card className="p-5 sm:p-6 glass-card hover:shadow-md transition-shadow">
-              <h3 className="font-extrabold text-stone-900 mb-6 flex items-center gap-2">
+              <h3 className="font-extrabold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
                 <BedDouble size={18} className="text-[#534AB7]" /> System Vacancy
               </h3>
               {totalRooms > 0 ? (
@@ -293,8 +378,8 @@ export default function AdminDashboard() {
                   </ResponsiveContainer>
                   {/* Center Text */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                    <p className="text-xl font-black text-stone-900">{Math.round((availableRooms / totalRooms) * 100)}%</p>
-                    <p className="text-[9px] text-stone-500 uppercase tracking-widest font-bold mt-1">Vacant</p>
+                    <p className="text-xl font-black text-stone-900 dark:text-white">{Math.round((availableRooms / totalRooms) * 100)}%</p>
+                    <p className="text-[9px] text-stone-500 dark:text-stone-400 uppercase tracking-widest font-bold mt-1">Vacant</p>
                   </div>
                 </div>
               ) : (
@@ -348,7 +433,6 @@ export default function AdminDashboard() {
           </div>
 
         </div>
-      </div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import Topbar from '@/components/layout/Topbar'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, FilterChip } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
 import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
@@ -233,54 +233,36 @@ export default function Tenants() {
 
   return (
     <div className="page-enter">
-      <Topbar title={isAdmin ? 'User Management' : 'My Tenants'} />
-
-      <div className="p-6 space-y-5">
-        {/* Stats */}
-        <div className="flex overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar gap-2 sm:gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-5">
-          {STAT_ITEMS.map(function (s) {
+      {/* Sticky Search & Filter Toolbar - Flush with header, zero gap */}
+      <div 
+        className="sticky top-14 z-20 px-4 sm:px-6 py-2.5 backdrop-blur-md border-b flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap transition-colors shadow-sm"
+        style={{ backgroundColor: 'var(--surface-header)', borderColor: 'var(--border-default)' }}
+      >
+        <div className="relative w-full sm:w-64 flex-shrink-0">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Input className="w-full pl-9" placeholder={isAdmin ? "Search users…" : "Search tenants…"} value={query}
+            onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
+          {FILTERS.map(function (f) {
+            const count = f.val === 'All' ? counts.total : counts[f.val]
             return (
-              <div key={s.label}
-                className="flex-shrink-0 w-[140px] sm:w-auto snap-start bg-white rounded-xl sm:rounded-2xl border border-stone-200 p-3 sm:p-4 flex items-center gap-2 sm:gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.bg, color: s.accent }}>
-                  {s.icon}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-400 leading-tight truncate">{s.label}</p>
-                  <p className="font-bold text-lg sm:text-2xl leading-tight truncate" style={{ color: s.accent }}>{s.value}</p>
-                </div>
+              <div key={f.val} className="flex-shrink-0 snap-start">
+                <FilterChip
+                  label={f.label}
+                  count={count ?? 0}
+                  active={filter === f.val}
+                  onClick={() => setFilter(f.val)}
+                  color="teal"
+                />
               </div>
             )
           })}
         </div>
+        <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filtered.length} {isAdmin ? 'user' : 'tenant'}{filtered.length !== 1 ? 's' : ''}</p>
+      </div>
 
-        {/* Search + Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-          <div className="relative w-full sm:w-64 flex-shrink-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input className="w-full pl-9" placeholder={isAdmin ? "Search users…" : "Search tenants…"} value={query}
-              onChange={(e) => setQuery(e.target.value)} />
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
-            {FILTERS.map(function (f) {
-              return (
-                <button
-                  key={f.val}
-                  onClick={() => setFilter(f.val)}
-                  className={'flex-shrink-0 snap-start px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium border transition-all duration-150 ' +
-                    (filter === f.val
-                      ? 'bg-[#E1F5EE] text-[#0F6E56] border-teal-300'
-                      : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:text-stone-700')}
-                >
-                  {f.label}
-                </button>
-              )
-            })}
-          </div>
-          <p className="text-[10px] sm:text-[11px] text-stone-400 sm:ml-auto w-full sm:w-auto text-right">{filtered.length} {isAdmin ? 'user' : 'tenant'}{filtered.length !== 1 ? 's' : ''}</p>
-        </div>
-
+      <div className="p-4 sm:p-6 space-y-4">
         {/* Cards */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

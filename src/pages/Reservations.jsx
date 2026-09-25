@@ -201,14 +201,17 @@ export default function Reservations() {
       <Topbar title="Reservations" />
 
       <div className="p-6 space-y-4">
-        {/* Hide scrollbar utility class can be added inline or in css */}
-        <div className="flex sm:grid sm:grid-cols-6 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 snap-x" style={{ scrollbarWidth: 'none' }}>
+        {/* Sticky Status Filters */}
+        <div 
+          className="sticky top-14 z-20 -mx-6 px-6 py-3 backdrop-blur-md border-b flex sm:grid sm:grid-cols-6 gap-2 sm:gap-3 overflow-x-auto snap-x select-none transition-colors shadow-sm" 
+          style={{ backgroundColor: 'var(--surface-header)', borderColor: 'var(--border-default)', scrollbarWidth: 'none' }}
+        >
           {STATUSES.map(function (s) {
             return (
               <div key={s} onClick={function () { setFilter(s) }}
-                className={'flex-shrink-0 w-[35%] sm:w-auto p-2 sm:p-3 rounded-lg sm:rounded-xl border cursor-pointer transition-all snap-start ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
-                <p className="text-[9px] sm:text-[10px] text-stone-400 mb-0.5 sm:mb-1 truncate">{s.replace('_', ' ')}</p>
-                <p className={'text-base sm:text-xl font-bold leading-tight ' + (filter === s ? 'text-[#0F6E56]' : 'text-stone-800')}>{totals[s]}</p>
+                className={'flex-shrink-0 w-[35%] sm:w-auto p-2 sm:p-3 rounded-lg sm:rounded-xl border cursor-pointer transition-all snap-start select-none ' + (filter === s ? 'bg-[#E1F5EE] border-teal-300' : 'bg-white border-stone-200 hover:border-stone-300')}>
+                <p className="text-[9px] sm:text-[10px] text-stone-400 mb-0.5 sm:mb-1 truncate select-none">{s.replace('_', ' ')}</p>
+                <p className={'text-base sm:text-xl font-bold leading-tight select-none ' + (filter === s ? 'text-[#0F6E56]' : 'text-stone-800')}>{totals[s]}</p>
               </div>
             )
           })}

@@ -1,22 +1,78 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import Sidebar from './Sidebar'
 import { useAppStore } from '@/store/useAppStore'
+import { useAuthStore } from '@/store/useAuthStore'
 import { Menu } from 'lucide-react'
+import NotificationBell from '@/components/layout/NotificationBell'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import Toaster from '@/components/ui/Toaster'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { useGlobalRealtime } from '@/hooks/useGlobalRealtime'
 
+function getPageMeta(pathname, user) {
+  // Tenant routes
+  if (pathname === '/tenant' || pathname === '/tenant/') {
+    const firstName = user?.name ? user.name.split(' ')[0] : 'User'
+    return { title: 'Dashboard Overview', subtitle: `Welcome back, ${firstName}` }
+  }
+  if (pathname.startsWith('/tenant/search')) return { title: 'Find Boarding Houses', subtitle: 'Explore and filter verified stays across Batanes' }
+  if (pathname.startsWith('/tenant/recommendations')) return { title: 'Recommendations', subtitle: 'Curated stays tailored to your preferences' }
+  if (pathname.startsWith('/tenant/map')) return { title: 'Interactive Map', subtitle: 'Explore boarding houses geographically' }
+  if (pathname.startsWith('/tenant/room')) return { title: 'My Room & Stay', subtitle: 'Assigned room details, amenities, and photos' }
+  if (pathname.startsWith('/tenant/reservations')) return { title: 'Reservations', subtitle: 'View and track your booking history' }
+  if (pathname.startsWith('/tenant/payments')) return { title: 'My Payments', subtitle: 'Track rent payments, receipts, and deposits' }
+  if (pathname.startsWith('/tenant/landlord')) return { title: 'My Landlord', subtitle: 'Host contact information and house details' }
+  if (pathname.startsWith('/tenant/messages') || pathname.startsWith('/owner/messages')) return { title: 'Messages', subtitle: 'Chat in real-time with landlords or tenants' }
+  if (pathname.startsWith('/tenant/profile') || pathname.startsWith('/owner/profile')) return { title: 'My Profile', subtitle: 'Manage your account details and preferences' }
+  if (pathname.startsWith('/tenant/property/')) return { title: 'Property Details', subtitle: 'Boarding house information and rooms' }
+
+  // Owner routes
+  if (pathname === '/owner' || pathname === '/owner/') return { title: 'Homeowner Dashboard', subtitle: 'Manage your properties, rooms, and bookings' }
+  if (pathname === '/owner/properties') return { title: 'My Properties', subtitle: 'Manage listings, pricing, and occupancy' }
+  if (pathname.startsWith('/owner/properties/add')) return { title: 'Add New Property', subtitle: 'List a new boarding house on SmartStay' }
+  if (pathname.startsWith('/owner/properties/edit/')) return { title: 'Edit Property', subtitle: 'Update listing details and photos' }
+  if (pathname.startsWith('/owner/rooms/')) return { title: 'Manage Rooms', subtitle: 'Configure rooms, pricing, and availability' }
+  if (pathname.startsWith('/owner/tenants')) return { title: 'My Tenants', subtitle: 'Current active tenants in your properties' }
+  if (pathname.startsWith('/owner/reservations')) return { title: 'Reservations', subtitle: 'Review and approve booking requests' }
+  if (pathname.startsWith('/owner/ledger')) return { title: 'Ledger & Payments', subtitle: 'Review tenant payment receipts and cashflow' }
+
+  // Admin routes
+  if (pathname === '/admin' || pathname === '/admin/') {
+    const region = user?.admin_region ? user.admin_region.replace(' Island', '') : 'Regional'
+    return { title: user?.role === 'super_admin' ? 'System Command Center' : `${region} Command Center`, subtitle: 'Platform overview and real-time insights' }
+  }
+  if (pathname.startsWith('/admin/users')) return { title: 'User Management', subtitle: 'All registered tenants, homeowners, and admins' }
+  if (pathname.startsWith('/admin/properties')) return { title: 'All Properties', subtitle: 'Audit, verify, or review submitted boarding houses' }
+  if (pathname.startsWith('/admin/staff')) return { title: 'Manage Staff', subtitle: 'Create and assign regional administrators' }
+  if (pathname.startsWith('/admin/map')) return { title: 'System Map', subtitle: 'Geographic distribution of all listings' }
+
+  return { title: 'SmartStay', subtitle: 'Batanes Accommodation Management' }
+}
+
 export default function AppLayout() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const theme = useAppStore((s) => s.theme)
+  const user = useAuthStore((s) => s.user)
+  const location = useLocation()
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   useGlobalRealtime()
 
-  return (
-    <div className="flex min-h-screen bg-stone-50">
+  const meta = getPageMeta(location.pathname, user)
 
-      {/* Single Sidebar instance — CSS handles both desktop sticky and mobile overlay */}
-      {/* Mobile backdrop (only visible on small screens when open) */}
+  return (
+    <div className="flex min-h-screen bg-transparent">
+
+      {/* Single Sidebar instance */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-40 md:hidden"
@@ -27,9 +83,7 @@ export default function AppLayout() {
       {/* Sidebar: fixed overlay on mobile, sticky side panel on desktop */}
       <div
         className={[
-          // Desktop: always visible, sticky, not fullscreen
           'md:block md:sticky md:top-0 md:h-screen md:flex-shrink-0 md:w-[220px] md:translate-x-0',
-          // Mobile: fixed overlay drawer, slides in/out
           'fixed top-0 left-0 h-full z-50 w-[260px] transition-transform duration-300',
           'md:static md:z-auto md:transition-none',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
@@ -40,28 +94,39 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-auto flex flex-col h-screen">
-        {/* Mobile Header (Global) */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-stone-200 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-sm">🏠</div>
-            <div className="flex items-center gap-1.5">
-              <p className="font-bold text-lg text-stone-900 leading-tight">SmartStay</p>
-              <span
-                className="px-1.5 py-0.5 bg-stone-100 text-stone-600 text-[9px] font-bold tracking-wider rounded border border-stone-200 cursor-help"
-                title="SmartStay is in early beta development. You may encounter bugs."
-              >
-                BETA
-              </span>
+        {/* Global Unified Header (Desktop + Mobile) */}
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 backdrop-blur-md border-b sticky top-0 z-30 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Mobile Brand icon */}
+            <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-sm">🏠</div>
+            </div>
+            
+            <div className="min-w-0">
+              <h1 className="font-bold text-base sm:text-lg text-stone-900 dark:text-stone-100 truncate leading-tight">
+                {meta.title}
+              </h1>
+              {meta.subtitle && (
+                <p className="text-[11px] sm:text-xs text-stone-400 dark:text-stone-500 truncate mt-0.5 hidden sm:block">
+                  {meta.subtitle}
+                </p>
+              )}
             </div>
           </div>
-          <button
-            onClick={toggleSidebar}
-            className="p-2 -mr-2 text-stone-500 hover:bg-stone-100 rounded-lg transition-colors"
-            aria-label="Toggle Menu"
-          >
-            <Menu size={22} />
-          </button>
-        </div>
+
+          {/* Right Global Actions (Theme + Notifications + Mobile Menu) */}
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <ThemeToggle />
+            <NotificationBell />
+            <button
+              onClick={toggleSidebar}
+              className="md:hidden p-2 -mr-1 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
+              aria-label="Toggle Menu"
+            >
+              <Menu size={22} />
+            </button>
+          </div>
+        </header>
 
         <Outlet />
       </main>
