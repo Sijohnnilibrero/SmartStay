@@ -195,6 +195,11 @@ export default function AdminSupport() {
                       <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                         {cat.label}
                       </span>
+                      {t.category === 'account_access' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 uppercase tracking-wide">
+                          Appeal
+                        </span>
+                      )}
                     </div>
                     <Badge variant={stat.color}>{stat.label}</Badge>
                   </div>

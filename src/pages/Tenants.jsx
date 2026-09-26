@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import Topbar from '@/components/layout/Topbar'
 import { Button, Input, FilterChip } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
 import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
 import {
@@ -24,7 +25,7 @@ const TYPE_ICONS = {
   visitor:             <Globe size={14} />,
 }
 
-function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
+function TenantCard({ t, isAdmin, isSuperAdmin, onAction, onViewProfile }) {
   const color = TYPE_COLORS[t.tenant_type] || { bg: '#F5F4F0', text: '#78716C', label: t.tenant_type || 'Tenant' }
   const icon  = TYPE_ICONS[t.tenant_type] || <Users size={14} />
   const initials = (t.full_name || '??').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -58,8 +59,14 @@ function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
               {isAdmin ? (t.role === 'owner' ? 'Homeowner' : 'Tenant') : color.label}
             </span>
             {isAdmin && t.status && t.status !== 'active' && (
-              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${t.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                {t.status.toUpperCase()}
+              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                t.status === 'permanently_banned' ? 'bg-stone-900 text-white'
+                : t.status === 'banned' ? 'bg-red-100 text-red-700'
+                : 'bg-amber-100 text-amber-700'
+              }`}>
+                {t.status === 'permanently_banned' ? 'PERM. CLOSED'
+                 : t.status === 'banned' ? 'DEACTIVATED'
+                 : 'UNDER REVIEW'}
               </span>
             )}
           </div>
@@ -103,19 +110,24 @@ function TenantCard({ t, isAdmin, onAction, onViewProfile }) {
 
       {/* Admin Actions */}
       {isAdmin && (
-        <div className="mt-1 pt-3 border-t border-stone-100 flex gap-2">
+        <div className="mt-1 pt-3 border-t border-stone-100 flex gap-1.5 flex-wrap">
           {t.status !== 'active' ? (
             <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-[#0F6E56] hover:bg-[#E1F5EE]" onClick={() => onAction(t, 'active')}>
-              Activate
+              Restore
             </Button>
           ) : (
             <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-amber-600 hover:bg-amber-50" onClick={() => onAction(t, 'suspended')}>
-              Suspend
+              Review
             </Button>
           )}
-          {t.status !== 'banned' && (
+          {t.status !== 'banned' && t.status !== 'permanently_banned' && (
             <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-red-600 hover:bg-red-50" onClick={() => onAction(t, 'banned')}>
-              Ban
+              Deactivate
+            </Button>
+          )}
+          {isSuperAdmin && t.status !== 'permanently_banned' && (
+            <Button size="sm" variant="ghost" className="flex-1 text-[11px] text-stone-900 hover:bg-stone-100 font-bold" onClick={() => onAction(t, 'permanently_banned')}>
+              Perm. Close
             </Button>
           )}
         </div>
@@ -128,19 +140,31 @@ export default function Tenants() {
   var user = useAuthStore(function (s) { return s.user })
   var isAdmin = useAuthStore(function (s) { return s.isAdmin })
   var isOwner = useAuthStore(function (s) { return s.isOwner })
+  var isSuperAdmin = useAuthStore(function (s) { return s.isSuperAdmin })
 
   var fetchTenants = useAuthStore(function (s) { return s.fetchTenants })
   var fetchAllUsers = useAuthStore(function (s) { return s.fetchAllUsers })
   var updateUserStatus = useAuthStore(function (s) { return s.updateUserStatus })
   var fetchReservations = useAuthStore(function (s) { return s.fetchReservations })
   var fetchProperties = useAuthStore(function (s) { return s.fetchProperties })
+  var { addToast } = useAppStore()
 
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('All')
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isActioning, setIsActioning] = useState(false)
   const [actionUser, setActionUser] = useState(null)
+  const [isActioning, setIsActioning] = useState(false)
+  const [banReasonPreset, setBanReasonPreset] = useState('Fraudulent or invalid documents / permits')
+  const [customReasonText, setCustomReasonText] = useState('')
+  const [confirmWord, setConfirmWord] = useState('')
+
+  const handleOpenActionModal = (userObj, status) => {
+    setActionUser({ user: userObj, status })
+    setBanReasonPreset('Fraudulent or invalid documents / permits')
+    setCustomReasonText('')
+    setConfirmWord('')
+  }
   const [selectedProfile, setSelectedProfile] = useState(null)
   const wasHiddenRef = useRef(false)
 
@@ -296,48 +320,202 @@ export default function Tenants() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map(function (t) {
-              return <TenantCard key={t.id} t={t} isAdmin={isAdmin} onAction={(u, st) => setActionUser({ user: u, status: st })} onViewProfile={setSelectedProfile} />
+              return <TenantCard key={t.id} t={t} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} onAction={handleOpenActionModal} onViewProfile={setSelectedProfile} />
             })}
           </div>
         )}
       </div>
 
-      {/* Admin Action Modal */}
-      {actionUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setActionUser(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg text-stone-800 mb-2">
-              {actionUser.status === 'banned' ? 'Ban User?' : actionUser.status === 'suspended' ? 'Suspend User?' : 'Activate User?'}
-            </h3>
-            <p className="text-sm text-stone-600 mb-6">
-              Are you sure you want to change the status of <strong>{actionUser.user.full_name}</strong> to {actionUser.status}?
-            </p>
-            <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 border border-stone-200" onClick={() => setActionUser(null)}>Cancel</Button>
-              <Button 
-                className="flex-1 text-white" 
-                style={{ background: actionUser.status === 'active' ? '#0F6E56' : actionUser.status === 'suspended' ? '#D97706' : '#DC2626' }}
-                disabled={isActioning}
-                onClick={() => {
-                  setIsActioning(true)
-                  updateUserStatus(actionUser.user.id, actionUser.status).then(() => {
-                    setIsActioning(false)
-                    setActionUser(null)
-                    loadTenants(true)
-                  })
-                }}
-              >
-                {isActioning ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Processing...</span>
+      {/* Admin Action Modal — 3-Tier Moderation */}
+      {actionUser && (() => {
+        const s = actionUser.status
+        const isPermanent = s === 'permanently_banned'
+        const isBan = s === 'banned'
+        const isSuspend = s === 'suspended'
+        const isRestore = s === 'active'
+
+        const accentBg   = isPermanent ? '#1C1917' : isBan ? '#DC2626' : isSuspend ? '#D97706' : '#0F6E56'
+        const accentLight = isPermanent ? '#F5F4F0' : isBan ? '#FEF2F2' : isSuspend ? '#FEF3C7' : '#E1F5EE'
+        const emoji      = isPermanent ? '⛔' : isBan ? '🔒' : isSuspend ? '⏸️' : '✅'
+        const title      = isPermanent ? 'Permanently Close Account'
+                         : isBan      ? 'Deactivate User Account'
+                         : isSuspend  ? 'Place Account Under Review'
+                         : 'Restore Account Access'
+
+        // Friction validation
+        const confirmOk = isPermanent
+          ? confirmWord.trim() === actionUser.user.full_name
+          : isBan
+          ? confirmWord.trim().toUpperCase() === 'CONFIRM'
+          : true // suspend & restore need no confirmation word
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={() => setActionUser(null)}>
+            <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-6 border border-stone-200 dark:border-white/10 space-y-4 animate-scaleUp" onClick={(e) => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm flex-shrink-0"
+                  style={{ background: accentLight, color: accentBg }}>
+                  {emoji}
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-stone-900 dark:text-white">{title}</h3>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    Target: <strong className="text-stone-800 dark:text-stone-200">{actionUser.user.full_name}</strong> ({actionUser.user.email || 'No email'})
+                  </p>
+                </div>
+              </div>
+
+              {/* Tier 1: Restore */}
+              {isRestore && (
+                <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/60 text-xs text-teal-900 dark:text-teal-200">
+                  This will lift all restrictions and restore <strong>{actionUser.user.full_name}</strong>'s full access to SmartStay.
+                  Provide an optional reactivation note below for the audit log.
+                  <textarea rows={2} value={customReasonText} onChange={(e) => setCustomReasonText(e.target.value)}
+                    placeholder="Optional: reason for reactivation (audit log only)..."
+                    className="mt-2 w-full p-2.5 rounded-xl border border-teal-200 dark:border-teal-800 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                </div>
+              )}
+
+              {/* Tier 2: Suspend — reason required, no friction word */}
+              {isSuspend && (
+                <div className="space-y-3 pt-1">
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-[11px] text-amber-900 dark:text-amber-200">
+                    ⏸️ <strong>Under Review</strong> — This is temporary. The user can still submit an appeal. Admins can lift this at any time.
                   </div>
-                ) : 'Confirm'}
-              </Button>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300">Reason for Review</label>
+                    <select value={banReasonPreset} onChange={(e) => setBanReasonPreset(e.target.value)}
+                      className="w-full h-10 px-3 text-xs font-semibold rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer">
+                      <option value="Pending document verification">📄 Pending document verification</option>
+                      <option value="Reported behavior under investigation">🔍 Reported behavior under investigation</option>
+                      <option value="Non-payment or payment dispute">💳 Non-payment or payment dispute</option>
+                      <option value="Minor policy violation (first offense)">⚠️ Minor policy violation (first offense)</option>
+                      <option value="other">📝 Other (write below)</option>
+                    </select>
+                  </div>
+                  <textarea rows={2} value={customReasonText} onChange={(e) => setCustomReasonText(e.target.value)}
+                    placeholder="Additional notes for the user and audit log..."
+                    className="w-full p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                  <p className="text-[11px] text-stone-400 dark:text-stone-500 italic">This reason will be shown to the user when they attempt to log in.</p>
+                </div>
+              )}
+
+              {/* Tier 3: Deactivate (ban) — requires typing CONFIRM */}
+              {isBan && (
+                <div className="space-y-3 pt-1">
+                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-[11px] text-red-900 dark:text-red-200">
+                    🔒 <strong>Deactivation</strong> — The user's account will be locked. They can still submit a support appeal for review.
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300">Primary Reason</label>
+                    <select value={banReasonPreset} onChange={(e) => setBanReasonPreset(e.target.value)}
+                      className="w-full h-10 px-3 text-xs font-semibold rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-red-500/30 cursor-pointer">
+                      <option value="Fraudulent or invalid documents / permits">🚫 Fraudulent or invalid documents / permits</option>
+                      <option value="Multiple verified policy violations">⚖️ Multiple verified policy violations</option>
+                      <option value="Safety, harassment, or disruptive behavior">⚠️ Safety, harassment, or disruptive behavior</option>
+                      <option value="Non-payment or breach of lease agreement">💳 Non-payment or breach of lease agreement</option>
+                      <option value="other">📝 Other (write below)</option>
+                    </select>
+                  </div>
+                  <textarea rows={2} value={customReasonText} onChange={(e) => setCustomReasonText(e.target.value)}
+                    placeholder="Additional context for the user and audit log..."
+                    className="w-full p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30" />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-red-700 dark:text-red-400">
+                      Type <span className="font-mono bg-red-100 dark:bg-red-950 px-1.5 py-0.5 rounded">CONFIRM</span> to proceed
+                    </label>
+                    <input type="text" value={confirmWord} onChange={(e) => setConfirmWord(e.target.value)}
+                      placeholder="Type CONFIRM"
+                      className="w-full h-9 px-3 rounded-xl border border-red-200 dark:border-red-900 bg-white dark:bg-stone-800 text-xs font-mono text-red-800 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500/40" />
+                  </div>
+                </div>
+              )}
+
+              {/* Tier 4: Permanently Close — super admin only, requires full name */}
+              {isPermanent && (
+                <div className="space-y-3 pt-1">
+                  <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[11px] text-stone-800 dark:text-stone-200">
+                    ⛔ <strong>Permanent Closure</strong> — This action is irreversible from the admin panel. Only a Super Admin can undo this. No appeal button will be shown to the user.
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-stone-800 dark:text-stone-200">Reason (required)</label>
+                    <select value={banReasonPreset} onChange={(e) => setBanReasonPreset(e.target.value)}
+                      className="w-full h-10 px-3 text-xs font-semibold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500/30 cursor-pointer">
+                      <option value="Confirmed identity fraud or platform scam">🕵️ Confirmed identity fraud or platform scam</option>
+                      <option value="Serious safety threat to residents or staff">🆘 Serious safety threat to residents or staff</option>
+                      <option value="Repeat offender after prior deactivation">🔁 Repeat offender after prior deactivation</option>
+                      <option value="other">📝 Other (write below)</option>
+                    </select>
+                  </div>
+                  <textarea rows={2} value={customReasonText} onChange={(e) => setCustomReasonText(e.target.value)}
+                    placeholder="Mandatory: detailed audit reason..."
+                    className="w-full p-3 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-stone-500/30" />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-stone-900 dark:text-stone-200">
+                      Type the user's full name <span className="font-mono bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">{actionUser.user.full_name}</span> to confirm
+                    </label>
+                    <input type="text" value={confirmWord} onChange={(e) => setConfirmWord(e.target.value)}
+                      placeholder={`Type: ${actionUser.user.full_name}`}
+                      className="w-full h-9 px-3 rounded-xl border border-stone-400 dark:border-stone-600 bg-white dark:bg-stone-800 text-xs font-mono text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-500/40" />
+                  </div>
+                </div>
+              )}
+
+              {/* Footer Buttons */}
+              <div className="flex gap-2.5 pt-2 border-t border-stone-100 dark:border-white/10">
+                <Button variant="outline" className="flex-1 text-xs cursor-pointer" onClick={() => setActionUser(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-[1.5] text-white text-xs font-bold cursor-pointer"
+                  style={{ background: accentBg, opacity: confirmOk ? 1 : 0.4 }}
+                  disabled={isActioning || !confirmOk}
+                  onClick={() => {
+                    let fullReason = null
+                    if (!isRestore) {
+                      const preset = banReasonPreset === 'other' ? '' : banReasonPreset
+                      const extra = customReasonText.trim()
+                      fullReason = preset ? (extra ? `${preset} — ${extra}` : preset) : extra || 'Administrative restriction'
+                    }
+                    setIsActioning(true)
+                    updateUserStatus(actionUser.user.id, s, isRestore ? (customReasonText.trim() || null) : fullReason)
+                      .then(() => {
+                        setIsActioning(false)
+                        setActionUser(null)
+                        addToast(
+                          isRestore ? `${actionUser.user.full_name}'s account has been restored.`
+                          : isSuspend ? `${actionUser.user.full_name} placed under review.`
+                          : isBan    ? `${actionUser.user.full_name}'s account deactivated.`
+                          : `${actionUser.user.full_name}'s account permanently closed.`,
+                          'success'
+                        )
+                        loadTenants(true)
+                      })
+                      .catch((err) => {
+                        setIsActioning(false)
+                        console.error('updateUserStatus error:', err)
+                        addToast(err?.message || 'Failed to update user status. Check Supabase RLS policies.', 'error')
+                      })
+                  }}
+                >
+                  {isActioning ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                  ) : isRestore ? 'Confirm Restoration'
+                    : isSuspend ? 'Place Under Review'
+                    : isBan    ? 'Deactivate Account'
+                    : 'Permanently Close Account'}
+                </Button>
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Profile Modals */}
       {/* Profile Modals */}

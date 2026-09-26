@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { supabase } from '@/lib/supabase'
 import AuthModal from '@/components/ui/AuthModal'
+import PublicAppealModal from '@/components/support/PublicAppealModal'
 import ThemeToggle from '@/components/layout/ThemeToggle'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Home } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react'
+import SmartStayLogo from '@/components/ui/SmartStayLogo'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -16,12 +18,15 @@ export default function Login() {
   const [emailUnconfirmed, setEmailUnconfirmed] = useState(false)
   const [resendStatus, setResendStatus] = useState('')
   const [modalType, setModalType] = useState(null)
+  const [statusReason, setStatusReason] = useState('')
+  const [appealModalOpen, setAppealModalOpen] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setEmailUnconfirmed(false)
     setResendStatus('')
     setModalType(null)
+    setStatusReason('')
     const result = await login(email, password)
     if (result.success) {
       const role = result.user?.role
@@ -31,9 +36,11 @@ export default function Login() {
     } else if (result.authError?.toLowerCase().includes('email not confirmed')) {
       setEmailUnconfirmed(true)
       setModalType('email_unconfirmed')
-    } else if (result.authError?.toLowerCase().includes('banned')) {
+    } else if (result.authError === 'banned' || result.authError?.toLowerCase().includes('banned')) {
+      setStatusReason(result.statusReason || '')
       setModalType('banned')
-    } else if (result.authError?.toLowerCase().includes('suspended')) {
+    } else if (result.authError === 'suspended' || result.authError?.toLowerCase().includes('suspended')) {
+      setStatusReason(result.statusReason || '')
       setModalType('suspended')
     }
   }
@@ -98,21 +105,8 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-[440px] space-y-6">
         
         {/* Brand Header */}
-        <div className="text-center space-y-2 select-none">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 shadow-xl shadow-teal-900/20 dark:shadow-teal-900/30 border border-teal-500/30 text-white mb-1 transition-transform hover:scale-105 duration-300">
-            <Home size={28} className="stroke-[2.5]" />
-          </div>
-          <div className="space-y-0.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight flex items-center justify-center gap-2">
-              SmartStay
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/30">
-                Batanes
-              </span>
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium">
-              Batanes Boarding House & Transient Platform
-            </p>
-          </div>
+        <div className="text-center select-none flex flex-col items-center justify-center pb-1">
+          <SmartStayLogo size="lg" className="hover:scale-105 transition-transform duration-300 drop-shadow-md" />
         </div>
 
         {/* Glassmorphism Card */}
@@ -133,10 +127,20 @@ export default function Login() {
           <AuthModal
             type={modalType}
             isOpen={!!modalType}
-            onClose={() => { setModalType(null); setEmailUnconfirmed(false) }}
+            onClose={() => { setModalType(null); setEmailUnconfirmed(false); setStatusReason('') }}
             email={email}
+            statusReason={statusReason}
             onResend={handleResend}
             resendStatus={resendStatus}
+            onContactSupport={() => setAppealModalOpen(true)}
+          />
+
+          <PublicAppealModal
+            isOpen={appealModalOpen}
+            onClose={() => setAppealModalOpen(false)}
+            defaultEmail={email}
+            accountStatus={modalType || 'restricted'}
+            statusReason={statusReason}
           />
 
           {/* Simple form errors inline */}

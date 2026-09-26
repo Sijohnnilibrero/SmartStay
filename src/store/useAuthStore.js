@@ -53,15 +53,20 @@ export const useAuthStore = create(
             set({ isLoading: false, authError: 'Profile not found. Contact admin.' })
             return { success: false, authError: 'Profile not found. Contact admin.' }
           }
+          if (profile.status === 'permanently_banned') {
+            await supabase.auth.signOut()
+            set({ isLoading: false, authError: 'permanently_banned' })
+            return { success: false, authError: 'permanently_banned', statusReason: profile.status_reason || null }
+          }
           if (profile.status === 'banned') {
             await supabase.auth.signOut()
-            set({ isLoading: false, authError: 'Your account has been banned. Contact administration.' })
-            return { success: false, authError: 'Your account has been banned. Contact administration.' }
+            set({ isLoading: false, authError: 'banned' })
+            return { success: false, authError: 'banned', statusReason: profile.status_reason || null }
           }
           if (profile.status === 'suspended') {
             await supabase.auth.signOut()
-            set({ isLoading: false, authError: 'Your account is temporarily suspended. Contact administration.' })
-            return { success: false, authError: 'Your account is temporarily suspended. Contact administration.' }
+            set({ isLoading: false, authError: 'suspended' })
+            return { success: false, authError: 'suspended', statusReason: profile.status_reason || null }
           }
           let actualName = profile.full_name;
           if (!actualName && data.user.user_metadata?.full_name) {
@@ -199,7 +204,7 @@ export const useAuthStore = create(
           .eq('id', data.session.user.id)
           .single()
         if (!profile) return
-        if (profile.status === 'banned' || profile.status === 'suspended') {
+        if (profile.status === 'banned' || profile.status === 'suspended' || profile.status === 'permanently_banned') {
           await supabase.auth.signOut()
           return
         }
@@ -972,10 +977,21 @@ export const useAuthStore = create(
       },
 
       // ── Update User Status (Admin) ───────────────────────────────────────
-      updateUserStatus: async (userId, status) => {
+      // statusReason: required string for ban/permanently_banned, optional for suspend,
+      //               required reactivation note when lifting to 'active'
+      updateUserStatus: async (userId, status, statusReason = null) => {
+        const updateData = { status }
+
+        if (status === 'active') {
+          // Record the reactivation reason for audit; clear punishment reason
+          updateData.status_reason = statusReason || 'Account restored by administration'
+        } else if (statusReason !== null) {
+          updateData.status_reason = statusReason
+        }
+
         const { error } = await supabase
           .from('profiles')
-          .update({ status })
+          .update(updateData)
           .eq('id', userId)
 
         if (error) throw new Error('Failed to update user status: ' + error.message)

@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import AuthModal from '@/components/ui/AuthModal'
 import ThemeToggle from '@/components/layout/ThemeToggle'
-import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, ShieldCheck, Home, CheckCircle2 } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react'
+import SmartStayLogo from '@/components/ui/SmartStayLogo'
 
 const ROLE_OPTIONS = [
   {
@@ -142,10 +143,8 @@ export default function Register() {
       <div className="relative z-10 w-full max-w-[480px] space-y-6">
         
         {/* Brand Header */}
-        <div className="text-center space-y-2 select-none">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 shadow-xl shadow-teal-900/20 dark:shadow-teal-900/30 border border-teal-500/30 text-white mb-1 transition-transform hover:scale-105 duration-300">
-            <Home size={26} className="stroke-[2.5]" />
-          </div>
+        <div className="text-center space-y-2 select-none flex flex-col items-center">
+          <SmartStayLogo variant="icon" size="lg" className="hover:scale-105 transition-transform duration-300 drop-shadow-md mb-1" />
           <div className="space-y-0.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight">
               Create an Account

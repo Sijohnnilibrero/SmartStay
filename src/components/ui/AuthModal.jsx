@@ -52,10 +52,10 @@ const CONFIGS = {
     showResend: true,
     buttonLabel: 'OK',
   },
-  // Account banned
+  // Account banned / deactivated
   banned: {
-    icon: '🚫',
-    title: 'Account Banned',
+    icon: '🔒',
+    title: 'Account Deactivated',
     color: '#DC2626',
     bg: '#FEF2F2',
     border: '#DC2626',
@@ -65,10 +65,10 @@ const CONFIGS = {
     showResend: false,
     buttonLabel: 'Close',
   },
-  // Account suspended
+  // Account suspended / under review
   suspended: {
     icon: '⏸️',
-    title: 'Account Suspended',
+    title: 'Account Under Review',
     color: '#D97706',
     bg: '#FFFBEB',
     border: '#F59E0B',
@@ -78,16 +78,31 @@ const CONFIGS = {
     showResend: false,
     buttonLabel: 'Close',
   },
+  // Account permanently closed — no appeal
+  permanently_banned: {
+    icon: '⛔',
+    title: 'Account Permanently Closed',
+    color: '#1C1917',
+    bg: '#F5F4F0',
+    border: '#44403C',
+    titleColor: '#1C1917',
+    bodyColor: '#44403C',
+    showEmailLink: false,
+    showResend: false,
+    buttonLabel: 'Close',
+  },
 }
 
 export default function AuthModal({
-  type,            // 'account_created' | 'email_unconfirmed' | 'banned' | 'suspended'
+  type,            // 'account_created' | 'email_unconfirmed' | 'suspended' | 'banned' | 'permanently_banned'
   isOpen,
   onClose,
   email = '',
+  statusReason = '',
   message = '',    // optional override body text
   onResend,        // function to call when resend is clicked
   resendStatus = '', // '' | 'sending' | 'sent' | 'error'
+  onContactSupport, // function to open appeal/support modal
 }) {
   if (!isOpen || !type) return null
 
@@ -149,7 +164,7 @@ export default function AuthModal({
           </h2>
 
           {/* Message */}
-          <p style={{ fontSize: 13, color: cfg.bodyColor, margin: '0 0 20px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: cfg.bodyColor, margin: '0 0 16px', lineHeight: 1.6 }}>
             {message || (
               type === 'account_created'
                 ? <>We sent a confirmation link to <strong>{email}</strong>. Click the link in your inbox to activate your account before logging in.</>
@@ -158,10 +173,32 @@ export default function AuthModal({
                 : type === 'email_unconfirmed'
                 ? <>Your account for <strong>{email}</strong> hasn't been verified yet. Check your inbox and click the confirmation link to continue.</>
                 : type === 'banned'
-                ? 'Your account has been banned from the platform. Please contact the administration team if you believe this is a mistake.'
-                : 'Your account has been temporarily suspended. Please contact the administration team for assistance.'
+                ? 'Your account has been deactivated. You may submit a support appeal using the button below and our team will review your case.'
+                : type === 'suspended'
+                ? 'Your account is currently under review. This is usually temporary. Submit an appeal if you believe this is a mistake.'
+                : type === 'permanently_banned'
+                ? 'Your account has been permanently closed due to serious platform violations. If you believe this is an error, please contact SmartStay administration directly.'
+                : ''
             )}
           </p>
+
+          {/* Reason Callout (for all restricted statuses) */}
+          {(type === 'banned' || type === 'suspended' || type === 'permanently_banned') && statusReason && (
+            <div style={{
+              background: type === 'banned' ? '#FEF2F2' : '#FFFBEB',
+              border: `1px solid ${type === 'banned' ? '#FECACA' : '#FDE68A'}`,
+              borderRadius: 12,
+              padding: '10px 14px',
+              textAlign: 'left',
+              marginBottom: 16,
+              fontSize: 12,
+              color: type === 'banned' ? '#991B1B' : '#92400E',
+              lineHeight: 1.5,
+            }}>
+              <strong>Reason from Administration:</strong>
+              <div style={{ marginTop: 2 }}>{statusReason}</div>
+            </div>
+          )}
 
           {/* Open email provider button */}
           {cfg.showEmailLink && email && (
@@ -212,6 +249,29 @@ export default function AuthModal({
                 </button>
               )}
             </div>
+          )}
+
+          {/* Appeal / Contact Support button — NOT shown for permanently_banned */}
+          {(type === 'banned' || type === 'suspended') && onContactSupport && (
+            <button
+              onClick={() => {
+                onClose()
+                onContactSupport()
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 8, width: '100%', padding: '11px 16px',
+                background: '#0F6E56', color: '#fff',
+                borderRadius: 10, fontSize: 13, fontWeight: 700,
+                border: 'none', cursor: 'pointer', marginBottom: 10,
+                boxSizing: 'border-box',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.88'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              🎧 Submit Appeal / Contact Support
+            </button>
           )}
 
           {/* Dismiss button */}

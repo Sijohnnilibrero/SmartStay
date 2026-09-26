@@ -3,6 +3,7 @@ import ConfirmModal from './ConfirmModal'
 import ContractViewerModal from './ContractViewerModal'
 import ImageViewerModal from './ImageViewerModal'
 export { ZoomableImage } from './ZoomableImage'
+export { default as SmartStayLogo } from './SmartStayLogo'
 
 /* ── Badge ───────────────────────────────────────────── */
 export function Badge({ children, variant = 'teal', className }) {

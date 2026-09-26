@@ -8,6 +8,7 @@ import NotificationBell from '@/components/layout/NotificationBell'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import Toaster from '@/components/ui/Toaster'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import SmartStayLogo from '@/components/ui/SmartStayLogo'
 import { useGlobalRealtime } from '@/hooks/useGlobalRealtime'
 
 function getPageMeta(pathname, user) {
@@ -98,8 +99,8 @@ export default function AppLayout() {
         <header className="h-14 flex items-center justify-between px-4 sm:px-6 backdrop-blur-md border-b sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Brand icon */}
-            <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-sm">🏠</div>
+            <div className="md:hidden flex items-center flex-shrink-0">
+              <SmartStayLogo variant="icon" size="sm" className="drop-shadow-sm" />
             </div>
             
             <div className="min-w-0">
