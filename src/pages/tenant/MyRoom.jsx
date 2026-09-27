@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
-import Topbar from '@/components/layout/Topbar'
 import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle, MessageSquare } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
@@ -58,7 +57,6 @@ export default function MyRoom() {
   if (loading) {
     return (
       <div className="page-enter flex flex-col h-screen">
-        <Topbar title="My Room" />
         <div className="flex-1 flex items-center justify-center text-stone-400">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--teal] mx-auto mb-4" />
@@ -72,7 +70,6 @@ export default function MyRoom() {
   if (!data || !data.reservation) {
     return (
       <div className="page-enter flex flex-col h-screen">
-        <Topbar title="My Room" />
         <div className="flex-1 flex items-center justify-center p-6 bg-stone-50/50">
           <div className="max-w-md w-full text-center p-8 bg-white border border-stone-200 rounded-2xl shadow-sm">
             <div className="w-16 h-16 rounded-full bg-stone-50 flex items-center justify-center text-3xl mb-4 mx-auto border border-stone-100">
@@ -129,7 +126,6 @@ export default function MyRoom() {
   return (
     <>
     <div className="page-enter flex flex-col h-screen">
-      <Topbar title="My Room" />
 
       <div className="flex-1 overflow-y-auto p-6 bg-stone-50/50">
         <div className="max-w-4xl mx-auto space-y-6">

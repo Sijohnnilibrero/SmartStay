@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Topbar from '@/components/layout/Topbar'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Badge, OccupancyBar, Input, FilterChip } from '@/components/ui'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import {
-  Plus, Search, Eye, CheckCircle, XCircle, Edit, Trash2,
+  Plus, Search, Eye, CheckCircle, XCircle, Edit, Trash2, X,
   Home, TrendingUp, Clock, Layers, MapPin, BedDouble, Wifi, Droplets,
 } from 'lucide-react'
 import HomeownerProfileModal from '@/components/ui/HomeownerProfileModal'
@@ -34,10 +33,23 @@ export default function Properties() {
   const deleteProperty = useAuthStore((s) => s.deleteProperty)
   const systemConfirm = useAppStore((s) => s.systemConfirm)
 
-  const [query, setQuery] = useState('')
-  const [island, setIsland] = useState('All')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const statusParam = searchParams.get('status')
+  const muniParam = searchParams.get('municipality')
+  const islandParam = searchParams.get('island')
+
+  const [query, setQuery] = useState(muniParam || '')
+  const [island, setIsland] = useState(islandParam || 'All')
+  const [statusFilter, setStatusFilter] = useState(statusParam || 'All')
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (statusParam) setStatusFilter(statusParam)
+    if (muniParam) setQuery(muniParam)
+    if (islandParam) setIsland(islandParam)
+  }, [statusParam, muniParam, islandParam])
+
   const [actioning, setActioning] = useState(null)
   const [selectedOwner, setSelectedOwner] = useState(null)
   const [error, setError] = useState('')
@@ -117,8 +129,9 @@ export default function Properties() {
 
   var filteredList = properties.filter(function (p) {
     var q = query.toLowerCase()
-    if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q)) return false
+    if (q && !(p.name || '').toLowerCase().includes(q) && !(p.address || '').toLowerCase().includes(q) && !(p.municipality || '').toLowerCase().includes(q)) return false
     if (island !== 'All' && p.island !== island) return false
+    if (statusFilter !== 'All' && p.status !== statusFilter) return false
     return true
   })
 
@@ -174,6 +187,25 @@ export default function Properties() {
             )
           })}
         </div>
+        {statusFilter !== 'All' && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold shrink-0">
+            <span>Status: {STATUS_LABEL[statusFilter] || statusFilter}</span>
+            <button 
+              type="button"
+              onClick={() => {
+                setStatusFilter('All')
+                if (statusParam) {
+                  searchParams.delete('status')
+                  setSearchParams(searchParams)
+                }
+              }} 
+              className="hover:text-amber-950 dark:hover:text-white p-0.5 rounded-full"
+              title="Clear status filter"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
         {!isAdmin && (
           <Button size="sm" onClick={() => navigate('/owner/properties/add')} className="shrink-0">
             <Plus size={14} className="mr-1" /> Add Property
@@ -221,7 +253,7 @@ export default function Properties() {
 
               return (
                 <div key={p.id}
-                  className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group">
+                  className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group will-change-transform isolate">
 
                   {/* Image Header */}
                   <div className="relative h-44 overflow-hidden bg-stone-100 flex items-center justify-center">
@@ -229,7 +261,7 @@ export default function Properties() {
                       <img
                         src={p.image_url}
                         alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 transform-gpu"
                       />
                     ) : (
                       <div className="text-stone-300 flex flex-col items-center justify-center gap-1.5 opacity-60">
@@ -249,9 +281,9 @@ export default function Properties() {
 
                     {/* Price bottom-right */}
                     <div className="absolute bottom-3 right-3">
-                      <span className="bg-white/95 backdrop-blur-sm text-[--teal] font-bold text-[13px] px-2.5 py-1 rounded-full shadow-sm">
+                      <span className="bg-white/95 dark:bg-black/60 text-[--teal] dark:text-teal-300 font-bold text-[13px] px-2.5 py-1 rounded-full shadow-sm">
                         {p.price_monthly ? (
-                          <>{formatCurrency(p.price_monthly)}<span className="text-[10px] font-normal text-stone-500">/mo</span></>
+                          <>{formatCurrency(p.price_monthly)}<span className="text-[10px] font-normal text-stone-500 dark:text-teal-400/70">/mo</span></>
                         ) : (
                           'Prices vary'
                         )}
@@ -261,7 +293,7 @@ export default function Properties() {
                     {/* Island badge bottom-left */}
                     {p.island && (
                       <div className="absolute bottom-3 left-3">
-                        <span className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                        <span className="bg-black/80 !text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm ring-1 ring-white/20">
                           {p.island}
                         </span>
                       </div>

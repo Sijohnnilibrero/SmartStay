@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
-import Topbar from '@/components/layout/Topbar'
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { Button, Input, FilterChip } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -149,10 +148,18 @@ export default function Tenants() {
   var fetchProperties = useAuthStore(function (s) { return s.fetchProperties })
   var { addToast } = useAppStore()
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const roleParam = searchParams.get('role')
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState(roleParam || 'All')
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (roleParam && (roleParam === 'tenant' || roleParam === 'owner' || roleParam === 'All')) {
+      setFilter(roleParam)
+    }
+  }, [roleParam])
   const [actionUser, setActionUser] = useState(null)
   const [isActioning, setIsActioning] = useState(false)
   const [banReasonPreset, setBanReasonPreset] = useState('Fraudulent or invalid documents / permits')
@@ -276,7 +283,13 @@ export default function Tenants() {
                   label={f.label}
                   count={count ?? 0}
                   active={filter === f.val}
-                  onClick={() => setFilter(f.val)}
+                  onClick={() => {
+                    setFilter(f.val)
+                    if (roleParam) {
+                      searchParams.delete('role')
+                      setSearchParams(searchParams)
+                    }
+                  }}
                   color="teal"
                 />
               </div>

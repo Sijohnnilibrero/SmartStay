@@ -133,12 +133,6 @@ export default function TenantProfile() {
 
   return (
     <div className="page-enter">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-5 pb-2">
-        <div>
-          <p className="font-bold text-lg md:text-xl text-stone-800">My Profile</p>
-          <p className="text-sm text-stone-400 mt-0.5">Manage your personal information and photo</p>
-        </div>      </div>
 
       <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

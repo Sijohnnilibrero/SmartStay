@@ -177,16 +177,10 @@ export default function MyPayments() {
   return (
     <>
       <div className="page-enter max-w-5xl w-full mx-auto space-y-6 px-4 sm:px-6 pt-5 overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-800">My Payments</h1>
-          <p className="text-sm text-stone-500 mt-1">Track your rent payments and deposits</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setShowLogModal(true)}>
-            <Upload size={16} className="mr-2" /> Log New Payment
-          </Button>
-        </div>
+      <div className="flex items-center justify-end">
+        <Button onClick={() => setShowLogModal(true)}>
+          <Upload size={16} className="mr-2" /> Log New Payment
+        </Button>
       </div>
 
       {/* Rejected Payments Alert Banner */}

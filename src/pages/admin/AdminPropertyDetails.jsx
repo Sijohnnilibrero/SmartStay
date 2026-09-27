@@ -99,8 +99,8 @@ export default function AdminPropertyDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f4f0] pb-24 font-['Plus_Jakarta_Sans']">
-      <div className="bg-white border-b border-stone-200 sticky top-0 z-40">
+    <div className="min-h-screen pb-24 font-['Plus_Jakarta_Sans']">
+      <div className="glass-panel sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors text-sm font-medium">
             <ArrowLeft size={16} /> Back to Properties
@@ -319,7 +319,7 @@ export default function AdminPropertyDetails() {
       {/* Confirmation Modal */}
       {confirmAction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-[--surface-modal] rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-[--border-default]">
             <h3 className="font-bold text-xl text-stone-800 mb-2 text-center">
               {confirmAction === 'approve' ? 'Approve Property' : confirmAction === 'reject' ? 'Reject Property' : 'Delete Property'}
             </h3>
@@ -333,7 +333,7 @@ export default function AdminPropertyDetails() {
             {confirmAction === 'reject' && (
               <div className="mb-6">
                 <textarea 
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/50" 
+                  className="w-full bg-[--surface-subtle] text-[--text-primary] border border-[--border-input] rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/50 placeholder:text-[--text-muted]" 
                   rows="3" 
                   placeholder="Reason for rejection (Optional)"
                   value={rejectionReasonText}

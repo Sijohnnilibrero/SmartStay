@@ -45,17 +45,13 @@ export default function AdminMap() {
 
   return (
     <div className="page-enter flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
-      {/* Header */}
-      <div className="px-6 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <div>
-          <p className="font-bold text-lg md:text-xl text-stone-800">
-            {user?.role === 'super_admin' ? 'Global System Map' : `${user?.admin_region || 'Regional'} Map`}
-          </p>
-          <p className="text-sm text-stone-400 mt-0.5">
-            {loading ? 'Loading…' : `${pinned.length} properties on map · ${unpinned.length} without location`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-stone-500">          <span className="flex items-center gap-1.5">
+      {/* Count info strip */}
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between flex-shrink-0">
+        <p className="text-sm text-stone-400">
+          {loading ? 'Loading…' : `${pinned.length} properties on map · ${unpinned.length} without location`}
+        </p>
+        <div className="flex items-center gap-3 text-[11px] text-stone-500">
+          <span className="flex items-center gap-1.5">
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D9E75', display: 'inline-block' }} />
             Active
           </span>

@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, Button, Badge, Input } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
-import { Headphones, Search, CheckCircle2, Clock, MessageSquare, AlertCircle, Sparkles, Filter, Send, RefreshCw } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { 
+  Headphones, 
+  Search, 
+  CheckCircle2, 
+  Clock, 
+  MessageSquare, 
+  AlertCircle, 
+  Send, 
+  RefreshCw, 
+  X, 
+  ChevronRight, 
+  User, 
+  Calendar 
+} from 'lucide-react'
 
 const CATEGORY_LABELS = {
   technical_bug: { label: 'Technical Bug', icon: '🐛', color: 'rose' },
@@ -19,6 +34,8 @@ const STATUS_BADGES = {
   closed: { label: 'Closed', color: 'stone' },
 }
 
+const TICKETS_PER_PAGE = 8
+
 export default function AdminSupport() {
   const { user, fetchSupportTickets, updateSupportTicketStatus } = useAuthStore()
   const { addToast } = useAppStore()
@@ -27,9 +44,10 @@ export default function AdminSupport() {
   const [loading, setLoading] = useState(true)
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [responseMsg, setResponseMsg] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('open')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [actioning, setActioning] = useState(false)
 
   const loadTickets = useCallback((silent = false) => {
@@ -54,6 +72,39 @@ export default function AdminSupport() {
     loadTickets()
   }, [statusFilter, categoryFilter])
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, categoryFilter, searchQuery])
+
+  // Realtime subscription for incoming support tickets
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-support-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'support_tickets' },
+        () => {
+          loadTickets(true)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadTickets])
+
+  const handleOpenTicket = (ticket) => {
+    setSelectedTicket(ticket)
+    setResponseMsg('')
+  }
+
+  const handleCloseModal = () => {
+    setSelectedTicket(null)
+    setResponseMsg('')
+  }
+
   const handleUpdateStatus = async (status) => {
     if (!selectedTicket) return
     setActioning(true)
@@ -61,6 +112,7 @@ export default function AdminSupport() {
       await updateSupportTicketStatus(selectedTicket.id, status, responseMsg.trim() || selectedTicket.admin_response)
       addToast(`Ticket status updated to ${status}`, 'success')
       setResponseMsg('')
+      handleCloseModal()
       loadTickets(true)
     } catch (err) {
       addToast(err.message, 'error')
@@ -88,9 +140,12 @@ export default function AdminSupport() {
     const q = searchQuery.toLowerCase()
     const matchSubject = (t.subject || '').toLowerCase().includes(q)
     const matchMsg = (t.message || '').toLowerCase().includes(q)
-    const matchUser = (t.user?.full_name || '').toLowerCase().includes(q)
+    const matchUser = (t.user?.full_name || t.user_email || '').toLowerCase().includes(q)
     return matchSubject || matchMsg || matchUser
   })
+
+  const totalPages = Math.ceil(filteredTickets.length / TICKETS_PER_PAGE) || 1
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * TICKETS_PER_PAGE, currentPage * TICKETS_PER_PAGE)
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto page-enter">
@@ -98,7 +153,7 @@ export default function AdminSupport() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
+            <div className="p-2.5 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
               <Headphones size={22} />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100">
@@ -160,183 +215,251 @@ export default function AdminSupport() {
         </select>
       </div>
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Ticket List (Left Column) */}
-        <div className="lg:col-span-5 space-y-3">
-          {loading && tickets.length === 0 ? (
-            <div className="text-center py-12 text-stone-400 text-xs">Loading support tickets...</div>
-          ) : filteredTickets.length === 0 ? (
-            <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-white/10 p-8 text-center space-y-2">
-              <span className="text-3xl">🎉</span>
-              <p className="font-bold text-sm text-stone-800 dark:text-stone-200">No support tickets found</p>
-              <p className="text-xs text-stone-500">All customer inquiries are resolved or no tickets match the filter.</p>
-            </div>
-          ) : (
-            filteredTickets.map((t) => {
-              const cat = CATEGORY_LABELS[t.category] || CATEGORY_LABELS.other
-              const stat = STATUS_BADGES[t.status] || STATUS_BADGES.open
-              const isSelected = selectedTicket?.id === t.id
+      {/* Full-Width Ticket Inbox */}
+      <div className="space-y-3">
+        {loading && tickets.length === 0 ? (
+          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-white/10 p-12 text-center text-stone-400 text-xs">
+            <RefreshCw size={24} className="animate-spin mx-auto mb-2 text-teal-600" />
+            Loading customer support tickets...
+          </div>
+        ) : filteredTickets.length === 0 ? (
+          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-white/10 p-12 text-center space-y-2 shadow-sm">
+            <span className="text-4xl block">🎉</span>
+            <p className="font-extrabold text-base text-stone-800 dark:text-stone-200">No support tickets found</p>
+            <p className="text-xs text-stone-500 max-w-sm mx-auto">
+              All customer inquiries are resolved or no tickets match your current search/filter.
+            </p>
+          </div>
+        ) : (
+          paginatedTickets.map((t) => {
+            const cat = CATEGORY_LABELS[t.category] || CATEGORY_LABELS.other
+            const stat = STATUS_BADGES[t.status] || STATUS_BADGES.open
 
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTicket(t)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-500 ring-1 ring-teal-500/30 shadow-md'
-                      : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-white/10 hover:border-stone-300 dark:hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{cat.icon}</span>
-                      <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                        {cat.label}
+            return (
+              <div
+                key={t.id}
+                onClick={() => handleOpenTicket(t)}
+                className="p-4 sm:p-5 rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 hover:border-teal-500 dark:hover:border-teal-500/60 hover:shadow-md transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                {/* Left Info */}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                      {cat.label}
+                    </span>
+                    {t.category === 'account_access' && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 uppercase tracking-wide">
+                        Appeal
                       </span>
-                      {t.category === 'account_access' && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 uppercase tracking-wide">
-                          Appeal
-                        </span>
-                      )}
-                    </div>
-                    <Badge variant={stat.color}>{stat.label}</Badge>
+                    )}
                   </div>
 
-                  <h3 className="font-bold text-sm text-stone-900 dark:text-white truncate">
+                  <h3 className="font-bold text-sm sm:text-base text-stone-900 dark:text-white truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                     {t.subject}
                   </h3>
 
-                  <p className="text-xs text-stone-600 dark:text-stone-300 line-clamp-2 mt-1">
+                  <p className="text-xs text-stone-600 dark:text-stone-300 line-clamp-1">
                     {t.message}
                   </p>
 
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-stone-100 dark:border-white/5 text-[11px] text-stone-400">
-                    <span>From: {t.user?.full_name || 'User'} ({t.user?.role || 'user'})</span>
-                    <span>{new Date(t.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Ticket Details & Resolution Panel (Right Column) */}
-        <div className="lg:col-span-7">
-          {selectedTicket ? (
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-white/10 p-5 sm:p-6 space-y-6 shadow-md">
-              
-              {/* Header */}
-              <div className="flex items-start justify-between gap-3 border-b border-stone-100 dark:border-white/10 pb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base">{CATEGORY_LABELS[selectedTicket.category]?.icon || '📌'}</span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
-                      {CATEGORY_LABELS[selectedTicket.category]?.label || 'General'}
+                  <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-stone-400 dark:text-stone-500">
+                    <span className="flex items-center gap-1">
+                      <User size={12} />
+                      <strong className="text-stone-700 dark:text-stone-300">
+                        {t.user?.full_name || t.user_email || 'User'}
+                      </strong>
+                      <span>({t.user?.role || 'user'})</span>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(t.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <h2 className="text-lg font-bold text-stone-900 dark:text-white">
-                    {selectedTicket.subject}
-                  </h2>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    Submitted by <strong className="text-stone-700 dark:text-stone-300">{selectedTicket.user?.full_name}</strong> ({selectedTicket.user?.email}) on {new Date(selectedTicket.created_at).toLocaleString()}
-                  </p>
                 </div>
 
-                <Badge variant={STATUS_BADGES[selectedTicket.status]?.color || 'amber'}>
-                  {STATUS_BADGES[selectedTicket.status]?.label || selectedTicket.status}
-                </Badge>
-              </div>
-
-              {/* User Inquiry Message */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                  User Inquiry / Issue Description
-                </label>
-                <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/80 dark:border-white/5 text-xs sm:text-sm text-stone-800 dark:text-stone-200 whitespace-pre-wrap leading-relaxed">
-                  {selectedTicket.message}
+                {/* Right Action & Status Badge */}
+                <div className="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
+                  <Badge variant={stat.color}>{stat.label}</Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs font-semibold group-hover:bg-teal-50 dark:group-hover:bg-teal-950/40 group-hover:border-teal-500 group-hover:text-teal-700 dark:group-hover:text-teal-300 flex items-center gap-1 transition-all"
+                  >
+                    <span>Review</span>
+                    <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Button>
                 </div>
               </div>
+            )
+          })
+        )}
 
-              {/* Existing Admin Response (if any) */}
-              {selectedTicket.admin_response && (
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1">
-                    <CheckCircle2 size={13} /> Support Team Response
-                  </label>
-                  <div className="p-4 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/60 text-xs sm:text-sm text-teal-950 dark:text-teal-200 whitespace-pre-wrap leading-relaxed">
-                    {selectedTicket.admin_response}
-                  </div>
+        {/* Pagination Bar */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t border-stone-200 dark:border-white/10 text-xs text-stone-500">
+            <span>
+              Showing {(currentPage - 1) * TICKETS_PER_PAGE + 1}–{Math.min(currentPage * TICKETS_PER_PAGE, filteredTickets.length)} of {filteredTickets.length} tickets
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="text-xs"
+              >
+                ← Previous
+              </Button>
+              <span className="px-2.5 font-bold text-stone-700 dark:text-stone-300">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="text-xs"
+              >
+                Next →
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Pop-Up Modal: Ticket Details & Response */}
+      {selectedTicket && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            onClick={handleCloseModal}
+          />
+
+          {/* Modal Card */}
+          <div className="relative w-full max-w-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-white/10 rounded-3xl shadow-2xl p-5 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto z-10 animate-scaleUp">
+            
+            {/* Top Modal Bar */}
+            <div className="flex items-start justify-between gap-3 border-b border-stone-100 dark:border-white/10 pb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-base">{CATEGORY_LABELS[selectedTicket.category]?.icon || '📌'}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                    {CATEGORY_LABELS[selectedTicket.category]?.label || 'General'}
+                  </span>
+                  <Badge variant={STATUS_BADGES[selectedTicket.status]?.color || 'amber'}>
+                    {STATUS_BADGES[selectedTicket.status]?.label || selectedTicket.status}
+                  </Badge>
                 </div>
-              )}
+                <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 dark:text-white">
+                  {selectedTicket.subject}
+                </h2>
+                <p className="text-xs text-stone-500 mt-1">
+                  Submitted by <strong className="text-stone-700 dark:text-stone-300">{selectedTicket.user?.full_name || selectedTicket.user_email || 'User'}</strong> ({selectedTicket.user?.email || selectedTicket.user_email || 'No email'}) on {new Date(selectedTicket.created_at).toLocaleString()}
+                </p>
+              </div>
 
-              {/* Response & Resolution Form */}
-              <div className="space-y-3 pt-3 border-t border-stone-100 dark:border-white/10">
-                <label className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                  Respond & Update Ticket
+              <button
+                onClick={handleCloseModal}
+                className="p-2 rounded-xl text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* User Inquiry Message */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                User Inquiry / Issue Description
+              </label>
+              <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/80 dark:border-white/5 text-xs sm:text-sm text-stone-800 dark:text-stone-200 whitespace-pre-wrap leading-relaxed">
+                {selectedTicket.message}
+              </div>
+            </div>
+
+            {/* Existing Support Team Response (if already replied) */}
+            {selectedTicket.admin_response && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                  <CheckCircle2 size={13} /> Support Team Response
                 </label>
-                <textarea
-                  rows={4}
-                  value={responseMsg}
-                  onChange={(e) => setResponseMsg(e.target.value)}
-                  placeholder="Write a helpful response or resolution instructions to the user..."
-                  className="w-full p-3.5 rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-800 text-xs sm:text-sm text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-                />
+                <div className="p-4 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/60 text-xs sm:text-sm text-teal-950 dark:text-teal-200 whitespace-pre-wrap leading-relaxed">
+                  {selectedTicket.admin_response}
+                </div>
+              </div>
+            )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                  <div className="flex items-center gap-2">
+            {/* Response & Resolution Form */}
+            <div className="space-y-3 pt-3 border-t border-stone-100 dark:border-white/10">
+              <label className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                Write Reply / Resolution Instructions
+              </label>
+              <textarea
+                rows={4}
+                value={responseMsg}
+                onChange={(e) => setResponseMsg(e.target.value)}
+                placeholder="Write a helpful response or instructions for the user..."
+                className="w-full p-3.5 rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-800 text-xs sm:text-sm text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={actioning || !responseMsg.trim()}
+                    onClick={handleSendResponse}
+                    className="flex items-center gap-1.5 text-xs cursor-pointer"
+                  >
+                    <Send size={13} />
+                    <span>Send Response</span>
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedTicket.status !== 'resolved' && (
                     <Button
                       size="sm"
-                      variant="primary"
-                      disabled={actioning || !responseMsg.trim()}
-                      onClick={handleSendResponse}
-                      className="flex items-center gap-1.5 text-xs cursor-pointer"
+                      disabled={actioning}
+                      onClick={() => handleUpdateStatus('resolved')}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Send size={13} />
-                      <span>Send Response</span>
+                      <CheckCircle2 size={13} />
+                      <span>Mark as Resolved</span>
                     </Button>
-                  </div>
+                  )}
 
-                  <div className="flex items-center gap-2">
-                    {selectedTicket.status !== 'resolved' && (
-                      <Button
-                        size="sm"
-                        disabled={actioning}
-                        onClick={() => handleUpdateStatus('resolved')}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <CheckCircle2 size={13} />
-                        <span>Mark as Resolved</span>
-                      </Button>
-                    )}
+                  {selectedTicket.status === 'resolved' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actioning}
+                      onClick={() => handleUpdateStatus('open')}
+                      className="text-xs cursor-pointer"
+                    >
+                      Re-open Ticket
+                    </Button>
+                  )}
 
-                    {selectedTicket.status === 'resolved' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={actioning}
-                        onClick={() => handleUpdateStatus('open')}
-                        className="text-xs cursor-pointer"
-                      >
-                        Re-open Ticket
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCloseModal}
+                    className="text-xs cursor-pointer text-stone-500"
+                  >
+                    Close
+                  </Button>
                 </div>
               </div>
-
             </div>
-          ) : (
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-white/10 p-12 text-center text-stone-400 space-y-2">
-              <Headphones size={36} className="mx-auto text-stone-300 dark:text-stone-600" />
-              <p className="font-bold text-sm text-stone-700 dark:text-stone-300">No ticket selected</p>
-              <p className="text-xs">Click on any customer ticket from the list on the left to view details and reply.</p>
-            </div>
-          )}
-        </div>
 
-      </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   )
 }

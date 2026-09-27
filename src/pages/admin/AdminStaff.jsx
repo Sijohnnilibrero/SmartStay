@@ -58,11 +58,6 @@ export default function AdminStaff() {
 
   return (
     <div className="page-enter">
-      <div className="px-6 pt-5 pb-4 flex items-center justify-between">
-        <div>
-          <p className="font-bold text-lg md:text-xl text-stone-800">Manage Staff</p>
-          <p className="text-sm text-stone-400 mt-0.5">Super Admin privileges: Create and assign territories to Island Admins.</p>
-        </div>      </div>
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: List of Admins */}

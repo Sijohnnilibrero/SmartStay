@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
-import Topbar from '@/components/layout/Topbar'
 import { Button, Card, Input } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -1295,7 +1294,6 @@ export default function AddProperty() {
 
   return (
     <div className="page-enter min-h-screen" style={{ background: 'var(--bg-main)' }}>
-      <Topbar title={isEdit ? 'Edit Property' : 'Add New Property'} />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Step Indicator / Edit Tabs */}

@@ -124,22 +124,17 @@ export default function HomeownerLedger() {
     <>
       <div className="page-enter w-full max-w-full flex flex-col h-[calc(100vh-80px)] space-y-4 px-4 sm:px-6 pt-5 pb-6">
         
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div>
-            <h1 className="text-lg md:text-xl font-bold text-stone-800">Transaction Ledger</h1>
-            <p className="text-sm text-stone-500 mt-1">Manage and verify tenant payments</p>
-          </div>
-          <div className="flex items-center gap-3">            <Card className="px-4 py-2 flex items-center gap-3 bg-teal-50 border-teal-100 shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
-                <DollarSign size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-teal-600 font-bold">Earned this Month</p>
-                <p className="text-lg font-black text-teal-800">₱{totalEarningsThisMonth.toLocaleString()}</p>
-              </div>
-            </Card>
-          </div>
+        {/* Stat strip */}
+        <div className="flex items-center justify-end shrink-0">
+          <Card className="px-4 py-2 flex items-center gap-3 bg-teal-50 border-teal-100 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+              <DollarSign size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-teal-600 font-bold">Earned this Month</p>
+              <p className="text-lg font-black text-teal-800">₱{totalEarningsThisMonth.toLocaleString()}</p>
+            </div>
+          </Card>
         </div>
 
         {/* Tabs */}

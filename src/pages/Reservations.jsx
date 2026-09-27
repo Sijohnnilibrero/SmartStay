@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Topbar from '@/components/layout/Topbar'
 import { supabase } from '@/lib/supabase'
 import { Card, Badge, Avatar, Button } from '@/components/ui'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
@@ -198,7 +197,6 @@ export default function Reservations() {
 
   return (
     <div className="page-enter">
-      <Topbar title="Reservations" />
 
       <div className="p-6 space-y-4">
         {/* Sticky Status Filters */}

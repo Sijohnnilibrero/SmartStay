@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
-import Topbar from '@/components/layout/Topbar'
 import { Phone, Mail, MapPin, Calendar, CreditCard, MessageSquare, ExternalLink, ArrowRight, Star } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
@@ -68,7 +67,6 @@ export default function MyLandlord() {
   if (loading) {
     return (
       <div className="page-enter flex flex-col h-screen">
-        <Topbar title="My Landlord" />
         <div className="flex-1 flex items-center justify-center text-stone-400">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--teal] mx-auto mb-4" />
@@ -82,7 +80,6 @@ export default function MyLandlord() {
   if (!data || !data.landlord) {
     return (
       <div className="page-enter flex flex-col h-screen">
-        <Topbar title="My Landlord" />
         <div className="flex-1 flex items-center justify-center p-6 bg-stone-50/50">
           <div className="max-w-md w-full text-center p-8 bg-white border border-stone-200 rounded-2xl shadow-sm">
             <div className="w-16 h-16 rounded-full bg-stone-50 flex items-center justify-center text-3xl mb-4 mx-auto border border-stone-100">
@@ -146,7 +143,6 @@ export default function MyLandlord() {
 
   return (
     <div className="page-enter flex flex-col h-screen">
-      <Topbar title="My Landlord" />
 
       <div className="flex-1 overflow-y-auto p-6 bg-stone-50/50">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -8,16 +8,16 @@ export { default as SmartStayLogo } from './SmartStayLogo'
 /* ── Badge ───────────────────────────────────────────── */
 export function Badge({ children, variant = 'teal', className }) {
   const variants = {
-    teal:   'bg-[--teal-light]   text-[--teal]   border border-teal-200',
-    amber:  'bg-[--amber-light]  text-[--amber]  border border-amber-200',
-    coral:  'bg-[--coral-light]  text-[--coral]  border border-red-200',
-    purple: 'bg-[--purple-light] text-[--purple] border border-purple-200',
-    gray:   'bg-stone-100        text-stone-600   border border-stone-200',
+    teal:   'bg-[--teal-light]   text-[--teal]   dark:text-teal-300   border border-teal-200   dark:border-teal-700/60',
+    amber:  'bg-[--amber-light]  text-[--amber]  dark:text-amber-300  border border-amber-200  dark:border-amber-700/60',
+    coral:  'bg-[--coral-light]  text-[--coral]  dark:text-red-400    border border-red-200    dark:border-red-700/60',
+    purple: 'bg-[--purple-light] text-[--purple] dark:text-violet-400 border border-purple-200 dark:border-purple-700/60',
+    gray:   'bg-stone-100        text-stone-600   dark:bg-white/10     dark:text-stone-300      border border-stone-200 dark:border-white/10',
   }
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium',
+        'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold',
         variants[variant] || variants.gray,
         className
       )}

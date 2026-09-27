@@ -1359,6 +1359,7 @@ export const useAuthStore = create(
 
         const { data, error } = await supabase.from('support_tickets').insert({
           user_id: user.id,
+          user_email: user.email || null,
           category: payload.category || 'general_inquiry',
           subject: payload.subject,
           message: payload.message,
@@ -1375,7 +1376,7 @@ export const useAuthStore = create(
           let query = supabase.from('support_tickets')
             .select(`
               *,
-              user:profiles(id, full_name, email, role, municipality, avatar_url)
+              user:profiles!support_tickets_user_id_fkey(id, full_name, email, role, municipality, avatar_url)
             `)
             .order('created_at', { ascending: false })
 
@@ -1384,8 +1385,32 @@ export const useAuthStore = create(
 
           const { data, error } = await query
           if (error) {
-            console.warn('Could not fetch support_tickets (table may not be created yet in Supabase):', error.message)
-            return []
+            console.warn('Direct FK join failed, falling back to manual profiles join:', error.message)
+            let fallbackQuery = supabase.from('support_tickets')
+              .select('*')
+              .order('created_at', { ascending: false })
+
+            if (filters.status && filters.status !== 'all') fallbackQuery = fallbackQuery.eq('status', filters.status)
+            if (filters.category && filters.category !== 'all') fallbackQuery = fallbackQuery.eq('category', filters.category)
+
+            const fallbackRes = await fallbackQuery
+            if (fallbackRes.error) {
+              console.warn('Could not fetch support_tickets fallback:', fallbackRes.error.message)
+              return []
+            }
+
+            const rawTickets = fallbackRes.data || []
+            const userIds = [...new Set(rawTickets.map(t => t.user_id).filter(Boolean))]
+            let profileMap = {}
+            if (userIds.length > 0) {
+              const { data: profs } = await supabase.from('profiles').select('id, full_name, email, role, municipality, avatar_url').in('id', userIds)
+              if (profs) profs.forEach(p => { profileMap[p.id] = p })
+            }
+
+            return rawTickets.map(t => ({
+              ...t,
+              user: profileMap[t.user_id] || (t.user_email ? { full_name: t.user_email, email: t.user_email } : null)
+            }))
           }
           return data || []
         } catch (e) {
@@ -1408,7 +1433,53 @@ export const useAuthStore = create(
 
         const { data, error } = await supabase.from('support_tickets').update(updateData).eq('id', id).select().single()
         if (error) throw new Error('Failed to update support ticket: ' + error.message)
+
+        // Dispatch notification to user if possible
+        if (data?.user_id) {
+          try {
+            const notifTitle = status === 'resolved' 
+              ? 'Support Ticket Resolved' 
+              : 'Support Team Replied'
+            
+            const notifBody = adminResponse 
+              ? `Support team replied to "${data.subject}": ${adminResponse}`
+              : `Your support ticket "${data.subject}" status is now ${status}.`
+
+            await supabase.from('app_notifications').insert({
+              user_id: data.user_id,
+              title: notifTitle,
+              body: notifBody,
+              type: 'support_ticket',
+            })
+          } catch (notifErr) {
+            // Non-blocking if RLS or triggers handle it
+            console.warn('Direct notification notice:', notifErr)
+          }
+        }
+
         return data
+      },
+
+      fetchUserSupportTickets: async () => {
+        const user = get().user
+        if (!user?.id) return []
+
+        try {
+          const { data, error } = await supabase
+            .from('support_tickets')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+
+          if (error) {
+            console.warn('Could not fetch user support tickets:', error.message)
+            return []
+          }
+          return data || []
+        } catch (e) {
+          console.warn('Error fetching user support tickets:', e)
+          return []
+        }
       },
     }),
 

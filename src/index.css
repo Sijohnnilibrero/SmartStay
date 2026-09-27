@@ -60,10 +60,10 @@
 
 /* ── Dark Mode Token Overrides ── */
 .dark {
-  --teal-light:  rgba(15, 110, 86, 0.22);
-  --amber-light: rgba(186, 117, 23, 0.22);
-  --coral-light: rgba(216, 90, 48, 0.22);
-  --purple-light:rgba(83, 74, 183, 0.22);
+  --teal-light:  rgba(15, 110, 86, 0.32);
+  --amber-light: rgba(186, 117, 23, 0.32);
+  --coral-light: rgba(216, 90, 48, 0.32);
+  --purple-light:rgba(83, 74, 183, 0.32);
 
   --surface-page:    linear-gradient(155deg, #090e0c 0%, #0d0c18 48%, #14100a 100%);
   --surface-bg:      #18181b;

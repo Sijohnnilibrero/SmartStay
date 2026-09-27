@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Users, Home, Calendar, Shield, AlertTriangle, TrendingUp, BedDouble, MapPin, DollarSign, Headphones } from 'lucide-react'
-import ThemeToggle from '@/components/layout/ThemeToggle'
-import NotificationBell from '@/components/layout/NotificationBell'
+import { supabase } from '@/lib/supabase'
+import { Users, Home, Shield, AlertTriangle, Headphones } from 'lucide-react'
 import PropertyMap from '@/components/map/PropertyMap'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts'
 import { formatCurrency } from '@/lib/utils'
 
 const MUNICIPALITIES = ['Basco', 'Mahatao', 'Ivana', 'Uyugan', 'Sabtang', 'Itbayat']
@@ -15,7 +13,7 @@ const COLORS = ['#1D9E75', '#534AB7', '#BA7517', '#D85A30', '#0F6E56', '#7C3AED'
 export default function AdminDashboard() {
   const [stats, setStats] = useState([])
   const [recent, setRecent] = useState([])
-  const [expiringPermits, setExpiringPermits] = useState([])
+  const [permitStats, setPermitStats] = useState({ valid: 0, expiring: 0, expired: 0, actionList: [] })
   const [activeProperties, setActiveProperties] = useState([])
   const [openTicketsCount, setOpenTicketsCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -54,31 +52,66 @@ export default function AdminDashboard() {
         }
       }
 
+      const activeList = properties.filter(function(p) { return p.status === 'approved' || p.status === 'active' })
+      const pendingProps = properties.filter(p => p.status === 'pending_review')
+
       setStats([
-        { label: 'Total Tenants', value: users.filter(function(u) { return u.role === 'tenant' }).length, icon: Users, color: 'blue' },
-        { label: 'Total Homeowners', value: users.filter(function(u) { return u.role === 'owner' }).length, icon: Home, color: 'purple' },
-        { label: 'Total Properties', value: properties.length, icon: Home, color: 'emerald' },
-        { label: 'Pending Approvals', value: properties.filter(function(p) { return p.status === 'pending_review' }).length, icon: Shield, color: 'amber' },
+        { label: 'Total Tenants', value: users.filter(function(u) { return u.role === 'tenant' }).length, icon: Users, color: 'blue', link: '/admin/users?role=tenant' },
+        { label: 'Total Homeowners', value: users.filter(function(u) { return u.role === 'owner' }).length, icon: Home, color: 'purple', link: '/admin/users?role=owner' },
+        { label: 'Active Properties', value: activeList.length, icon: Home, color: 'emerald', link: '/admin/properties' },
+        { label: 'Support Tickets', value: openTickets.length, icon: Headphones, color: 'amber', link: '/admin/support' },
       ])
       
-      const pendingProps = properties.filter(p => p.status === 'pending_review')
       setRecent(pendingProps.slice(0, 5))
 
       var now = new Date()
       var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-      var expiring = properties.filter(function(p) {
-        if (!p.permit_expires_on || p.status === 'inactive') return false
-        return new Date(p.permit_expires_on) <= thirtyDays
-      })
-      setExpiringPermits(expiring)
 
-      setActiveProperties(properties.filter(p => p.status === 'approved' || p.status === 'active'))
+      var expiredList = activeList.filter(function(p) {
+        if (!p.permit_expires_on) return false
+        return new Date(p.permit_expires_on) < now
+      })
+      var expiringList = activeList.filter(function(p) {
+        if (!p.permit_expires_on) return false
+        var expDate = new Date(p.permit_expires_on)
+        return expDate >= now && expDate <= thirtyDays
+      })
+      var validList = activeList.filter(function(p) {
+        if (!p.permit_expires_on) return true
+        return new Date(p.permit_expires_on) > thirtyDays
+      })
+
+      setPermitStats({
+        valid: validList.length,
+        expiring: expiringList.length,
+        expired: expiredList.length,
+        actionList: [...expiredList, ...expiringList],
+      })
+
+      setActiveProperties(activeList)
 
       if (!silent) setLoading(false)
     })
   }, [])
 
   useEffect(function() { loadData() }, [loadData])
+
+  useEffect(function() {
+    const channel = supabase
+      .channel('admin-dashboard-support-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'support_tickets' },
+        function() {
+          loadData(true)
+        }
+      )
+      .subscribe()
+
+    return function() {
+      supabase.removeChannel(channel)
+    }
+  }, [loadData])
 
   useEffect(function() {
     function handleVisibility() {
@@ -95,15 +128,6 @@ export default function AdminDashboard() {
 
 
   // --- Analytics Processing ---
-  let totalRooms = 0
-  let availableRooms = 0
-  
-  activeProperties.forEach(p => {
-    totalRooms += (p.total_rooms || 0)
-    availableRooms += (p.available_rooms || 0)
-  })
-  let occupiedRooms = totalRooms - availableRooms
-
   const isSuperAdmin = user?.role === 'super_admin'
   const adminRegion = user?.admin_region || 'Batan Island'
 
@@ -125,29 +149,15 @@ export default function AdminDashboard() {
         return m.island === 'Batan'
       })
 
-  const totalActiveProps = activeProperties.length
-
   const muniStats = scopedMunicipalities.map(m => {
     const props = activeProperties.filter(p => p.municipality === m.name)
-    const count = props.length
-    const rooms = props.reduce((sum, p) => sum + (p.total_rooms || 0), 0)
-    const avail = props.reduce((sum, p) => sum + (p.available_rooms || 0), 0)
-    const share = totalActiveProps > 0 ? Math.round((count / totalActiveProps) * 100) : 0
     return {
       ...m,
-      count,
-      rooms,
-      avail,
-      share
+      count: props.length,
     }
   })
 
   const activeMuniCount = muniStats.filter(m => m.count > 0).length
-
-  const vacancyData = [
-    { name: 'Available', value: availableRooms, color: '#1D9E75' },
-    { name: 'Occupied', value: occupiedRooms, color: '#534AB7' },
-  ]
 
   // Scoped map regions
   const availableIslands = isSuperAdmin
@@ -165,22 +175,6 @@ export default function AdminDashboard() {
       else setMapIsland('Batan')
     }
   }, [isSuperAdmin, adminRegion])
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-[#18181b] border border-stone-200 dark:border-white/10 p-3 rounded-xl shadow-xl text-stone-900 dark:text-white">
-          <p className="font-bold text-sm mb-1">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-xs font-semibold" style={{ color: entry.color || '#1D9E75' }}>
-              {entry.name}: {entry.name === 'Average Price' || entry.dataKey === 'averagePrice' ? formatCurrency(entry.value) : entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
 
   if (loading) {
@@ -225,26 +219,34 @@ export default function AdminDashboard() {
         )}
 
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 select-none cursor-default">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 select-none">
           {stats.map(function(s) {
             const accentColor = s.color === 'blue' ? '#534AB7' : s.color === 'purple' ? '#7C3AED' : s.color === 'emerald' ? '#1D9E75' : '#BA7517'
             return (
-              <Card key={s.label} className="p-4 sm:p-5 flex flex-col justify-between glass-card hover:-translate-y-1 hover:shadow-lg transition-all duration-300 border-l-4 select-none cursor-default" style={{ borderLeftColor: accentColor }}>
-                <div className="flex items-center gap-2 mb-2 sm:mb-3 select-none cursor-default">
-                  <s.icon size={16} style={{ color: accentColor }} />
-                  <p className="text-[10px] sm:text-xs uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold truncate select-none cursor-default">{s.label}</p>
+              <Card 
+                key={s.label} 
+                onClick={() => s.link && navigate(s.link)}
+                className="p-4 sm:p-5 flex flex-col justify-between glass-card hover:-translate-y-1 hover:shadow-lg transition-all duration-300 border-l-4 cursor-pointer group" 
+                style={{ borderLeftColor: accentColor }}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <s.icon size={16} style={{ color: accentColor }} />
+                    <p className="text-[10px] sm:text-xs uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold truncate">{s.label}</p>
+                  </div>
+                  <span className="text-stone-300 dark:text-stone-600 group-hover:text-stone-700 dark:group-hover:text-stone-200 group-hover:translate-x-0.5 transition-all text-xs font-bold">→</span>
                 </div>
-                <p className="font-extrabold text-2xl sm:text-3xl select-none cursor-default" style={{ color: accentColor }}>{s.value}</p>
+                <p className="font-extrabold text-2xl sm:text-3xl" style={{ color: accentColor }}>{s.value}</p>
               </Card>
             )
           })}
         </div>
 
         {/* Row 2: Analytics & Map Widget */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 flex-1">
           
           {/* Properties per Municipality - Clean Scoped Table */}
-          <Card className="p-5 sm:p-6 glass-card lg:col-span-2 hover:shadow-md transition-shadow">
+          <Card className="p-5 sm:p-6 glass-card lg:col-span-3 hover:shadow-md transition-shadow">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
                 <h3 className="font-extrabold text-stone-900 dark:text-white flex items-center gap-2 text-base">
@@ -267,22 +269,27 @@ export default function AdminDashboard() {
                   <tr className="border-b font-bold uppercase tracking-wider text-[10px] sm:text-[11px]" style={{ backgroundColor: 'var(--surface-thead)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
                     <th className="py-2.5 px-3 sm:px-4">Municipality</th>
                     <th className="py-2.5 px-3 sm:px-4 text-center">Properties</th>
-                    <th className="py-2.5 px-3 sm:px-4 text-center">Available Rooms</th>
-                    <th className="py-2.5 px-3 sm:px-4 text-right">Coverage Share</th>
+                    <th className="py-2.5 px-3 sm:px-4 text-right">Coverage Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 dark:divide-white/5">
                   {muniStats.map((m) => {
                     const isActive = m.count > 0
                     return (
-                      <tr key={m.name} className="transition-colors" style={{ borderColor: 'var(--border-divider)' }}
+                      <tr 
+                        key={m.name} 
+                        onClick={() => navigate(`/admin/properties?municipality=${encodeURIComponent(m.name)}`)}
+                        className="transition-colors cursor-pointer group" 
+                        style={{ borderColor: 'var(--border-divider)' }}
+                        title={`View properties in ${m.name}`}
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-hover)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
+                      >
                         <td className="py-3 px-3 sm:px-4">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
                             <div>
-                              <p className="font-bold text-xs sm:text-sm" style={{ color: 'var(--text-primary)' }}>{m.name}</p>
+                              <p className="font-bold text-xs sm:text-sm group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" style={{ color: 'var(--text-primary)' }}>{m.name}</p>
                               <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{m.island} Island</span>
                             </div>
                           </div>
@@ -292,25 +299,16 @@ export default function AdminDashboard() {
                             {m.count}
                           </span>
                         </td>
-                        <td className="py-3 px-3 sm:px-4 text-center">
-                          {isActive ? (
-                            <span className="text-xs sm:text-sm font-semibold" style={{ color: 'var(--teal)' }}>
-                              {m.avail} <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>/ {m.rooms} rms</span>
-                            </span>
-                          ) : (
-                            <span className="text-xs" style={{ color: 'var(--text-faint)' }}>—</span>
-                          )}
-                        </td>
                         <td className="py-3 px-3 sm:px-4 text-right">
                           {isActive ? (
-                            <div className="inline-flex items-center gap-1.5 justify-end">
-                              <div className="w-16 sm:w-20 bg-stone-100 dark:bg-stone-700 h-2 rounded-full overflow-hidden hidden sm:block">
-                                <div className="h-full rounded-full" style={{ width: `${m.share}%`, backgroundColor: m.color }} />
-                              </div>
-                              <span className="font-bold text-xs" style={{ color: m.color }}>{m.share}%</span>
+                            <div className="inline-flex items-center gap-2 justify-end">
+                              <Badge variant="teal" className="text-[10px] py-0.5 px-2 font-bold">Active</Badge>
+                              <span className="text-stone-300 dark:text-stone-600 group-hover:text-teal-600 dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all text-xs font-semibold">
+                                View listings →
+                              </span>
                             </div>
                           ) : (
-                            <Badge variant="gray" className="text-[9px] py-0 px-1.5">No Listings</Badge>
+                            <Badge variant="gray" className="text-[10px] py-0.5 px-2">No Coverage</Badge>
                           )}
                         </td>
                       </tr>
@@ -321,9 +319,9 @@ export default function AdminDashboard() {
             </div>
           </Card>
 
-          {/* Mini Map Widget */}
-          <Card className="p-0 overflow-hidden glass-card hover:shadow-md transition-shadow lg:col-span-1 flex flex-row min-h-[300px]">
-            <div className="flex-1 relative">
+          {/* Mini Map Widget - Full Width with Floating Overlay Controls */}
+          <Card className="p-0 overflow-hidden glass-card hover:shadow-md transition-shadow lg:col-span-2 relative min-h-[320px] flex flex-col">
+            <div className="w-full flex-1 relative min-h-[320px]">
               <PropertyMap
                 key={mapIsland}
                 mode="browse"
@@ -332,25 +330,32 @@ export default function AdminDashboard() {
                 height="100%"
                 onSelect={(id) => navigate(`/admin/property/${id}`)}
               />
-            </div>
-            {/* Vertical Button Stack */}
-            <div className="w-24 border-l flex flex-col p-2 gap-2 z-10" style={{ backgroundColor: 'var(--surface-bg)', borderColor: 'var(--border-default)' }}>
-              <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest text-center mt-1 mb-1">Regions</p>
-              {availableIslands.map(island => (
-                <button
-                  key={island}
-                  onClick={() => setMapIsland(island)}
-                  className={`w-full py-2 px-1 rounded-md text-[11px] font-bold transition-colors ${mapIsland === island ? 'bg-[#1D9E75] text-white shadow-sm' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
-                >
-                  {island}
-                </button>
-              ))}
-              
-              <div className="flex-1"></div>
-              
-              <Button variant="ghost" size="sm" className="w-full py-2 px-1 text-[10px] font-bold text-[#534AB7] bg-[#534AB7]/5 hover:bg-[#534AB7]/10" onClick={() => navigate('/admin/map')}>
-                ⤢ Full Map
-              </Button>
+
+              {/* Floating Region Switcher (Top Right) */}
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-1 p-1 rounded-xl bg-white/85 dark:bg-stone-900/85 backdrop-blur-md shadow-md border border-stone-200/60 dark:border-white/10">
+                {availableIslands.map(island => (
+                  <button
+                    key={island}
+                    onClick={() => setMapIsland(island)}
+                    className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition-all ${
+                      mapIsland === island
+                        ? 'bg-[#1D9E75] text-white shadow-sm'
+                        : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    {island}
+                  </button>
+                ))}
+              </div>
+
+              {/* Floating Expand Map Button (Bottom Right) */}
+              <button
+                onClick={() => navigate('/admin/map')}
+                className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-800 text-[#534AB7] dark:text-[#a5b4fc] text-[11px] font-bold shadow-md border border-stone-200/60 dark:border-white/10 backdrop-blur-md transition-all group"
+              >
+                <span>Full Map</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">⤢</span>
+              </button>
             </div>
           </Card>
         </div>
@@ -361,17 +366,27 @@ export default function AdminDashboard() {
           <Card className="lg:col-span-2 p-0 overflow-hidden glass-card">
             <div className="p-4 sm:p-5 border-b border-stone-200/50 dark:border-white/10 flex items-center justify-between bg-white/50 dark:bg-stone-800/50">
               <h3 className="font-extrabold text-[13px] sm:text-base text-stone-900 dark:text-white uppercase tracking-wide">Pending Properties</h3>
-              <Link to="/admin/properties"><Button variant="ghost" size="sm" className="px-3 py-1.5 text-xs font-semibold text-[#534AB7] hover:bg-[#534AB7]/10">View all</Button></Link>
+              <Link to="/admin/properties?status=pending_review"><Button variant="ghost" size="sm" className="px-3 py-1.5 text-xs font-semibold text-[#534AB7] hover:bg-[#534AB7]/10">View all</Button></Link>
             </div>
             <div className="divide-y divide-stone-200/50 dark:divide-white/5 p-2 sm:p-0">
               {recent.map(function(r) {
                 return (
-                  <div key={r.id} className="px-3 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-stone-50/50 dark:hover:bg-white/5 transition-colors">
+                  <div 
+                    key={r.id} 
+                    onClick={() => navigate(`/admin/property/${r.id}`)}
+                    className="px-3 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-stone-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                    title={`Review ${r.name}`}
+                  >
                     <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-[12px] sm:text-[14px] font-bold text-stone-800 dark:text-stone-200 truncate"><span className="text-stone-900 dark:text-white">{r.name}</span> in <span className="text-[#1D9E75]">{r.municipality}</span></p>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-stone-800 dark:text-stone-200 truncate group-hover:text-teal-600 transition-colors">
+                        <span className="text-stone-900 dark:text-white">{r.name}</span> in <span className="text-[#1D9E75]">{r.municipality}</span>
+                      </p>
                       <p className="text-[10px] sm:text-xs text-stone-500 dark:text-stone-400 mt-1 font-medium">By {r.owner_name || 'Owner'}</p>
                     </div>
-                    <Badge variant="amber" className="text-[10px] px-2 py-0.5 sm:px-2.5 sm:py-1 font-bold flex-shrink-0">Pending</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="amber" className="text-[10px] px-2 py-0.5 sm:px-2.5 sm:py-1 font-bold flex-shrink-0">Pending</Badge>
+                      <span className="text-stone-300 dark:text-stone-600 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all text-xs font-bold">→</span>
+                    </div>
                   </div>
                 )
               })}
@@ -380,87 +395,107 @@ export default function AdminDashboard() {
           </Card>
 
           <div className="space-y-4 sm:space-y-6">
-            {/* Vacancy Pie moved here to be part of the right column */}
-            <Card className="p-5 sm:p-6 glass-card hover:shadow-md transition-shadow">
-              <h3 className="font-extrabold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
-                <BedDouble size={18} className="text-[#534AB7]" /> System Vacancy
-              </h3>
-              {totalRooms > 0 ? (
-                <div className="h-[200px] w-full relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={vacancyData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {vacancyData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 600 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {/* Center Text */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                    <p className="text-xl font-black text-stone-900 dark:text-white">{Math.round((availableRooms / totalRooms) * 100)}%</p>
-                    <p className="text-[9px] text-stone-500 dark:text-stone-400 uppercase tracking-widest font-bold mt-1">Vacant</p>
+            <Card className="p-5 glass-card border border-stone-200/50 dark:border-white/10 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      permitStats.expired > 0 
+                        ? 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400' 
+                        : permitStats.expiring > 0 
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' 
+                          : 'bg-teal-50 dark:bg-teal-950/60 text-[#1D9E75]'
+                    }`}>
+                      {permitStats.expired > 0 || permitStats.expiring > 0 ? (
+                        <AlertTriangle size={18} />
+                      ) : (
+                        <Shield size={18} />
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900 dark:text-white">LGU Permit Status</h4>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                        {permitStats.actionList.length === 0 ? 'All operating permits are valid' : `${permitStats.actionList.length} permit(s) require attention`}
+                      </p>
+                    </div>
+                  </div>
+                  {permitStats.actionList.length === 0 ? (
+                    <Badge variant="teal" className="text-[10px] py-0.5 px-2 font-bold">Compliant</Badge>
+                  ) : (
+                    <Badge variant={permitStats.expired > 0 ? 'red' : 'amber'} className="text-[10px] py-0.5 px-2 font-bold">
+                      {permitStats.expired > 0 ? `${permitStats.expired} Expired` : `${permitStats.expiring} Expiring`}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Concrete Status Breakdown */}
+                <div className="space-y-2 text-xs pt-1">
+                  <div className="flex items-center justify-between py-1.5 border-b border-stone-100 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span className="text-stone-600 dark:text-stone-300 font-medium">Valid & Up-to-Date</span>
+                    </div>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{permitStats.valid} Stays</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1.5 border-b border-stone-100 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${permitStats.expiring > 0 ? 'bg-amber-500' : 'bg-stone-300 dark:bg-stone-600'}`}></span>
+                      <span className="text-stone-600 dark:text-stone-300 font-medium">Expiring Soon</span>
+                    </div>
+                    <span className={`font-bold ${permitStats.expiring > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500'}`}>
+                      {permitStats.expiring} Stays
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${permitStats.expired > 0 ? 'bg-red-500' : 'bg-stone-300 dark:bg-stone-600'}`}></span>
+                      <span className="text-stone-600 dark:text-stone-300 font-medium">Expired Permits</span>
+                    </div>
+                    <span className={`font-bold ${permitStats.expired > 0 ? 'text-red-600 dark:text-red-400' : 'text-stone-400 dark:text-stone-500'}`}>
+                      {permitStats.expired} Stays
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-stone-400 text-sm font-medium">No room data available</div>
-              )}
-            </Card>
 
-            {expiringPermits.length > 0 && (
-              <Card className="p-0 overflow-hidden glass-card border border-amber-200/50 shadow-[0_4px_20px_-4px_rgba(251,191,36,0.1)]">
-                <div className="bg-amber-50/80 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-amber-200/50">
-                  <AlertTriangle size={16} className="text-amber-600" />
-                  <h3 className="font-extrabold text-[12px] sm:text-[14px] text-amber-900 uppercase tracking-wide">Expiring Permits ({expiringPermits.length})</h3>
-                </div>
-                <div className="divide-y divide-amber-100/30 max-h-[250px] overflow-y-auto bg-white/50">
-                  {expiringPermits.map(p => {
-                    const isExpired = new Date(p.permit_expires_on) < new Date()
-                    return (
-                      <Link key={p.id} to={`/admin/property/${p.id}`} className="block px-4 py-3 hover:bg-white/80 transition-colors">
-                        <p className="text-[12px] sm:text-sm font-bold text-stone-900 truncate">{p.name}</p>
-                        <p className={`text-[10px] sm:text-[11px] font-bold mt-1 ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
-                          {isExpired ? 'Expired: ' : 'Expires: '} {new Date(p.permit_expires_on).toLocaleDateString()}
-                        </p>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </Card>
-            )}
-
-            <div>
-              <p className="font-bold text-[12px] sm:text-[14px] text-stone-500 uppercase tracking-widest px-1 sm:px-0 mb-3">Quick Links</p>
-              <div className="glass-card rounded-xl border border-stone-200/50 divide-y divide-stone-200/50 overflow-hidden">
-                {[
-                  { label: 'Manage Users', desc: 'Approve, suspend, or change roles', to: '/admin/users', icon: Users },
-                  { label: 'Review Properties', desc: 'Approve pending listings', to: '/admin/properties', icon: Home },
-                ].map(function(l) {
-                  return (
-                    <Link key={l.to} to={l.to} className="flex items-center gap-4 p-4 hover:bg-white/60 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-[#534AB7]/10 flex items-center justify-center text-[#534AB7]">
-                        <l.icon size={16} />
-                      </div>
-                      <div>
-                        <p className="text-[12px] sm:text-[14px] font-bold text-stone-900">{l.label}</p>
-                        <p className="text-[10px] sm:text-xs text-stone-500 font-medium mt-0.5">{l.desc}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
+                {/* Actionable List if any permits require renewal */}
+                {permitStats.actionList.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-stone-100 dark:border-white/5">
+                    <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-2">
+                      Requires Renewal ({permitStats.actionList.length})
+                    </p>
+                    <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                      {permitStats.actionList.map(p => {
+                        const isExpired = new Date(p.permit_expires_on) < new Date()
+                        return (
+                          <Link 
+                            key={p.id} 
+                            to={`/admin/property/${p.id}`}
+                            className="flex items-center justify-between p-2 rounded-lg bg-stone-50/80 dark:bg-white/5 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors group"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate group-hover:text-teal-600 transition-colors">
+                                {p.name}
+                              </p>
+                              <p className={`text-[10px] font-semibold ${isExpired ? 'text-red-500' : 'text-amber-500'}`}>
+                                {isExpired ? 'Expired: ' : 'Expires: '}{new Date(p.permit_expires_on).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <span className="text-xs text-stone-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all">→</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+
+              <div className="mt-4 pt-3 border-t border-stone-100 dark:border-white/5 flex items-center justify-between text-[11px]">
+                <span className="text-stone-400 dark:text-stone-500">Provincial Standard</span>
+                <span className="font-bold text-stone-700 dark:text-stone-300">Batanes LGU Verified</span>
+              </div>
+            </Card>
           </div>
 
         </div>
