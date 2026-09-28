@@ -17,6 +17,22 @@ export default function AddReviewModal({ isOpen, onClose, propertyId, propertyNa
     text: ''
   })
 
+  const handleSubRatingChange = (key, val) => {
+    const updatedForm = { ...form, [key]: val }
+    const subCategories = ['cleanliness', 'location_score', 'value', 'safety']
+    const ratedValues = subCategories.map(k => updatedForm[k]).filter(v => v > 0)
+    
+    // Automatically calculate overall rating average from any rated categories
+    const avg = ratedValues.length > 0 
+      ? Math.round(ratedValues.reduce((sum, v) => sum + v, 0) / ratedValues.length)
+      : 0
+
+    setForm({
+      ...updatedForm,
+      rating: avg
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (form.rating === 0) {
@@ -83,7 +99,14 @@ export default function AddReviewModal({ isOpen, onClose, propertyId, propertyNa
           <div className="space-y-6">
             {/* Overall Rating */}
             <div className="flex flex-col items-center p-6 bg-gradient-to-b from-stone-50 to-white border border-stone-100 rounded-2xl shadow-sm">
-              <p className="text-sm font-bold text-stone-800 mb-3 uppercase tracking-wide">Overall Rating *</p>
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-sm font-bold text-stone-800 uppercase tracking-wide">Overall Rating *</p>
+                {form.rating > 0 && (
+                  <span className="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                    {form.rating} / 5
+                  </span>
+                )}
+              </div>
               <div className="transform hover:scale-105 transition-transform">
                 <StarInput 
                   size={36} 
@@ -91,6 +114,9 @@ export default function AddReviewModal({ isOpen, onClose, propertyId, propertyNa
                   onChange={(val) => setForm({ ...form, rating: val })} 
                 />
               </div>
+              <p className="text-[11px] text-stone-400 mt-2">
+                Auto-calculated from categories below (or click stars to set manually)
+              </p>
             </div>
 
             {/* Sub-ratings Grid */}
@@ -102,11 +128,18 @@ export default function AddReviewModal({ isOpen, onClose, propertyId, propertyNa
                 { label: 'Safety', key: 'safety', icon: '🛡️' }
               ].map((item) => (
                 <div key={item.key} className="p-3.5 bg-stone-50 rounded-xl border border-stone-100/50 hover:bg-stone-100/50 transition-colors">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-sm">{item.icon}</span>
-                    <p className="text-xs font-semibold text-stone-600">{item.label}</p>
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{item.icon}</span>
+                      <p className="text-xs font-semibold text-stone-600">{item.label}</p>
+                    </div>
+                    {form[item.key] > 0 && (
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                        {form[item.key]}
+                      </span>
+                    )}
                   </div>
-                  <StarInput size={18} value={form[item.key]} onChange={(val) => setForm({ ...form, [item.key]: val })} />
+                  <StarInput size={18} value={form[item.key]} onChange={(val) => handleSubRatingChange(item.key, val)} />
                 </div>
               ))}
             </div>
