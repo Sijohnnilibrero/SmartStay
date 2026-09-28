@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import NotificationBell from '@/components/layout/NotificationBell'
+import { calculateNextDueDate, formatCurrency } from '@/lib/utils'
 
 export default function TenantDashboard() {
   const { user, loading } = useAuthStore((s) => ({ user: s.user, loading: s.isLoading }))
@@ -136,8 +137,8 @@ export default function TenantDashboard() {
                 {dueData.isOverdue ? 'Rent is Overdue' : 'Rent is Due Soon'}
               </h4>
               <p className={`text-xs mt-1 ${dueData.isOverdue ? 'text-red-700' : 'text-orange-700'}`}>
-                Your monthly rent is <strong>{formatCurrency(landlordData.reservation.amount_total / landlordData.reservation.duration_months)}</strong>. 
-                You have verified payments of {formatCurrency((landlordData.reservation.amount_total / landlordData.reservation.duration_months) - dueData.amountDue)} for this billing cycle.
+                Your monthly rent is <strong>{formatCurrency(landlordData.reservation.amount_total / (landlordData.reservation.duration_months || 1))}</strong>. 
+                You have verified payments of {formatCurrency((landlordData.reservation.amount_total / (landlordData.reservation.duration_months || 1)) - dueData.amountDue)} for this billing cycle.
                 <br />
                 Please log a payment for your remaining balance of <strong>{formatCurrency(dueData.amountDue)}</strong> {dueData.isOverdue ? 'as soon as possible.' : `by ${dueData.dateString}.`}
               </p>
