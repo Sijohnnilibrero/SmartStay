@@ -105,7 +105,12 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Brand icon */}
             <div className="md:hidden flex items-center flex-shrink-0">
-              <SmartStayLogo variant="icon" size="sm" className="drop-shadow-sm" />
+              <div 
+                className="w-8 h-8 rounded-lg shadow-xs flex items-center justify-center p-1 shrink-0 border border-stone-200/60 dark:border-white/20"
+                style={{ backgroundColor: '#ffffff' }}
+              >
+                <img src="/logo-icon.png" alt="SmartStay" className="w-full h-full object-contain" />
+              </div>
             </div>
             
             <div className="min-w-0">

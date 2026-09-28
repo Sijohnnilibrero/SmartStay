@@ -176,12 +176,17 @@ export default function Sidebar() {
         <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10" />
         <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2.5 mb-1">
-            <img src="/logo-icon.png" alt="SmartStay" className="w-8 h-8 object-contain drop-shadow brightness-110" />
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div 
+              className="w-9 h-9 rounded-xl shadow-sm flex items-center justify-center p-1.5 shrink-0"
+              style={{ backgroundColor: '#ffffff' }}
+            >
+              <img src="/logo-icon.png" alt="SmartStay" className="w-full h-full object-contain" />
+            </div>
             <div className="flex items-center gap-1.5">
-              <p className="font-bold text-xl text-white leading-tight">SmartStay</p>
+              <p className="font-extrabold text-xl text-white tracking-tight leading-tight">SmartStay</p>
               <span 
-                className="px-1.5 py-0.5 bg-white/20 text-white text-[9px] font-bold tracking-wider rounded border border-white/30 backdrop-blur-sm" 
+                className="px-1.5 py-0.5 bg-white/25 text-white text-[9px] font-bold tracking-wider rounded border border-white/30 backdrop-blur-sm" 
               >
                 BETA
               </span>
