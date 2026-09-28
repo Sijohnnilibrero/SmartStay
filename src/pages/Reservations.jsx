@@ -104,7 +104,15 @@ export default function Reservations() {
   }, [loadReservations])
 
   async function handleStatus(id, status) {
-    var actionText = status === 'confirmed' ? 'confirm' : status === 'cancelled' ? 'reject/cancel' : status === 'awaiting_payment' ? 'request payment for' : status;
+    var actionText = status === 'confirmed' 
+      ? 'confirm' 
+      : status === 'cancelled' 
+        ? 'reject/cancel' 
+        : status === 'awaiting_payment' 
+          ? 'request payment for' 
+          : status === 'completed'
+            ? 'mark this stay as completed and free up the room'
+            : status;
     if (!(await systemConfirm('Are you sure you want to ' + actionText + ' this reservation?'))) return;
 
     setActioning(id)
@@ -114,6 +122,9 @@ export default function Reservations() {
           return r.id === id ? Object.assign({}, r, { status: status }) : r
         })
       })
+      if (status === 'completed') {
+        addToast('Stay completed! The room is now marked available for new bookings.', 'success')
+      }
     }).catch(function (err) {
       console.error('Status update failed:', err)
       addToast('Action failed: ' + (err.message || 'Unknown error'), 'error')
@@ -256,12 +267,22 @@ export default function Reservations() {
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 truncate max-w-[80px] sm:max-w-none">{r.property_name || getPropName(r.property_id)}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.check_in}</td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-stone-600 whitespace-nowrap">{r.duration_months} mo.</td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-red-500 whitespace-nowrap font-medium">
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] whitespace-nowrap font-medium">
                           {(() => {
                             if (!r.check_in) return '—'
                             const d = new Date(r.check_in)
                             d.setMonth(d.getMonth() + (r.duration_months || 1))
-                            return d.toLocaleDateString()
+                            const isPast = d < new Date()
+                            return (
+                              <span className={isPast && r.status === 'confirmed' ? 'text-red-600 font-bold' : 'text-stone-600 dark:text-stone-300'}>
+                                {d.toLocaleDateString()}
+                                {isPast && r.status === 'confirmed' && (
+                                  <span className="ml-1.5 text-[9px] bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-300 px-1.5 py-0.5 rounded-full font-bold">
+                                    Expired
+                                  </span>
+                                )}
+                              </span>
+                            )
                           })()}
                         </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
@@ -330,11 +351,8 @@ export default function Reservations() {
                                     View Contract
                                   </Button>
                                 )}
-                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'cancelled') }}>
-                                  <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Cancel
-                                </Button>
-                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" disabled={actioning === r.id} onClick={function() { handleDelete(r.id) }}>
-                                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Delete
+                                <Button className="px-1.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[11px] h-auto text-teal-700 hover:bg-teal-50 border border-teal-200 hover:border-teal-300 font-medium" variant="ghost" disabled={actioning === r.id} onClick={function() { handleStatus(r.id, 'completed') }}>
+                                  <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-teal-600" /> Complete Stay
                                 </Button>
                               </div>
                             )}

@@ -5,7 +5,7 @@ import { Button, Card, Input } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import PropertyMap from '@/components/map/PropertyMap'
-import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home, CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Edit2, CheckCircle, Eye } from 'lucide-react'
+import { MapPin, ImagePlus, X, Upload, Loader2, Plus, BedDouble, Trash2, Home, CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Edit2, CheckCircle, Eye, ShieldCheck } from 'lucide-react'
 import ImageViewerModal from '@/components/ui/ImageViewerModal'
 import { formatCurrency } from '@/lib/utils'
 
@@ -85,22 +85,22 @@ function StepIndicator({ step, isEdit }) {
     : [{ label: 'Property Info', icon: '🏠' }, { label: 'Room Setup', icon: '🛏️' }, { label: 'Review & Submit', icon: '✅' }]
 
   return (
-    <div className="flex items-center justify-center gap-0 mb-8">
+    <div className="flex items-center justify-center gap-0">
       {steps.map((s, i) => {
         const active  = i === step
         const done    = i < step
         return (
           <div key={i} className="flex items-center">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-              active ? 'bg-teal-600 text-white shadow-md' :
-              done   ? 'bg-teal-100 text-teal-700' :
-                       'bg-stone-100 text-stone-400'
+            <div className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all ${
+              active ? 'bg-teal-600 text-white shadow-sm ring-2 ring-teal-600/30' :
+              done   ? 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 font-semibold' :
+                       'bg-stone-100 text-stone-400 dark:bg-stone-800/80 dark:text-stone-500'
             }`}>
-              <span>{s.icon}</span>
-              <span className="hidden sm:inline">{s.label}</span>
+              <span className="text-xs sm:text-sm">{s.icon}</span>
+              <span className={active ? 'inline text-xs' : 'hidden sm:inline text-xs'}>{s.label}</span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`w-8 h-0.5 mx-1 transition-all ${done ? 'bg-teal-400' : 'bg-stone-200'}`} />
+              <div className={`w-3 sm:w-8 h-0.5 mx-0.5 sm:mx-1 transition-all ${done ? 'bg-teal-400 dark:bg-teal-600' : 'bg-stone-200 dark:bg-stone-800'}`} />
             )}
           </div>
         )
@@ -594,184 +594,228 @@ export default function AddProperty() {
   // ─────────────────────────────────────────────────────────────────────────
   function renderStep0() {
     return (
-      <div className="space-y-6">
-        {/* Photo Upload */}
-        <div>
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-2">
-            Property Photo <span className="text-stone-300 normal-case tracking-normal font-normal">(optional)</span>
-          </label>
-          {imagePreview ? (
-            <div className="relative rounded-2xl overflow-hidden group border border-stone-200">
-              <img src={imagePreview} alt="Property preview" className="w-full h-52 object-cover" />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-white text-stone-700 text-[12px] font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-50 shadow-sm">
-                  <Upload size={13} /> Change
-                </button>
-                <button type="button" onClick={removeImage} className="bg-red-500 text-white text-[12px] font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-red-600 shadow-sm">
-                  <X size={13} /> Remove
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative h-44 rounded-2xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${dragOver ? 'border-teal-400 bg-teal-50' : 'border-stone-200 bg-stone-50 hover:border-teal-300 hover:bg-teal-50/30'}`}
-            >
-              <div className="text-center">
-                <div className="w-10 h-10 rounded-2xl bg-white border border-stone-200 flex items-center justify-center mx-auto mb-2 shadow-sm">
-                  <ImagePlus size={18} className="text-stone-400" />
-                </div>
-                <p className="text-[13px] font-medium text-stone-600">Click or drag photo</p>
-                <p className="text-[10px] text-stone-400 mt-0.5">JPG, PNG, WEBP (max 5MB)</p>
-              </div>
-            </div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={e => handleFileSelect(e.target.files[0])} />
-        </div>
-
-        {/* Stay Types */}
-        <div>
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-2">Who do you cater to? *</label>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.accepts_long_term} onChange={e => set('accepts_long_term', e.target.checked)} className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" />
-              <span className="text-sm font-medium text-stone-700">Long-term Boarders (Monthly)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.accepts_transient} onChange={e => set('accepts_transient', e.target.checked)} className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" />
-              <span className="text-sm font-medium text-stone-700">Short-term Transients (Daily)</span>
-            </label>
-          </div>
-          {!form.accepts_long_term && !form.accepts_transient && (
-            <p className="text-[10px] text-red-500 mt-1">Please select at least one.</p>
-          )}
-        </div>
-
-        {/* Business Permit */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
-              Business Permit Documents {isEdit ? <span className="text-stone-300 normal-case font-normal">(Already uploaded)</span> : <span className="text-red-400">*</span>}
-            </label>
-            <button type="button" onClick={() => document.getElementById('permit_upload_input').click()} className="text-[10px] bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md font-semibold hover:bg-teal-100 flex items-center gap-1 transition-colors">
-              <Plus size={10} /> Add Permit File
-            </button>
-          </div>
-          <input id="permit_upload_input" type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp"
-            onChange={e => setPermitFiles([...permitFiles, ...Array.from(e.target.files)])} className="hidden" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-            {form.permit_urls?.map((url, idx) => (
-              <div key={'ex-'+idx} className="flex items-center gap-3 p-2 bg-white border border-stone-200 rounded-xl cursor-pointer hover:border-teal-300 transition-all" onClick={() => setViewingImage(url)}>
-                <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center ${form.status === 'active' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'}`}>
-                  {form.status === 'active' ? <CheckCircle2 size={16} /> : <Loader2 size={16} className="animate-spin" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-stone-700 truncate">Existing Permit {idx+1}</p>
-                  <p className="text-[9px] text-teal-600 mt-0.5">{form.status === 'active' ? 'Verified' : 'Under Review'}</p>
-                </div>
-                <button type="button" onClick={e => { e.stopPropagation(); set('permit_urls', form.permit_urls.filter((_, i) => i !== idx)) }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md">
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-            {permitFiles.map((pFile, idx) => (
-              <div key={'new-'+idx} className="flex items-center gap-3 p-2 bg-white border border-teal-100 rounded-xl cursor-pointer hover:border-teal-300 group" onClick={() => { setActivePermitPreview(pFile); setPermitPreviewModal(true) }}>
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
-                  {pFile.type.startsWith('image/') ? <img src={URL.createObjectURL(pFile)} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-stone-500">PDF</div>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-stone-700 truncate">{pFile.name}</p>
-                  <p className="text-[9px] text-teal-600 mt-0.5 flex items-center gap-1"><CheckCircle2 size={10} /> Ready to upload</p>
-                </div>
-                <button type="button" onClick={e => { e.stopPropagation(); setPermitFiles(permitFiles.filter((_, i) => i !== idx)) }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
-              </div>
-            ))}
-          </div>
-          {!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0) && (
-            <p className="text-[10px] text-stone-400 mt-2">PDF or Image required to list property</p>
-          )}
-          {(permitFiles.length > 0 || isEdit || (form.permit_urls && form.permit_urls.length > 0)) && (
-            <div className="mt-4">
-              <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1">Permit Expiration Date <span className="text-red-400">*</span></label>
-              <input type="date" value={form.permit_expires_on} onChange={e => set('permit_expires_on', e.target.value)}
-                className="w-full sm:w-1/2 px-3 py-1.5 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all" />
-            </div>
-          )}
-        </div>
-
-        {/* Property Name */}
-        <div>
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Property Name *</label>
-          <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Casa Ivatan Bed & Board"
-            className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all" />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Description</label>
-          <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Describe your property..."
-            className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all resize-none" />
-        </div>
-
-        {/* Address */}
-        <div className="space-y-3">
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block">Detailed Address *</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input value={form.house_number} onChange={e => set('house_number', e.target.value)} placeholder="House/Building No."
-              className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all" />
-            <input value={form.street} onChange={e => set('street', e.target.value)} placeholder="Street Name *"
-              className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input value={form.barangay} onChange={e => set('barangay', e.target.value)} placeholder="Barangay *"
-              className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all" />
-            <input value={form.landmark} onChange={e => set('landmark', e.target.value)} placeholder="Nearest Landmark / Directions"
-              className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all" />
-          </div>
-        </div>
-
-        {/* Municipality + Total Rooms */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* ── Left Column: Media & Documents (5 of 12 cols) ── */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Photo Upload */}
           <div>
-            <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Municipality *</label>
-            <select value={form.municipality} onChange={e => {
-                var m = e.target.value
-                setForm(f => ({ ...f, municipality: m, island: m === 'Sabtang' ? 'Sabtang' : m === 'Itbayat' ? 'Itbayat' : 'Batan' }))
-              }} className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/30">
-              {MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          {!isEdit && (
-            <div>
-              <label className="text-[11px] uppercase tracking-wider text-teal-600 font-bold block mb-1.5">Total Rooms *</label>
-              <input type="number" min="1" max="50" value={form.total_rooms} onChange={handleTotalRoomsChange} placeholder="e.g. 5"
-                className={`w-full px-3 py-2 text-sm rounded-xl border bg-teal-50/50 focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all font-semibold text-stone-800 ${!form.total_rooms || parseInt(form.total_rooms) < 1 ? 'border-red-300' : 'border-teal-200'}`} />
-              {form.total_rooms && parseInt(form.total_rooms) > 0 && (
-                <p className="text-[10px] text-teal-600 mt-1 font-medium">✓ {roomDrafts.length} room{roomDrafts.length !== 1 ? 's' : ''} ready to configure on next step</p>
-              )}
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block">
+                Property Main Photo <span className="text-stone-400 normal-case tracking-normal font-normal">(optional)</span>
+              </label>
             </div>
-          )}
-        </div>
+            {imagePreview ? (
+              <div className="relative rounded-2xl overflow-hidden group border border-stone-200 dark:border-stone-700 shadow-sm">
+                <img src={imagePreview} alt="Property preview" className="w-full h-52 object-cover" />
+                <div className="absolute inset-0 bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-white text-stone-700 text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-50 shadow-md">
+                    <Upload size={13} /> Change
+                  </button>
+                  <button type="button" onClick={removeImage} className="bg-red-500 text-white text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-red-600 shadow-md">
+                    <X size={13} /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative h-44 rounded-2xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
+                  dragOver
+                    ? 'border-teal-400 bg-teal-50 dark:bg-teal-950/40'
+                    : 'border-stone-200 dark:border-stone-700 bg-stone-50/70 dark:bg-stone-800/50 hover:border-teal-400 hover:bg-teal-50/30'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center mx-auto mb-2 shadow-sm text-teal-600 dark:text-teal-400">
+                    <ImagePlus size={20} />
+                  </div>
+                  <p className="text-[13px] font-bold text-stone-700 dark:text-stone-200">Click or drag photo</p>
+                  <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5">JPG, PNG, WEBP (max 5MB)</p>
+                </div>
+              </div>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={e => handleFileSelect(e.target.files[0])} />
+          </div>
 
-
-        {/* Map */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
-              Pin Location <span className="text-stone-300 normal-case font-normal">(optional)</span>
+          {/* Stay Types */}
+          <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-stone-800/40 border border-stone-200/70 dark:border-white/5 space-y-3">
+            <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block">
+              Who do you cater to? <span className="text-teal-600">*</span>
             </label>
-            {form.latitude && form.longitude && (
-              <span className="flex items-center gap-1 text-[10px] text-teal-600 font-medium">
-                <MapPin size={10} /> {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
-                <button type="button" onClick={() => setForm(f => ({ ...f, latitude: null, longitude: null }))} className="ml-1 text-stone-400 hover:text-red-500">✕</button>
-              </span>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                form.accepts_long_term 
+                  ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 shadow-xs' 
+                  : 'bg-white dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300'
+              }`}>
+                <input type="checkbox" checked={form.accepts_long_term} onChange={e => set('accepts_long_term', e.target.checked)} className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" />
+                <div className="text-xs">
+                  <p className="font-bold">Long-term Boarders</p>
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400">Monthly contract (Students, Employees)</p>
+                </div>
+              </label>
+
+              <label className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                form.accepts_transient 
+                  ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 shadow-xs' 
+                  : 'bg-white dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300'
+              }`}>
+                <input type="checkbox" checked={form.accepts_transient} onChange={e => set('accepts_transient', e.target.checked)} className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" />
+                <div className="text-xs">
+                  <p className="font-bold">Short-term Transients</p>
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400">Daily bookings (Tourists, Visitors)</p>
+                </div>
+              </label>
+            </div>
+            {!form.accepts_long_term && !form.accepts_transient && (
+              <p className="text-[11px] text-red-500 font-medium">Please select at least one stay type.</p>
             )}
           </div>
-          <div className="rounded-2xl overflow-hidden border border-stone-200">
-            <PropertyMap mode="pick" lat={form.latitude} lng={form.longitude} properties={otherProperties} onPick={handlePickLocation} height="350px" />
+
+          {/* Business Permit */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold">
+                Business Permit Documents {isEdit ? <span className="text-stone-400 normal-case font-normal">(Uploaded)</span> : <span className="text-red-500">*</span>}
+              </label>
+              <button type="button" onClick={() => document.getElementById('permit_upload_input').click()} className="text-[11px] bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg font-bold hover:bg-teal-100 dark:hover:bg-teal-900/60 flex items-center gap-1 transition-all">
+                <Plus size={12} /> Add Permit File
+              </button>
+            </div>
+            <input id="permit_upload_input" type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp"
+              onChange={e => setPermitFiles([...permitFiles, ...Array.from(e.target.files)])} className="hidden" />
+
+            <div className="space-y-2">
+              {form.permit_urls?.map((url, idx) => (
+                <div key={'ex-'+idx} className="flex items-center gap-3 p-2.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl cursor-pointer hover:border-teal-300 transition-all shadow-xs" onClick={() => setViewingImage(url)}>
+                  <div className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center ${form.status === 'active' ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600' : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600'}`}>
+                    {form.status === 'active' ? <CheckCircle2 size={16} /> : <Loader2 size={16} className="animate-spin" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-stone-800 dark:text-stone-200 truncate">Existing Permit {idx+1}</p>
+                    <p className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">{form.status === 'active' ? 'Verified' : 'Under Review'}</p>
+                  </div>
+                  <button type="button" onClick={e => { e.stopPropagation(); set('permit_urls', form.permit_urls.filter((_, i) => i !== idx)) }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md">
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+              {permitFiles.map((pFile, idx) => (
+                <div key={'new-'+idx} className="flex items-center gap-3 p-2.5 bg-white dark:bg-stone-800 border border-teal-200 dark:border-teal-800 rounded-xl cursor-pointer hover:border-teal-300 group shadow-xs" onClick={() => { setActivePermitPreview(pFile); setPermitPreviewModal(true) }}>
+                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0 flex items-center justify-center">
+                    {pFile.type.startsWith('image/') ? <img src={URL.createObjectURL(pFile)} className="w-full h-full object-cover" alt="" /> : <div className="text-[9px] font-bold text-stone-500">PDF</div>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-stone-800 dark:text-stone-200 truncate">{pFile.name}</p>
+                    <p className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-1"><CheckCircle2 size={10} /> Ready to upload</p>
+                  </div>
+                  <button type="button" onClick={e => { e.stopPropagation(); setPermitFiles(permitFiles.filter((_, i) => i !== idx)) }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md"><X size={13} /></button>
+                </div>
+              ))}
+            </div>
+
+            {!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0) && (
+              <p className="text-[11px] text-stone-400">Mayor's Permit or Barangay Clearance required for listing</p>
+            )}
+
+            {(permitFiles.length > 0 || isEdit || (form.permit_urls && form.permit_urls.length > 0)) && (
+              <div className="pt-2">
+                <label className="text-[10px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block mb-1">
+                  Permit Expiration Date <span className="text-red-500">*</span>
+                </label>
+                <input type="date" value={form.permit_expires_on} onChange={e => set('permit_expires_on', e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all font-medium text-stone-800 dark:text-stone-200" />
+              </div>
+            )}
+          </div>
+
+          {/* LGU Compliance Tip */}
+          <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 text-xs text-teal-900 dark:text-teal-200 flex items-start gap-2.5">
+            <ShieldCheck size={18} className="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-[11px] uppercase tracking-wider text-teal-800 dark:text-teal-300">Batanes LGU Verification</p>
+              <p className="text-[11px] text-teal-700 dark:text-teal-300/80 mt-0.5 leading-relaxed">
+                Clear photos and a valid Mayor's / Business Permit ensure fast verification by the municipal admin.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right Column: Property Information & Location (7 of 12 cols) ── */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Property Name */}
+          <div>
+            <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block mb-1.5">Property Name *</label>
+            <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Casa Ivatan Bed & Board"
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all shadow-xs" />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block mb-1.5">Description</label>
+            <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Describe your boarding house, neighborhood, nearby schools or offices..."
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all resize-none shadow-xs" />
+          </div>
+
+          {/* Municipality + Total Rooms */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block mb-1.5">Municipality *</label>
+              <select value={form.municipality} onChange={e => {
+                  var m = e.target.value
+                  setForm(f => ({ ...f, municipality: m, island: m === 'Sabtang' ? 'Sabtang' : m === 'Itbayat' ? 'Itbayat' : 'Batan' }))
+                }} className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 shadow-xs font-medium">
+                {MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            {!isEdit && (
+              <div>
+                <label className="text-[11px] uppercase tracking-wider text-teal-600 dark:text-teal-400 font-bold block mb-1.5">Total Rooms *</label>
+                <input type="number" min="1" max="50" value={form.total_rooms} onChange={handleTotalRoomsChange} placeholder="e.g. 5"
+                  className={`w-full px-3.5 py-2.5 text-sm rounded-xl border bg-teal-50/50 dark:bg-teal-950/30 focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all font-semibold text-stone-800 dark:text-stone-100 ${!form.total_rooms || parseInt(form.total_rooms) < 1 ? 'border-red-300' : 'border-teal-200 dark:border-teal-800'}`} />
+                {form.total_rooms && parseInt(form.total_rooms) > 0 && (
+                  <p className="text-[10px] text-teal-600 dark:text-teal-400 mt-1 font-semibold">✓ {roomDrafts.length} room{roomDrafts.length !== 1 ? 's' : ''} ready to configure on next step</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Address */}
+          <div className="space-y-2.5">
+            <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block">Detailed Address *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input value={form.house_number} onChange={e => set('house_number', e.target.value)} placeholder="House/Building No."
+                className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all shadow-xs" />
+              <input value={form.street} onChange={e => set('street', e.target.value)} placeholder="Street Name *"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all shadow-xs" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input value={form.barangay} onChange={e => set('barangay', e.target.value)} placeholder="Barangay *"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all shadow-xs" />
+              <input value={form.landmark} onChange={e => set('landmark', e.target.value)} placeholder="Nearest Landmark / Directions"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-400/30 transition-all shadow-xs" />
+            </div>
+          </div>
+
+          {/* Map */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold">
+                Pin Location <span className="text-stone-400 normal-case font-normal">(optional)</span>
+              </label>
+              {form.latitude && form.longitude && (
+                <span className="flex items-center gap-1 text-[11px] text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-lg border border-teal-200 dark:border-teal-800">
+                  <MapPin size={11} /> {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, latitude: null, longitude: null }))} className="ml-1 text-stone-400 hover:text-red-500 font-bold">✕</button>
+                </span>
+              )}
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm">
+              <PropertyMap mode="pick" lat={form.latitude} lng={form.longitude} properties={otherProperties} onPick={handlePickLocation} height="280px" />
+            </div>
           </div>
         </div>
       </div>
@@ -1274,41 +1318,47 @@ export default function AddProperty() {
   const maxStep = isEdit ? 0 : 2
 
   return (
-    <div className="page-enter min-h-screen" style={{ background: 'var(--bg-main)' }}>
+    <div className="w-full relative pb-10" style={{ background: 'var(--bg-main)' }}>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        {/* Step Indicator / Edit Tabs */}
-        {isEdit ? (
-          <div className="flex border-b border-stone-200 dark:border-white/10 mb-6 gap-2">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('details'); setError('') }}
-              className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
-                activeTab === 'details'
-                  ? 'border-teal-600 text-teal-600 dark:text-teal-400 dark:border-teal-400'
-                  : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300'
-              }`}
-            >
-              <Home size={16} /> Property Details
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('rooms'); setError('') }}
-              className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
-                activeTab === 'rooms'
-                  ? 'border-teal-600 text-teal-600 dark:text-teal-400 dark:border-teal-400'
-                  : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300'
-              }`}
-            >
-              <BedDouble size={16} /> Rooms
-              <span className="px-2 py-0.5 rounded-full text-xs bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-semibold">
-                {rooms.length}
-              </span>
-            </button>
-          </div>
-        ) : (
-          <StepIndicator step={step} isEdit={isEdit} />
-        )}
+      {/* Sticky Step Header (Permanently pinned under topbar on Mobile & Desktop all the way down) */}
+      <div className="sticky top-14 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-md border-b border-stone-200/80 dark:border-white/10 px-3 sm:px-6 py-2 sm:py-2.5 shadow-xs">
+        <div className="max-w-6xl mx-auto flex items-center justify-center">
+          {isEdit ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setActiveTab('details'); setError('') }}
+                className={`pb-1.5 px-3 sm:px-4 font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border-b-2 transition-all ${
+                  activeTab === 'details'
+                    ? 'border-teal-600 text-teal-600 dark:text-teal-400 dark:border-teal-400'
+                    : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300'
+                }`}
+              >
+                <Home size={15} /> Property Details
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('rooms'); setError('') }}
+                className={`pb-1.5 px-3 sm:px-4 font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border-b-2 transition-all ${
+                  activeTab === 'rooms'
+                    ? 'border-teal-600 text-teal-600 dark:text-teal-400 dark:border-teal-400'
+                    : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-300'
+                }`}
+              >
+                <BedDouble size={15} /> Rooms
+                <span className="px-2 py-0.5 rounded-full text-xs bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-semibold">
+                  {rooms.length}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <StepIndicator step={step} isEdit={isEdit} />
+          )}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 pb-12">
 
         {/* Step / Section Label */}
         <div className="mb-6">
@@ -1362,18 +1412,20 @@ export default function AddProperty() {
             </>
           )}
         </div>
+      </div>
 
-        {/* Navigation Footer */}
-        <div className="flex items-center justify-between mt-6 gap-3">
+      {/* Sticky Bottom Navigation Footer (Mobile & Desktop) */}
+      <div className="sticky bottom-0 z-20 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/80 dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] py-3 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           {isEdit ? (
             activeTab === 'details' ? (
               <>
                 <button type="button" onClick={() => navigate('/owner/properties')}
-                  className="px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
+                  className="px-4 sm:px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                   Cancel
                 </button>
                 <button type="button" onClick={handleSubmit} disabled={isLoading || uploading}
-                  className="flex-1 max-w-xs px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm disabled:opacity-50 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
+                  className="px-5 sm:px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm disabled:opacity-50 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
                   {(isLoading || uploading) && <Loader2 size={15} className="animate-spin" />}
                   {uploading ? 'Uploading…' : isLoading ? 'Saving…' : 'Save Changes'}
                 </button>
@@ -1381,11 +1433,11 @@ export default function AddProperty() {
             ) : (
               <>
                 <button type="button" onClick={() => setActiveTab('details')}
-                  className="px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors flex items-center gap-2">
+                  className="px-4 sm:px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors flex items-center gap-1.5">
                   <ChevronLeft size={15} /> Back to Details
                 </button>
                 <button type="button" onClick={() => navigate('/owner/properties')}
-                  className="px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm hover:bg-teal-700 transition-colors">
+                  className="px-5 sm:px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm hover:bg-teal-700 transition-colors">
                   Done Editing
                 </button>
               </>
@@ -1395,15 +1447,37 @@ export default function AddProperty() {
               {/* Left: Cancel / Back */}
               {step === 0 ? (
                 <button type="button" onClick={() => navigate('/owner/properties')}
-                  className="px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
+                  className="px-4 sm:px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                   Cancel
                 </button>
               ) : (
                 <button type="button" onClick={() => { setError(''); setStep(s => s - 1) }}
-                  className="px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors flex items-center gap-2">
+                  className="px-4 sm:px-5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors flex items-center gap-1.5">
                   <ChevronLeft size={15} /> Back
                 </button>
               )}
+
+              {/* Center status badge (Compact on mobile, descriptive on desktop) */}
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-500 dark:text-stone-400">
+                {step === 0 && (
+                  <span className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-800/80 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs">
+                    <Home size={12} className="text-teal-600 dark:text-teal-400" />
+                    <span className="hidden sm:inline">Step 1 of 3: </span>Property Details
+                  </span>
+                )}
+                {step === 1 && (
+                  <span className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-800/80 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs">
+                    <BedDouble size={12} className="text-teal-600 dark:text-teal-400" />
+                    <span className="hidden sm:inline">Step 2 of 3: </span>{roomDrafts.length} Room{roomDrafts.length !== 1 ? 's' : ''} Setup
+                  </span>
+                )}
+                {step === 2 && (
+                  <span className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-800/80 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs">
+                    <CheckCircle2 size={12} className="text-teal-600 dark:text-teal-400" />
+                    <span className="hidden sm:inline">Step 3 of 3: </span>Review & Submit
+                  </span>
+                )}
+              </div>
 
               {/* Right: Next / Submit */}
               {step < maxStep ? (
@@ -1412,12 +1486,12 @@ export default function AddProperty() {
                     if (step === 0) goToStep1()
                     else if (step === 1) goToStep2()
                   }}
-                  className="flex-1 max-w-xs px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
+                  className="px-5 sm:px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm hover:bg-teal-700 transition-colors flex items-center justify-center gap-1.5">
                   Continue <ChevronRight size={15} />
                 </button>
               ) : (
                 <button type="button" onClick={handleSubmit} disabled={isLoading || uploading}
-                  className="flex-1 max-w-xs px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm disabled:opacity-50 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
+                  className="px-5 sm:px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold shadow-sm disabled:opacity-50 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
                   {(isLoading || uploading) && <Loader2 size={15} className="animate-spin" />}
                   {uploading ? 'Uploading…' : isLoading ? 'Saving…' : '🚀 Submit Property'}
                 </button>
