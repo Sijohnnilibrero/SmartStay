@@ -63,11 +63,7 @@ export const useAuthStore = create(
             set({ isLoading: false, authError: 'banned' })
             return { success: false, authError: 'banned', statusReason: profile.status_reason || null }
           }
-          if (profile.status === 'suspended') {
-            await supabase.auth.signOut()
-            set({ isLoading: false, authError: 'suspended' })
-            return { success: false, authError: 'suspended', statusReason: profile.status_reason || null }
-          }
+          // 'suspended' (Under Review) → allowed to log in but with restricted access
           let actualName = profile.full_name;
           if (!actualName && data.user.user_metadata?.full_name) {
             actualName = data.user.user_metadata.full_name;
@@ -87,6 +83,8 @@ export const useAuthStore = create(
             contact: profile.contact || '',
             preferences: profile.preferences || null,
             admin_region: profile.admin_region || null,
+            accountStatus: profile.status || 'active',
+            statusReason: profile.status_reason || null,
           }
           set({ user, isLoading: false, authError: null })
           return { success: true, user }
@@ -204,7 +202,8 @@ export const useAuthStore = create(
           .eq('id', data.session.user.id)
           .single()
         if (!profile) return
-        if (profile.status === 'banned' || profile.status === 'suspended' || profile.status === 'permanently_banned') {
+        // 'suspended' (Under Review) is allowed back in — only hard-block banned & permanently_banned
+        if (profile.status === 'banned' || profile.status === 'permanently_banned') {
           await supabase.auth.signOut()
           return
         }
@@ -221,6 +220,8 @@ export const useAuthStore = create(
             contact: profile.contact || '',
             preferences: profile.preferences || null,
             admin_region: profile.admin_region || null,
+            accountStatus: profile.status || 'active',
+            statusReason: profile.status_reason || null,
           },
         })
       },

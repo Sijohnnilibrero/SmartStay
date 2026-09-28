@@ -39,9 +39,6 @@ export default function Login() {
     } else if (result.authError === 'banned' || result.authError?.toLowerCase().includes('banned')) {
       setStatusReason(result.statusReason || '')
       setModalType('banned')
-    } else if (result.authError === 'suspended' || result.authError?.toLowerCase().includes('suspended')) {
-      setStatusReason(result.statusReason || '')
-      setModalType('suspended')
     }
   }
 
@@ -144,7 +141,7 @@ export default function Login() {
           />
 
           {/* Simple form errors inline */}
-          {!emailUnconfirmed && authError && !authError.toLowerCase().includes('banned') && !authError.toLowerCase().includes('suspended') && (
+          {!emailUnconfirmed && authError && !authError.toLowerCase().includes('banned') && (
             <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/80 rounded-xl p-3.5 mb-5 text-xs text-red-700 dark:text-red-200 flex items-start gap-2.5 animate-fadeIn">
               <span className="text-red-500 dark:text-red-400 text-sm">⚠️</span>
               <span className="leading-relaxed">{authError}</span>

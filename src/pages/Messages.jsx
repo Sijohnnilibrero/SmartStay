@@ -145,7 +145,11 @@ export default function Messages() {
   const handleSendReply = async (e) => {
     e.preventDefault()
     if (!replyText.trim() || !selected) return
-
+    // Under Review users cannot send messages
+    if (user?.accountStatus === 'suspended') {
+      addToast('Messaging is paused while your account is under review.', 'error')
+      return
+    }
     // Optimistic update — instantly show message in chat
     const optimisticMsg = {
       id: `optimistic-${Date.now()}`,
@@ -354,27 +358,36 @@ export default function Messages() {
               </div>
 
               {/* Reply box */}
-              <div className="px-4 py-3 bg-white border-t border-stone-100 shrink-0">
-                <form onSubmit={handleSendReply} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder={`Reply to ${selected.otherProfile?.full_name?.split(' ')[0] || 'them'}…`}
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all"
-                  />
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="px-4 py-2 flex items-center gap-1.5 flex-shrink-0"
-                    disabled={replying || !replyText.trim()}
-                  >
-                    {replying
-                      ? <span className="animate-spin w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full" />
-                      : <Send size={14} />
-                    }
-                  </Button>
-                </form>
+              <div className="px-4 py-3 bg-white dark:bg-[#18181b] border-t border-stone-100 dark:border-white/10 shrink-0">
+                {user?.accountStatus === 'suspended' ? (
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+                    <span className="text-amber-500 flex-shrink-0">⏸️</span>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                      Messaging is paused while your account is under review. Once cleared by an admin, you can send messages again.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSendReply} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder={`Reply to ${selected.otherProfile?.full_name?.split(' ')[0] || 'them'}…`}
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition-all"
+                    />
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="px-4 py-2 flex items-center gap-1.5 flex-shrink-0"
+                      disabled={replying || !replyText.trim()}
+                    >
+                      {replying
+                        ? <span className="animate-spin w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full" />
+                        : <Send size={14} />
+                      }
+                    </Button>
+                  </form>
+                )}
               </div>
             </div>
           )}

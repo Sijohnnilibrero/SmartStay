@@ -1,15 +1,16 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Sidebar from './Sidebar'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Menu } from 'lucide-react'
+import { Menu, AlertTriangle, X } from 'lucide-react'
 import NotificationBell from '@/components/layout/NotificationBell'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import Toaster from '@/components/ui/Toaster'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import SmartStayLogo from '@/components/ui/SmartStayLogo'
 import { useGlobalRealtime } from '@/hooks/useGlobalRealtime'
+import SupportModal from '@/components/support/SupportModal'
 
 function getPageMeta(pathname, user) {
   // Tenant routes
@@ -57,6 +58,10 @@ export default function AppLayout() {
   const theme = useAppStore((s) => s.theme)
   const user = useAuthStore((s) => s.user)
   const location = useLocation()
+  const [supportOpen, setSupportOpen] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  const isUnderReview = user?.accountStatus === 'suspended'
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -129,8 +134,50 @@ export default function AppLayout() {
           </div>
         </header>
 
+        {/* Under Review Persistent Banner */}
+        {isUnderReview && !bannerDismissed && (
+          <div
+            role="alert"
+            className="shrink-0 flex items-start gap-3 px-4 sm:px-6 py-3 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/60 animate-fadeIn"
+          >
+            <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-amber-900 dark:text-amber-200">
+                ⏸️ Your account is currently under review by administration.
+              </p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+                You can browse and view your active stays, but <strong>reservations</strong> and <strong>messaging</strong> are paused until the review is resolved.
+                {user?.statusReason && <span className="block mt-0.5">Reason: <em>{user.statusReason}</em></span>}
+              </p>
+              <button
+                onClick={() => setSupportOpen(true)}
+                className="mt-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 underline hover:no-underline transition-all"
+              >
+                Submit a clarification or document →
+              </button>
+            </div>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 flex-shrink-0 p-1 rounded"
+              aria-label="Dismiss banner"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <Outlet />
       </main>
+
+      {/* Support Modal (triggered from Under Review banner — opens in appeal mode) */}
+      {supportOpen && (
+        <SupportModal
+          isOpen={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          appealMode={isUnderReview}
+          statusReason={user?.statusReason || null}
+        />
+      )}
 
       {/* Global Overlays */}
       <Toaster />

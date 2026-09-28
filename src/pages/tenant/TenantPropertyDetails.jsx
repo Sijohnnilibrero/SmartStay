@@ -120,6 +120,11 @@ export default function TenantPropertyDetails() {
 
   function handleReserveRoom(room) {
     if (!storeUser || !property || !room) return
+    // Under Review users cannot make new reservations
+    if (storeUser.accountStatus === 'suspended') {
+      addToast('Your account is under review. Reservations are paused until the review is resolved.', 'error')
+      return
+    }
     if (!checkInDate) { addToast('Please select a check-in date.', 'error'); return; }
     if (stayType === 'transient' && !checkOutDate) { addToast('Please select a check-out date.', 'error'); return; }
     if (stayType === 'transient' && new Date(checkOutDate) <= new Date(checkInDate)) { addToast('Check-out must be after check-in.', 'error'); return; }
@@ -375,15 +380,21 @@ export default function TenantPropertyDetails() {
               </h3>
               <p className="text-[11px] text-stone-500 mb-4 px-2">Have a question before you book? Send the host a message.</p>
               {storeUser?.role !== 'admin' && (
-                <Button 
-                  variant="primary" 
-                  className="w-full justify-center gap-1.5 shadow-sm hover:shadow-md transition-all"
-                  onClick={() => navigate('/tenant/messages', { 
-                    state: { autoSelectUser: { id: property.owner_id, full_name: ownerProfile.full_name, role: 'owner' } } 
-                  })}
-                >
-                  Contact Host <MessageSquare size={14} />
-                </Button>
+                storeUser?.accountStatus === 'suspended' ? (
+                  <div className="w-full text-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700">
+                    ⏸️ Messaging is paused while your account is under review.
+                  </div>
+                ) : (
+                  <Button 
+                    variant="primary" 
+                    className="w-full justify-center gap-1.5 shadow-sm hover:shadow-md transition-all"
+                    onClick={() => navigate('/tenant/messages', { 
+                      state: { autoSelectUser: { id: property.owner_id, full_name: ownerProfile.full_name, role: 'owner' } } 
+                    })}
+                  >
+                    Contact Host <MessageSquare size={14} />
+                  </Button>
+                )
               )}
             </div>
           </Card>
@@ -513,9 +524,15 @@ export default function TenantPropertyDetails() {
             </div>
             <div className="p-5 border-t border-stone-100 flex gap-3">
               <Button variant="ghost" className="flex-1" onClick={function() { setSelectedRoom(null) }} disabled={booking}>Cancel</Button>
-              <Button className="flex-1" onClick={function() { handleReserveRoom(selectedRoom) }} disabled={booking || !selectedRoom.is_available}>
-                {booking ? 'Submitting…' : 'Confirm Reservation'}
-              </Button>
+              {storeUser?.accountStatus === 'suspended' ? (
+                <div className="flex-1 flex items-center justify-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700 text-center">
+                  ⏸️ Reservations paused — account under review
+                </div>
+              ) : (
+                <Button className="flex-1" onClick={function() { handleReserveRoom(selectedRoom) }} disabled={booking || !selectedRoom.is_available}>
+                  {booking ? 'Submitting…' : 'Confirm Reservation'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
