@@ -1318,7 +1318,7 @@ export default function AddProperty() {
   const maxStep = isEdit ? 0 : 2
 
   return (
-    <div className="w-full relative pb-10" style={{ background: 'var(--bg-main)' }}>
+    <div className="w-full relative" style={{ background: 'var(--bg-main)' }}>
 
       {/* Sticky Step Header (Permanently pinned under topbar on Mobile & Desktop all the way down) */}
       <div className="sticky top-14 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-md border-b border-stone-200/80 dark:border-white/10 px-3 sm:px-6 py-2 sm:py-2.5 shadow-xs">
@@ -1358,7 +1358,7 @@ export default function AddProperty() {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 pb-12">
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 pb-28">
 
         {/* Step / Section Label */}
         <div className="mb-6">
@@ -1414,8 +1414,8 @@ export default function AddProperty() {
         </div>
       </div>
 
-      {/* Sticky Bottom Navigation Footer (Mobile & Desktop) */}
-      <div className="sticky bottom-0 z-20 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/80 dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] py-3 px-4 sm:px-6 lg:px-8">
+      {/* Fixed Bottom Navigation Footer (Mobile & Desktop) */}
+      <div className="fixed bottom-0 left-0 md:left-[220px] right-0 z-30 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/80 dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] py-3 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           {isEdit ? (
             activeTab === 'details' ? (
