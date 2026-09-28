@@ -15,7 +15,6 @@ export default function AdminDashboard() {
   const [recent, setRecent] = useState([])
   const [permitStats, setPermitStats] = useState({ valid: 0, expiring: 0, expired: 0, actionList: [] })
   const [activeProperties, setActiveProperties] = useState([])
-  const [openTicketsCount, setOpenTicketsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [mapIsland, setMapIsland] = useState('Batan')
   const navigate = useNavigate()
@@ -40,8 +39,6 @@ export default function AdminDashboard() {
       var properties = results[1] || []
       var openTickets = results[2] || []
 
-      setOpenTicketsCount(openTickets.length)
-
       if (userState?.role === 'admin' && userState?.admin_region) {
         if (userState.admin_region === 'Batan Island') {
           users = users.filter(u => ['Basco', 'Mahatao', 'Ivana', 'Uyugan'].includes(u.municipality))
@@ -63,6 +60,7 @@ export default function AdminDashboard() {
       ])
       
       setRecent(pendingProps.slice(0, 5))
+
 
       var now = new Date()
       var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -90,6 +88,9 @@ export default function AdminDashboard() {
 
       setActiveProperties(activeList)
 
+      if (!silent) setLoading(false)
+    }).catch(function(err) {
+      console.error('AdminDashboard loadData error:', err)
       if (!silent) setLoading(false)
     })
   }, [])
@@ -192,31 +193,6 @@ export default function AdminDashboard() {
   return (
     <div className="page-enter p-6 space-y-6 relative z-10">
         
-        {/* Urgent Customer Support / Account Appeals Alert Banner */}
-        {openTicketsCount > 0 && (
-          <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 flex items-center justify-between gap-3 shadow-sm animate-fadeIn">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-teal-600 text-white shadow-sm flex-shrink-0">
-                <Headphones size={18} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100">
-                  {openTicketsCount} Open Customer Service Ticket{openTicketsCount !== 1 ? 's' : ''} & Appeals
-                </h4>
-                <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                  Tenants, homeowners, or account appeals are awaiting review and response.
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/admin/support"
-              className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0 flex items-center gap-1.5"
-            >
-              <span>Open Helpdesk</span>
-              <span>→</span>
-            </Link>
-          </div>
-        )}
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 select-none">
