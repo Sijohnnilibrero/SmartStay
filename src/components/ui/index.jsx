@@ -219,12 +219,24 @@ export function Select({ className, children, ...props }) {
 /* ── FilterChip ──────────────────────────────────────── */
 export function FilterChip({ label, count, active, onClick, color = 'teal', className }) {
   const activeStyles = {
-    teal:    'bg-[#0F6E56] dark:bg-[#1D9E75] text-white border-[#0F6E56] dark:border-[#1D9E75]',
-    emerald: 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500',
-    amber:   'bg-[#BA7517] dark:bg-[#D97706] text-white border-[#BA7517] dark:border-[#D97706]',
-    purple:  'bg-[#534AB7] dark:bg-[#7C3AED] text-white border-[#534AB7] dark:border-[#7C3AED]',
-    rose:    'bg-rose-600 dark:bg-rose-500 text-white border-rose-600 dark:border-rose-500',
-    blue:    'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500',
+    teal:            'bg-[#0F6E56] dark:bg-[#1D9E75] text-white border-[#0F6E56] dark:border-[#1D9E75]',
+    emerald:         'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500',
+    amber:           'bg-[#BA7517] dark:bg-[#D97706] text-white border-[#BA7517] dark:border-[#D97706]',
+    purple:          'bg-[#534AB7] dark:bg-[#7C3AED] text-white border-[#534AB7] dark:border-[#7C3AED]',
+    rose:            'bg-rose-600 dark:bg-rose-500 text-white border-rose-600 dark:border-rose-500',
+    blue:            'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500',
+    // Luminous light pastel styles
+    'purple-pastel':  'bg-purple-50 dark:bg-purple-950/60 text-[#534AB7] dark:text-purple-300 border-purple-200 dark:border-purple-800/60 font-bold shadow-xs',
+    'amber-pastel':   'bg-amber-50 dark:bg-amber-950/60 text-[#B45309] dark:text-amber-300 border-amber-200 dark:border-amber-800/60 font-bold shadow-xs',
+    'teal-pastel':    'bg-teal-50 dark:bg-teal-950/60 text-[#0F766E] dark:text-teal-300 border-teal-200 dark:border-teal-800/60 font-bold shadow-xs',
+    'emerald-pastel': 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 font-bold shadow-xs',
+  }
+
+  const activeCountStyles = {
+    'purple-pastel':  'bg-purple-200/70 dark:bg-purple-800/60 text-[#534AB7] dark:text-purple-200',
+    'amber-pastel':   'bg-amber-200/70 dark:bg-amber-800/60 text-[#B45309] dark:text-amber-200',
+    'teal-pastel':    'bg-teal-200/70 dark:bg-teal-800/60 text-[#0F766E] dark:text-teal-200',
+    'emerald-pastel': 'bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-800 dark:text-emerald-200',
   }
 
   return (
@@ -239,13 +251,13 @@ export function FilterChip({ label, count, active, onClick, color = 'teal', clas
         className
       )}
     >
-      <span>{label}</span>
+      <span className="text-inherit">{label}</span>
       {count !== undefined && (
         <span
           className={cn(
             'px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none',
             active
-              ? 'bg-white/25 text-white'
+              ? (activeCountStyles[color] || 'bg-white/25 text-white')
               : 'bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-400'
           )}
         >

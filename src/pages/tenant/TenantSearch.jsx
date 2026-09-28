@@ -577,31 +577,61 @@ function PropertyCard({ property: p, idx = 0, isBestMatch = false, onClick, onCl
           {/* Availability badge top-right */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
             {isBestMatch && (
-              <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+              <span className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-white/20">
                 <CheckCircle2 size={10} /> Matched
               </span>
             )}
-            <Badge variant={availColor}>{availLabel}</Badge>
+            {(p.available_rooms || 0) === 0 ? (
+              <span 
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-600/95 dark:bg-rose-600/90 text-white !text-white shadow-md shadow-red-950/25 backdrop-blur-md border border-red-400/40"
+                style={{ color: '#ffffff' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                No Available Rooms
+              </span>
+            ) : (p.available_rooms || 0) <= 2 ? (
+              <span 
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/95 dark:bg-amber-600/90 text-white !text-white shadow-md shadow-amber-950/20 backdrop-blur-md border border-amber-300/40"
+                style={{ color: '#ffffff' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0 animate-pulse" />
+                {p.available_rooms} {p.available_rooms === 1 ? 'room' : 'rooms'} left
+              </span>
+            ) : (
+              <span 
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/95 dark:bg-emerald-600/90 text-white !text-white shadow-md shadow-emerald-950/20 backdrop-blur-md border border-emerald-400/30"
+                style={{ color: '#ffffff' }}
+              >
+                {p.available_rooms} rooms left
+              </span>
+            )}
           </div>
 
           {/* Island / Municipality badge bottom-left */}
           <div className="absolute bottom-3 left-3 flex items-center gap-1">
             {p.municipality && (
-              <span className="bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-white/10">
-                📍 {p.municipality}
+              <span className="bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-100 font-bold text-[11px] px-2.5 py-1 rounded-full shadow-lg border border-stone-200/80 dark:border-white/20 ring-1 ring-black/10 dark:ring-white/10 flex items-center gap-1.5 tracking-tight">
+                <MapPin size={12} className="text-rose-500 dark:text-rose-400 shrink-0" />
+                <span>{p.municipality}</span>
               </span>
             )}
           </div>
 
           {/* Price bottom-right */}
           <div className="absolute bottom-3 right-3">
-            <span className="bg-white/95 dark:bg-stone-900/90 backdrop-blur-md text-teal-700 dark:text-teal-300 font-extrabold text-[12px] px-2.5 py-1 rounded-full shadow-md border border-stone-200/50 dark:border-white/10">
+            <span className="bg-white dark:bg-stone-950 text-teal-700 dark:text-teal-300 font-extrabold text-[12px] px-2.5 py-1 rounded-full shadow-lg border border-stone-200/80 dark:border-white/20 ring-1 ring-black/10 dark:ring-white/10 flex items-center gap-1">
               {p.price_monthly && p.accepts_long_term ? (
-                <>{formatCurrency(p.price_monthly)}<span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">/mo</span></>
+                <>
+                  <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(p.price_monthly)}</span>
+                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">/mo</span>
+                </>
               ) : p.price_daily && p.accepts_transient ? (
-                <>{formatCurrency(p.price_daily)}<span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">/day</span></>
+                <>
+                  <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(p.price_daily)}</span>
+                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">/day</span>
+                </>
               ) : (
-                'Prices vary'
+                <span className="text-stone-800 dark:text-stone-100 font-bold text-[11px] tracking-tight">Prices vary</span>
               )}
             </span>
           </div>

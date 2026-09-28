@@ -217,15 +217,15 @@ export default function Tenants() {
   if (!user || (!isAdmin && !isOwner)) return <Navigate to="/login" replace />
 
   const FILTERS = isAdmin ? [
-    { label: 'All Users',          val: 'All' },
-    { label: 'Tenants',            val: 'tenant' },
-    { label: 'Homeowners',         val: 'owner' },
+    { label: 'All Users',          val: 'All',   color: 'purple-pastel' },
+    { label: 'Tenants',            val: 'tenant', color: 'amber-pastel' },
+    { label: 'Homeowners',         val: 'owner',  color: 'teal-pastel' },
   ] : [
-    { label: 'All',                val: 'All' },
-    { label: 'Students',           val: 'student' },
-    { label: 'Professionals',      val: 'professional' },
-    { label: 'Government',         val: 'government_employee' },
-    { label: 'Visitors',           val: 'visitor' },
+    { label: 'All',                val: 'All',   color: 'teal' },
+    { label: 'Students',           val: 'student', color: 'purple-pastel' },
+    { label: 'Professionals',      val: 'professional', color: 'teal-pastel' },
+    { label: 'Government',         val: 'government_employee', color: 'amber-pastel' },
+    { label: 'Visitors',           val: 'visitor', color: 'teal' },
   ]
 
   var filtered = tenants.filter(function (t) {
@@ -290,7 +290,7 @@ export default function Tenants() {
                       setSearchParams(searchParams)
                     }
                   }}
-                  color="teal"
+                  color={f.color || (isAdmin ? 'purple-pastel' : 'teal')}
                 />
               </div>
             )

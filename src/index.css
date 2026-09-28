@@ -244,12 +244,12 @@ nav a, nav span { color: inherit; }
 /* ── Tailwind text-* class overrides for dark mode ── */
 /* text-white on colored/dark backgrounds (buttons, badges) should stay white.
    Only flip it on surfaces that are now light-colored in light mode. */
-.dark .text-white:not([style*="background"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-orange"]):not([class*="bg-blue"]) {
+.dark .text-white:not([style*="background"]):not([style*="color"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-rose"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="!text-white"]) {
   color: var(--text-primary) !important;
 }
 
 /* In LIGHT MODE — ensure text-white on light surfaces becomes dark */
-:not(.dark) .text-white:not([style*="background"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-orange"]):not([class*="bg-blue"]) {
+:not(.dark) .text-white:not([style*="background"]):not([style*="color"]):not([class*="bg-[#"]):not([class*="bg-teal"]):not([class*="bg-emerald"]):not([class*="bg-purple"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-rose"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="!text-white"]) {
   color: var(--text-primary) !important;
 }
 

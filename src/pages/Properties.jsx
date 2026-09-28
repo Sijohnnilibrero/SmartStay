@@ -169,10 +169,10 @@ export default function Properties() {
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 snap-x hide-scrollbar flex-1">
           {[
-            { name: 'All', color: 'teal' },
-            { name: 'Batan', color: 'emerald' },
-            { name: 'Sabtang', color: 'amber' },
-            { name: 'Itbayat', color: 'purple' },
+            { name: 'All', color: 'teal-pastel' },
+            { name: 'Batan', color: 'emerald-pastel' },
+            { name: 'Sabtang', color: 'amber-pastel' },
+            { name: 'Itbayat', color: 'purple-pastel' },
           ].map(function (item) {
             return (
               <div key={item.name} className="flex-shrink-0 snap-start">
@@ -281,11 +281,14 @@ export default function Properties() {
 
                     {/* Price bottom-right */}
                     <div className="absolute bottom-3 right-3">
-                      <span className="bg-white/95 dark:bg-black/60 text-[--teal] dark:text-teal-300 font-bold text-[13px] px-2.5 py-1 rounded-full shadow-sm">
+                      <span className="bg-white dark:bg-stone-950 text-teal-700 dark:text-teal-300 font-extrabold text-[12px] px-2.5 py-1 rounded-full shadow-md border border-stone-200/80 dark:border-white/20 ring-1 ring-black/10 dark:ring-white/10 flex items-center gap-1">
                         {p.price_monthly ? (
-                          <>{formatCurrency(p.price_monthly)}<span className="text-[10px] font-normal text-stone-500 dark:text-teal-400/70">/mo</span></>
+                          <>
+                            <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(p.price_monthly)}</span>
+                            <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">/mo</span>
+                          </>
                         ) : (
-                          'Prices vary'
+                          <span className="text-stone-800 dark:text-stone-100 font-bold text-[11px] tracking-tight">Prices vary</span>
                         )}
                       </span>
                     </div>
@@ -293,8 +296,9 @@ export default function Properties() {
                     {/* Island badge bottom-left */}
                     {p.island && (
                       <div className="absolute bottom-3 left-3">
-                        <span className="bg-black/80 !text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm ring-1 ring-white/20">
-                          {p.island}
+                        <span className="bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-100 font-bold text-[11px] px-2.5 py-1 rounded-full shadow-md border border-stone-200/80 dark:border-white/20 ring-1 ring-black/10 dark:ring-white/10 flex items-center gap-1.5 tracking-tight">
+                          <MapPin size={11} className="text-rose-500 dark:text-rose-400 shrink-0" />
+                          <span>{p.island}</span>
                         </span>
                       </div>
                     )}
