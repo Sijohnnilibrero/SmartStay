@@ -10,9 +10,8 @@ import ImageViewerModal from '@/components/ui/ImageViewerModal'
 import { formatCurrency } from '@/lib/utils'
 
 const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
-const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
 const PLACEHOLDER_IMAGES = ['/images/property_1.png', '/images/property_2.png', '/images/property_3.png']
-const ROOM_AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry']
+const ROOM_AMENITY_OPTIONS = ['WiFi', 'Air Conditioning', 'Hot Shower', 'Water', 'Electric', 'Kitchen', 'Laundry', 'Parking', 'Security', 'Furnished', 'Backup Power']
 const EMPTY_ROOM_FORM = { room_number: '', floor: 1, price_monthly: '', price_daily: '', amenities: [], notes: '', is_available: true, image_urls: [] }
 
 var EMPTY_FORM = {
@@ -225,13 +224,6 @@ export default function AddProperty() {
         }
       })
     }
-  }
-
-  function toggleAmenity(a) {
-    setForm(f => ({
-      ...f,
-      amenities: f.amenities.includes(a) ? f.amenities.filter(x => x !== a) : [...f.amenities, a]
-    }))
   }
 
   async function handlePickLocation(lat, lng) {
@@ -546,6 +538,10 @@ export default function AddProperty() {
       parsedRooms = rooms.length > 0 ? rooms.length : 1
     }
 
+    const aggregatedAmenities = !isEdit && roomDrafts.length > 0
+      ? Array.from(new Set(roomDrafts.flatMap(d => d.amenities || [])))
+      : (rooms && rooms.length > 0 ? Array.from(new Set(rooms.flatMap(r => r.amenities || []))) : (form.amenities || []))
+
     var payload = {
       ...form,
       name: form.name.trim(),
@@ -555,7 +551,7 @@ export default function AddProperty() {
       barangay: form.barangay.trim(), landmark: form.landmark.trim(),
       price_monthly: 0,
       total_rooms: parsedRooms,
-      amenities: form.amenities, latitude: form.latitude, longitude: form.longitude,
+      amenities: aggregatedAmenities, latitude: form.latitude, longitude: form.longitude,
       location: form.latitude && form.longitude
         ? 'SRID=4326;POINT(' + form.longitude + ' ' + form.latitude + ')' : null,
       image_url: imageUrl, permit_urls: permitUrls,
@@ -760,21 +756,6 @@ export default function AddProperty() {
           )}
         </div>
 
-        {/* Amenities */}
-        <div>
-          <label className="text-[11px] uppercase tracking-wider text-stone-400 font-medium block mb-2">Property Amenities</label>
-          <div className="flex flex-wrap gap-2">
-            {AMENITY_OPTIONS.map(a => {
-              var active = form.amenities.includes(a)
-              return (
-                <button key={a} type="button" onClick={() => toggleAmenity(a)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all ${active ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
-                  {a}
-                </button>
-              )
-            })}
-          </div>
-        </div>
 
         {/* Map */}
         <div>

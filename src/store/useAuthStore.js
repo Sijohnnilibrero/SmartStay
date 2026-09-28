@@ -526,11 +526,16 @@ export const useAuthStore = create(
       },
 
       syncPropertyRooms: async (propertyId) => {
-        const { data: rooms } = await supabase.from('rooms').select('is_available').eq('property_id', propertyId)
+        const { data: rooms } = await supabase.from('rooms').select('is_available, amenities').eq('property_id', propertyId)
         if (rooms) {
           const total = rooms.length
           const avail = rooms.filter(r => r.is_available).length
-          await supabase.from('properties').update({ total_rooms: total, available_rooms: avail }).eq('id', propertyId)
+          const allAmenities = Array.from(new Set(rooms.flatMap(r => r.amenities || [])))
+          await supabase.from('properties').update({
+            total_rooms: total,
+            available_rooms: avail,
+            amenities: allAmenities,
+          }).eq('id', propertyId)
         }
       },
 

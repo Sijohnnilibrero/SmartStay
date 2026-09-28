@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import NotificationBell from '@/components/layout/NotificationBell'
 
-const AMENITY_OPTIONS = ['WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
+const AMENITY_OPTIONS = ['WiFi', 'Air Conditioning', 'Hot Shower', 'Water', 'Electric', 'Kitchen', 'Laundry', 'Parking', 'Security', 'Furnished', 'Backup Power', 'Garden']
 const EMPTY_FORM = { room_number: '', floor: 1, price_monthly: '', price_daily: '', amenities: [], notes: '', is_available: true, image_urls: [] }
 
 // ── Multi-Image Uploader ─────────────────────────────────────────
