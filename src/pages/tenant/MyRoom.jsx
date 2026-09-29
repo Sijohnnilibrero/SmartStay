@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
-import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle, MessageSquare } from 'lucide-react'
+import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
 import { supabase } from '@/lib/supabase'
@@ -288,16 +288,6 @@ export default function MyRoom() {
                 SmartStay does not process online payments. All rent and deposits must be paid directly to your landlord (via cash, GCash, or bank transfer). Please request a receipt from your landlord for your own records.
               </p>
             </Card>
-          </div>
-
-          {/* Report Issue */}
-          <div className="pt-1 flex items-center justify-end">
-            <button
-              onClick={() => navigate('/tenant/messages')}
-              className="flex items-center gap-1.5 text-[11px] text-stone-500 hover:text-stone-700 transition-colors"
-            >
-              <MessageSquare size={12} /> Contact Landlord for Maintenance
-            </button>
           </div>
         </div>
       </div>
