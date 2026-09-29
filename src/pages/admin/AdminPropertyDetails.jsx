@@ -100,7 +100,7 @@ export default function AdminPropertyDetails() {
 
   return (
     <div className="min-h-screen pb-24 font-['Plus_Jakarta_Sans']">
-      <div className="glass-panel sticky top-0 z-40">
+      <div className="glass-panel sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors text-sm font-medium">
             <ArrowLeft size={16} /> Back to Properties

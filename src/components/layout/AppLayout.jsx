@@ -101,7 +101,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-auto flex flex-col h-screen">
         {/* Global Unified Header (Desktop + Mobile) */}
-        <header className="h-14 flex items-center justify-between px-4 sm:px-6 backdrop-blur-md border-b sticky top-0 z-30 shrink-0">
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 backdrop-blur-md border-b sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Brand icon */}
             <div className="md:hidden flex items-center flex-shrink-0">
