@@ -24,13 +24,11 @@ const RATING_FILTERS = [
 // Modern value amenities (replacing basic water/electric with actual selling points)
 const AMENITY_OPTIONS = [
   { label: 'WiFi', color: 'blue', icon: '📶' },
-  { label: 'Hot Shower', color: 'teal', icon: '🚿' },
   { label: 'Air Conditioning', color: 'blue', icon: '❄️' },
   { label: 'Kitchen / Cooking', color: 'amber', icon: '🍳' },
   { label: 'Laundry', color: 'purple', icon: '🧺' },
   { label: 'Security / CCTV', color: 'emerald', icon: '🛡️' },
   { label: 'Parking', color: 'purple', icon: '🅿️' },
-  { label: 'Furnished', color: 'teal', icon: '🛏️' },
   { label: 'Backup Power', color: 'amber', icon: '🔋' },
 ]
 
