@@ -19,7 +19,7 @@ const DAILY_BUDGETS = [
 ]
 
 const MUNICIPALITIES = ['Any', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
-const PREFS = ['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden', 'Air Conditioning']
+const PREFS = ['Any', 'WiFi', 'Air Conditioning', 'Kitchen', 'Laundry', 'Security', 'Parking', 'Backup Power']
 
 function scoreProperty(p, opts) {
   let score = 0

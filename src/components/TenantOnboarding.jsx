@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { Search, BedDouble, Star, ChevronRight, X, CheckCircle, MapPin, Wallet, Sparkles } from 'lucide-react'
 
 const MUNICIPALITIES = ['Any', 'Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
-const AMENITIES = ['Any', 'WiFi', 'Water', 'Electric', 'Security', 'Kitchen', 'Parking', 'Laundry', 'Garden']
+const AMENITIES = ['Any', 'WiFi', 'Air Conditioning', 'Kitchen', 'Laundry', 'Security', 'Parking', 'Backup Power']
 
 export default function TenantOnboarding() {
   const user = useAuthStore((s) => s.user)

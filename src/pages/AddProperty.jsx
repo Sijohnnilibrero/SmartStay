@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/utils'
 
 const MUNICIPALITIES = ['Basco', 'Ivana', 'Mahatao', 'Uyugan', 'Sabtang', 'Itbayat']
 const PLACEHOLDER_IMAGES = ['/images/property_1.png', '/images/property_2.png', '/images/property_3.png']
-const ROOM_AMENITY_OPTIONS = ['WiFi', 'Air Conditioning', 'Water', 'Electric', 'Kitchen', 'Laundry', 'Parking', 'Security', 'Backup Power']
+const ROOM_AMENITY_OPTIONS = ['WiFi', 'Air Conditioning', 'Kitchen', 'Laundry', 'Parking', 'Security', 'Backup Power']
 const EMPTY_ROOM_FORM = { room_number: '', floor: 1, price_monthly: '', price_daily: '', amenities: [], notes: '', is_available: true, image_urls: [] }
 
 var EMPTY_FORM = {
