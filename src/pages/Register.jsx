@@ -51,18 +51,43 @@ export default function Register() {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
+  const pwHasMinLen = form.password.length >= 8
+  const pwHasUpper = /[A-Z]/.test(form.password)
+  const pwHasLower = /[a-z]/.test(form.password)
+  const pwHasNum = /[0-9]/.test(form.password)
+
   const validateStep2 = () => {
     const e = {}
     if (!form.name.trim()) e.name = 'Full name is required.'
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(form.email)) e.email = 'Enter a valid email address (e.g. name@gmail.com).'
+    if (!form.email.trim()) {
+      e.email = 'Email address is required.'
+    } else if (!emailRegex.test(form.email)) {
+      e.email = 'Enter a valid email address (e.g. name@gmail.com).'
+    }
     if (!form.contact.trim()) {
       e.contact = 'Contact number is required.'
     } else if (!/^(09|\+639)\d{9}$|^[0-9+() -]{7,15}$/.test(form.contact.trim())) {
       e.contact = 'Enter a valid contact number (e.g. 09123456789).'
     }
-    if (form.password.length < 6) e.password = 'Password must be at least 6 characters.'
-    if (form.password !== form.confirmPw) e.confirmPw = 'Passwords do not match.'
+
+    if (!form.password) {
+      e.password = 'Password is required.'
+    } else if (form.password.length < 8) {
+      e.password = 'Password must be at least 8 characters long.'
+    } else if (!/[A-Z]/.test(form.password)) {
+      e.password = 'Password must include at least one uppercase letter (A-Z).'
+    } else if (!/[a-z]/.test(form.password)) {
+      e.password = 'Password must include at least one lowercase letter (a-z).'
+    } else if (!/[0-9]/.test(form.password)) {
+      e.password = 'Password must include at least one number (0-9).'
+    }
+
+    if (!form.confirmPw) {
+      e.confirmPw = 'Please confirm your password.'
+    } else if (form.password !== form.confirmPw) {
+      e.confirmPw = 'Passwords do not match.'
+    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -208,11 +233,16 @@ export default function Register() {
             <div className="space-y-5 animate-fadeIn">
               <div>
                 <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
-                  Who are you?
+                  Who are you? <span className="text-red-500 font-bold">*</span>
                 </h2>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  Choose your role to customize your experience
-                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    Choose your role to customize your experience
+                  </p>
+                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                    * Required
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -268,19 +298,25 @@ export default function Register() {
           {/* STEP 2: Details Form */}
           {step === 2 && (
             <form onSubmit={handleRegister} className="space-y-4 animate-fadeIn">
-              <div>
-                <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
-                  Your details
-                </h2>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  Creating {role === 'tenant' ? 'Tenant' : 'Homeowner'} account
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 pb-2 border-b border-stone-200/80 dark:border-stone-800">
+                <div>
+                  <h2 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">
+                    Your details
+                  </h2>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                    Creating {role === 'tenant' ? 'Tenant' : 'Homeowner'} account
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-semibold self-start sm:self-auto">
+                  <span className="text-red-500 font-bold text-sm leading-none">*</span>
+                  <span>All fields are required.</span>
+                </div>
               </div>
 
               {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                  Full Name
+                  Full Name <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
                   <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
@@ -300,7 +336,7 @@ export default function Register() {
               {/* Email */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                  Email Address
+                  Email Address <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
@@ -320,7 +356,7 @@ export default function Register() {
               {/* Contact */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                  Contact Number
+                  Contact Number <span className="text-red-500 font-bold">*</span>
                 </label>
                 <div className="relative">
                   <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
@@ -341,14 +377,14 @@ export default function Register() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                    Password
+                    Password <span className="text-red-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <input
                       type={showPw ? 'text' : 'password'}
                       value={form.password}
                       onChange={(e) => set('password', e.target.value)}
-                      placeholder="Min. 6 chars"
+                      placeholder="Min. 8 chars"
                       className={`w-full pl-3 pr-8 py-2.5 text-sm rounded-xl bg-white dark:bg-stone-800/90 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border ${
                         errors.password ? 'border-red-500' : 'border-stone-300 dark:border-stone-700/80 focus:border-teal-500 dark:focus:border-teal-400'
                       } focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:focus:ring-teal-400/25 transition-all shadow-sm`}
@@ -366,7 +402,7 @@ export default function Register() {
 
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                    Confirm Password
+                    Confirm Password <span className="text-red-500 font-bold">*</span>
                   </label>
                   <input
                     type="password"
@@ -381,12 +417,45 @@ export default function Register() {
                 </div>
               </div>
 
+              {/* Password Requirements Helper Indicator */}
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/80 dark:border-stone-700/70 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                    <Lock size={12} className="text-teal-600 dark:text-teal-400" />
+                    Strong Password Requirements:
+                  </span>
+                  {pwHasMinLen && pwHasUpper && pwHasLower && pwHasNum && (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      ✓ Strong Password
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10.5px]">
+                  <div className={`flex items-center gap-1.5 transition-colors ${pwHasMinLen ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-stone-400 dark:text-stone-500'}`}>
+                    <span>{pwHasMinLen ? '✓' : '○'}</span>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 transition-colors ${pwHasUpper ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-stone-400 dark:text-stone-500'}`}>
+                    <span>{pwHasUpper ? '✓' : '○'}</span>
+                    <span>1 uppercase letter (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 transition-colors ${pwHasLower ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-stone-400 dark:text-stone-500'}`}>
+                    <span>{pwHasLower ? '✓' : '○'}</span>
+                    <span>1 lowercase letter (a-z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 transition-colors ${pwHasNum ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-stone-400 dark:text-stone-500'}`}>
+                    <span>{pwHasNum ? '✓' : '○'}</span>
+                    <span>1 number (0-9)</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Role-specific fields */}
               {role === 'tenant' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                      Tenant Classification
+                      Tenant Classification <span className="text-red-500 font-bold">*</span>
                     </label>
                     <select
                       value={form.tenantType}
@@ -401,7 +470,7 @@ export default function Register() {
 
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                      Target Municipality
+                      Target Municipality <span className="text-red-500 font-bold">*</span>
                     </label>
                     <select
                       value={form.municipality}
