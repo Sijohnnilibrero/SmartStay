@@ -5,7 +5,7 @@ import { Card, Badge, OccupancyBar, Button, ZoomableImage } from '@/components/u
 import { formatCurrency } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
-import { MapPin, ArrowLeft, Star, BedDouble, User, CheckCircle, XCircle, Trash2, Home, Upload, FileText, Download, Mail, Phone, Calendar } from 'lucide-react'
+import { MapPin, ArrowLeft, Star, BedDouble, User, CheckCircle, XCircle, Trash2, Home, Upload, FileText, Download, Mail, Phone, Calendar, Eye } from 'lucide-react'
 import PropertyMap from '@/components/map/PropertyMap'
 import { supabase } from '@/lib/supabase'
 
@@ -122,10 +122,20 @@ export default function AdminPropertyDetails() {
           </div>
         </div>
 
-        {/* Hero Image */}
-        <div className="h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-sm border border-stone-200 bg-stone-100 flex items-center justify-center">
+        {/* Hero Image with Zoom and Inspect */}
+        <div 
+          onClick={() => property.image_url && setPermitModalUrl(property.image_url)}
+          className={`relative h-[300px] sm:h-[400px] rounded-3xl overflow-hidden shadow-sm border border-stone-200 bg-stone-100 flex items-center justify-center ${property.image_url ? 'cursor-pointer group' : ''}`}
+        >
           {property.image_url ? (
-            <img src={property.image_url} alt={property.name} className="w-full h-full object-cover" />
+            <>
+              <img src={property.image_url} alt={property.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="bg-white/90 text-stone-800 text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                  <Eye size={14} className="text-teal-600" /> Click to Zoom & Inspect Photo
+                </span>
+              </div>
+            </>
           ) : (
             <div className="text-stone-300 flex flex-col items-center justify-center gap-2 opacity-70">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>

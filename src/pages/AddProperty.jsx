@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Input, ZoomableImage } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import PropertyMap from '@/components/map/PropertyMap'
@@ -270,6 +270,35 @@ export default function AddProperty() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  function handlePermitFilesSelect(files) {
+    if (!files || files.length === 0) return
+    const currentTotal = permitFiles.length + (form.permit_urls?.length || 0)
+    const newFiles = Array.from(files)
+
+    // Check file size (max 10 MB per file)
+    const oversized = newFiles.filter(f => f.size > 10 * 1024 * 1024)
+    if (oversized.length > 0) {
+      addToast(`Some files exceed the 10 MB limit (${oversized.map(f => f.name).join(', ')}).`, 'error')
+    }
+    const validFiles = newFiles.filter(f => f.size <= 10 * 1024 * 1024)
+
+    // Check maximum cap (max 6 documents total)
+    const remainingSlots = 6 - currentTotal
+    if (remainingSlots <= 0) {
+      addToast('You have reached the maximum limit of 6 permit documents.', 'error')
+      return
+    }
+
+    if (validFiles.length > remainingSlots) {
+      addToast(`Only ${remainingSlots} more document${remainingSlots > 1 ? 's' : ''} can be added (maximum 6 total).`, 'warning')
+    }
+
+    const filesToAdd = validFiles.slice(0, remainingSlots)
+    if (filesToAdd.length > 0) {
+      setPermitFiles(prev => [...prev, ...filesToAdd])
+    }
+  }
+
   // ── Room Draft Helpers ──
   function updateRoomDraft(idx, key, val) {
     setRoomDrafts(prev => { var next = [...prev]; next[idx] = { ...next[idx], [key]: val }; return next })
@@ -453,8 +482,21 @@ export default function AddProperty() {
       setError('Please select who you cater to (Long-term Boarders or Transients).')
       return false
     }
-    if (!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0)) {
-      setError('Please upload at least one Business Permit document.')
+
+    // REQUIREMENT 2: Property photo must be uploaded
+    if (!imageFile && !form.image_url) {
+      setError('Please upload at least one property photo to provide tenants with a clear view.')
+      return false
+    }
+
+    // REQUIREMENT 11: 3 to 6 permit documents required
+    const totalPermits = permitFiles.length + (form.permit_urls ? form.permit_urls.length : 0)
+    if (!isEdit && totalPermits < 3) {
+      setError(`Please upload at least 3 permit or supporting documents for verification (currently ${totalPermits} of 3 uploaded).`)
+      return false
+    }
+    if (totalPermits > 6) {
+      setError(`You can submit a maximum of 6 permit documents (currently ${totalPermits} selected). Please remove extra documents.`)
       return false
     }
     if ((permitFiles.length > 0 || (form.permit_urls && form.permit_urls.length > 0)) && !form.permit_expires_on) {
@@ -600,18 +642,28 @@ export default function AddProperty() {
           {/* Photo Upload */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold block">
-                Property Main Photo <span className="text-stone-400 normal-case tracking-normal font-normal">(optional)</span>
+              <label className="text-[11px] uppercase tracking-wider text-stone-700 dark:text-stone-300 font-bold block">
+                Property Main Photo <span className="text-red-500 font-bold">*</span>
               </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                imagePreview 
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+              }`}>
+                {imagePreview ? '✓ Photo Selected' : 'Required'}
+              </span>
             </div>
             {imagePreview ? (
               <div className="relative rounded-2xl overflow-hidden group border border-stone-200 dark:border-stone-700 shadow-sm">
                 <img src={imagePreview} alt="Property preview" className="w-full h-52 object-cover" />
-                <div className="absolute inset-0 bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-white text-stone-700 text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-50 shadow-md">
+                <div className="absolute inset-0 bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <button type="button" onClick={() => setViewingImage(imagePreview)} className="bg-white text-stone-700 text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-50 shadow-md cursor-pointer">
+                    <Eye size={13} /> View & Zoom
+                  </button>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-white text-stone-700 text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-50 shadow-md cursor-pointer">
                     <Upload size={13} /> Change
                   </button>
-                  <button type="button" onClick={removeImage} className="bg-red-500 text-white text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-red-600 shadow-md">
+                  <button type="button" onClick={removeImage} className="bg-red-500 text-white text-[12px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-red-600 shadow-md cursor-pointer">
                     <X size={13} /> Remove
                   </button>
                 </div>
@@ -632,8 +684,10 @@ export default function AddProperty() {
                   <div className="w-11 h-11 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center mx-auto mb-2 shadow-sm text-teal-600 dark:text-teal-400">
                     <ImagePlus size={20} />
                   </div>
-                  <p className="text-[13px] font-bold text-stone-700 dark:text-stone-200">Click or drag photo</p>
-                  <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5">JPG, PNG, WEBP (max 5MB)</p>
+                  <p className="text-[13px] font-bold text-stone-700 dark:text-stone-200">
+                    Upload Property Photo <span className="text-red-500">*</span>
+                  </p>
+                  <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5">JPG, PNG, WEBP (Required • max 5MB)</p>
                 </div>
               </div>
             )}
@@ -675,18 +729,62 @@ export default function AddProperty() {
             )}
           </div>
 
-          {/* Business Permit */}
+          {/* Business & Legal Permits */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400 font-bold">
-                Business Permit Documents {isEdit ? <span className="text-stone-400 normal-case font-normal">(Uploaded)</span> : <span className="text-red-500">*</span>}
-              </label>
-              <button type="button" onClick={() => document.getElementById('permit_upload_input').click()} className="text-[11px] bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg font-bold hover:bg-teal-100 dark:hover:bg-teal-900/60 flex items-center gap-1 transition-all">
-                <Plus size={12} /> Add Permit File
-              </button>
+              <div>
+                <label className="text-[11px] uppercase tracking-wider text-stone-700 dark:text-stone-300 font-bold block">
+                  Permits & Verification Documents <span className="text-red-500 font-bold">*</span>
+                </label>
+                <p className="text-[10px] text-stone-500 dark:text-stone-400">3 to 6 documents required • Max 10MB per file</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
+                  (permitFiles.length + (form.permit_urls?.length || 0)) >= 3 && (permitFiles.length + (form.permit_urls?.length || 0)) <= 6
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                }`}>
+                  {permitFiles.length + (form.permit_urls?.length || 0)} / 6 uploaded
+                </span>
+                <button 
+                  type="button" 
+                  disabled={(permitFiles.length + (form.permit_urls?.length || 0)) >= 6}
+                  onClick={() => {
+                    if ((permitFiles.length + (form.permit_urls?.length || 0)) >= 6) {
+                      addToast('Maximum limit of 6 documents reached.', 'warning')
+                      return
+                    }
+                    document.getElementById('permit_upload_input').click()
+                  }} 
+                  className="text-[11px] bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg font-bold hover:bg-teal-100 dark:hover:bg-teal-900/60 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus size={12} /> Add Document
+                </button>
+              </div>
             </div>
-            <input id="permit_upload_input" type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp"
-              onChange={e => setPermitFiles([...permitFiles, ...Array.from(e.target.files)])} className="hidden" />
+            <input 
+              id="permit_upload_input" 
+              type="file" 
+              multiple 
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              onChange={e => {
+                handlePermitFilesSelect(e.target.files)
+                e.target.value = ''
+              }} 
+              className="hidden" 
+            />
+
+            {/* Checklist of acceptable supporting documents */}
+            <div className="p-3 rounded-xl bg-stone-50/80 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-700/60 text-[11px] text-stone-600 dark:text-stone-400">
+              <p className="font-bold text-stone-700 dark:text-stone-300 mb-1">Upload at least 3 supporting documents:</p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[10.5px]">
+                <li>Mayor's / Business Permit</li>
+                <li>Barangay Business Clearance</li>
+                <li>DTI or SEC Certificate of Registration</li>
+                <li>Bureau of Fire Protection (BFP) Inspection Certificate</li>
+                <li>Sanitary / Health Inspection Permit</li>
+              </ul>
+            </div>
 
             <div className="space-y-2">
               {form.permit_urls?.map((url, idx) => (
@@ -695,7 +793,7 @@ export default function AddProperty() {
                     {form.status === 'active' ? <CheckCircle2 size={16} /> : <Loader2 size={16} className="animate-spin" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold text-stone-800 dark:text-stone-200 truncate">Existing Permit {idx+1}</p>
+                    <p className="text-[12px] font-bold text-stone-800 dark:text-stone-200 truncate">Existing Document {idx+1}</p>
                     <p className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">{form.status === 'active' ? 'Verified' : 'Under Review'}</p>
                   </div>
                   <button type="button" onClick={e => { e.stopPropagation(); set('permit_urls', form.permit_urls.filter((_, i) => i !== idx)) }} className="p-1.5 text-stone-400 hover:text-red-500 rounded-md">
@@ -717,8 +815,13 @@ export default function AddProperty() {
               ))}
             </div>
 
-            {!isEdit && permitFiles.length === 0 && (!form.permit_urls || form.permit_urls.length === 0) && (
-              <p className="text-[11px] text-stone-400">Mayor's Permit or Barangay Clearance required for listing</p>
+            {!isEdit && (permitFiles.length + (form.permit_urls?.length || 0)) < 3 && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                <AlertCircle size={13} />
+                <span>
+                  Please upload {3 - (permitFiles.length + (form.permit_urls?.length || 0))} more document{3 - (permitFiles.length + (form.permit_urls?.length || 0)) > 1 ? 's' : ''} to reach the required 3 permits.
+                </span>
+              </p>
             )}
 
             {(permitFiles.length > 0 || isEdit || (form.permit_urls && form.permit_urls.length > 0)) && (
@@ -1501,17 +1604,26 @@ export default function AddProperty() {
         </div>
       </div>
 
-      {/* Permit Preview Modal */}
+      {/* Permit Preview Modal with Drag and Zoom */}
       {permitPreviewModal && activePermitPreview && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4" onClick={() => setPermitPreviewModal(false)}>
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 border-b border-stone-100">
-              <h3 className="font-bold text-sm text-stone-800">Permit Preview</h3>
-              <button className="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg" onClick={() => setPermitPreviewModal(false)}><X size={16} /></button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-200" onClick={() => setPermitPreviewModal(false)}>
+          <div className="relative max-w-4xl max-h-[92vh] w-full bg-white dark:bg-stone-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-stone-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3.5 border-b border-stone-100 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80">
+              <div className="flex items-center gap-2">
+                <span className="text-teal-600 dark:text-teal-400 font-bold text-sm">Permit Document Preview</span>
+                <span className="text-[11px] text-stone-400">({activePermitPreview.name})</span>
+              </div>
+              <button className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer" onClick={() => setPermitPreviewModal(false)}>
+                <X size={18} />
+              </button>
             </div>
-            <div className="overflow-auto p-4 flex-1 bg-stone-50 flex items-center justify-center">
+            <div className="overflow-hidden p-2 sm:p-4 flex-1 bg-stone-950 flex items-center justify-center min-h-[50vh] sm:min-h-[70vh]">
               {activePermitPreview.type.startsWith('image/') ? (
-                <img src={URL.createObjectURL(activePermitPreview)} alt="Permit Preview" className="max-w-full max-h-[75vh] object-contain rounded-lg" />
+                <ZoomableImage 
+                  src={URL.createObjectURL(activePermitPreview)} 
+                  alt="Permit Preview" 
+                  className="w-full h-full max-h-[75vh]" 
+                />
               ) : (
                 <iframe src={URL.createObjectURL(activePermitPreview)} className="w-[80vw] h-[75vh] max-w-4xl rounded-lg" title="PDF Preview" />
               )}
