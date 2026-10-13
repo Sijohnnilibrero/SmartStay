@@ -1,3 +1,4 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
@@ -104,6 +105,7 @@ export default function AuthModal({
   resendStatus = '', // '' | 'sending' | 'sent' | 'error'
   onContactSupport, // function to open appeal/support modal
 }) {
+  useScrollLock(isOpen)
   if (!isOpen || !type) return null
 
   const cfg = CONFIGS[type]

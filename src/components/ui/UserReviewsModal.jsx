@@ -1,3 +1,4 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { X, Star, ChevronLeft } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
@@ -5,6 +6,7 @@ import { Avatar, StarRating } from './index'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function UserReviewsModal({ isOpen, onClose, userId, userName }) {
+  useScrollLock(isOpen)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(false)
   const fetchUserReviews = useAuthStore(s => s.fetchUserReviews)

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Badge, Button, FilterChip } from '@/components/ui'
+import { Card, Badge, Button, FilterChip, RenewalReviewModal } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
-import { Users, Search, MessageSquare, X, AlertTriangle, Star } from 'lucide-react'
+import { Users, Search, MessageSquare, X, AlertTriangle, Star, Clock } from 'lucide-react'
+import { parseRenewalData } from '@/lib/utils'
 import ReviewModal from '@/components/ui/ReviewModal'
 import TenantProfileModal from '@/components/ui/TenantProfileModal'
 import { supabase } from '@/lib/supabase'
@@ -42,6 +43,7 @@ export default function HomeownerTenants() {
   var addToast = useAppStore(function(s) { return s.addToast })
   var [ratingTenant, setRatingTenant] = useState(null)
   var [selectedTenant, setSelectedTenant] = useState(null)
+  var [reviewingRenewalTenant, setReviewingRenewalTenant] = useState(null)
   var submitReview = useAuthStore(s => s.submitReview)
 
   var loadTenants = useCallback(function(silent = false) {
@@ -66,6 +68,7 @@ export default function HomeownerTenants() {
             var propName = props.find(function(p) { return p.id === r.property_id })?.name || 'Unknown Property'
             myTenants.push({
               ...t,
+              reservation: r,
               reservation_id: r.id,
               reservation_status: r.status,
               ended_at: r.ended_at,
@@ -73,7 +76,14 @@ export default function HomeownerTenants() {
               property_id: r.property_id,
               reservation_created: r.created_at,
               check_in: r.check_in,
-              duration_months: r.duration_months
+              duration_months: r.duration_months,
+              amount_total: r.amount_total,
+              room_id: r.room_id,
+              renewal_status: r.renewal_status,
+              renewal_months: r.renewal_months,
+              renewal_notes: r.renewal_notes,
+              renewal_requested_at: r.renewal_requested_at,
+              notes: r.notes
             })
           }
         })
@@ -144,6 +154,11 @@ export default function HomeownerTenants() {
     visitor: currentTenants.filter(t => (t.tenant_type || '').toLowerCase() === 'visitor').length,
   }
 
+  const pendingRenewalsCount = currentTenants.filter(function(t) {
+    const ren = parseRenewalData(t.reservation || t)
+    return ren.status === 'pending'
+  }).length
+
   return (
     <div className="page-enter">
       {/* Sticky Search & Filter Toolbar - Flush with header, zero gap */}
@@ -198,6 +213,24 @@ export default function HomeownerTenants() {
           </button>
         </div>
 
+        {activeTab === 'active' && pendingRenewalsCount > 0 && (
+          <div className="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-amber-900 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0">
+                <Clock size={16} />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold">
+                  {pendingRenewalsCount} Lease Extension {pendingRenewalsCount === 1 ? 'Request' : 'Requests'} Pending
+                </p>
+                <p className="text-[11px] text-amber-700">
+                  Review tenant lease extension requests below to approve or decline contract extensions.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
       <Card>
         {errorMsg ? (
           <div className="bg-red-50 p-6 rounded-2xl border border-red-100 flex flex-col items-center justify-center text-center text-red-500 min-h-[300px]">
@@ -234,6 +267,9 @@ export default function HomeownerTenants() {
               </thead>
               <tbody>
                 {filtered.map(function(t) {
+                  const ren = parseRenewalData(t.reservation || t)
+                  const isPendingRen = ren.status === 'pending'
+
                   return (
                     <tr key={t.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                       <td className="px-3 py-2 sm:px-4 sm:py-3">
@@ -262,13 +298,27 @@ export default function HomeownerTenants() {
                         {t.reservation_created ? new Date(t.reservation_created).toLocaleDateString() : '—'}
                       </td>
                       {activeTab === 'active' && (
-                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] text-red-500 whitespace-nowrap font-medium">
-                          {(() => {
-                            if (!t.check_in) return '—'
-                            const d = new Date(t.check_in)
-                            d.setMonth(d.getMonth() + (t.duration_months || 1))
-                            return d.toLocaleDateString()
-                          })()}
+                        <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] sm:text-[12px] text-red-500 font-medium">
+                              {(() => {
+                                if (!t.check_in) return '—'
+                                const d = new Date(t.check_in)
+                                d.setMonth(d.getMonth() + (t.duration_months || 1))
+                                return d.toLocaleDateString()
+                              })()}
+                            </span>
+                            {isPendingRen && (
+                              <span className="inline-flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md mt-0.5 w-fit">
+                                <Clock size={10} /> +{ren.months} {ren.months === 1 ? 'mo' : 'mos'} requested
+                              </span>
+                            )}
+                            {ren.status === 'approved' && (
+                              <span className="inline-flex items-center gap-1 text-[8px] sm:text-[10px] font-semibold text-teal-800 bg-teal-100 border border-teal-300 px-1.5 py-0.5 rounded-md mt-0.5 w-fit">
+                                Extended
+                              </span>
+                            )}
+                          </div>
                         </td>
                       )}
                       {activeTab === 'past' && (
@@ -277,7 +327,19 @@ export default function HomeownerTenants() {
                         </td>
                       )}
                       <td className="px-3 py-2 sm:px-4 sm:py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                          {activeTab === 'active' && isPendingRen && (
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              className="px-2 py-1 h-auto bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 font-semibold"
+                              onClick={() => setReviewingRenewalTenant(t)}
+                            >
+                              <Clock size={13} className="sm:mr-1 text-amber-600" />
+                              <span className="hidden sm:inline">Review Extension</span>
+                              <span className="sm:hidden">Review</span>
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -366,6 +428,13 @@ export default function HomeownerTenants() {
         isOpen={!!selectedTenant} 
         tenantId={selectedTenant?.id} 
         onClose={() => setSelectedTenant(null)} 
+      />
+
+      <RenewalReviewModal 
+        isOpen={!!reviewingRenewalTenant} 
+        tenant={reviewingRenewalTenant} 
+        onClose={() => setReviewingRenewalTenant(null)} 
+        onSuccess={() => loadTenants(true)} 
       />
 
       </div>

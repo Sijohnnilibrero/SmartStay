@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import useScrollLock from '@/hooks/useScrollLock'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, Badge, StarRating, OccupancyBar, Button, Input, ZoomableImage } from '@/components/ui'
@@ -42,13 +43,38 @@ export default function TenantPropertyDetails() {
   var selectedRoom = selectedRoomState[0], setSelectedRoom = selectedRoomState[1]
   var [popupImgIdx, setPopupImgIdx] = useState(0)
   var [fullScreenImgIdx, setFullScreenImgIdx] = useState(null)
+  useScrollLock(!!selectedRoom || fullScreenImgIdx !== null || showOwnerModal || !!selectedReviewerId)
   var wasHiddenRef = useRef(false)
   var touchStartX = useRef(0)
   var touchEndX = useRef(0)
 
   var [stayType, setStayType] = useState('long_term')
+  var [durationMonths, setDurationMonths] = useState(1)
   var [checkInDate, setCheckInDate] = useState(new Date().toISOString().split('T')[0])
   var [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0])
+
+  var calculatedMonthlyCheckOut = useMemo(function() {
+    if (!checkInDate) return ''
+    var parts = checkInDate.split('-')
+    if (parts.length !== 3) return ''
+    var y = parseInt(parts[0], 10)
+    var m = parseInt(parts[1], 10) - 1
+    var d = parseInt(parts[2], 10)
+    var monthsToAdd = Math.max(1, parseInt(durationMonths, 10) || 1)
+    var endD = new Date(y, m + monthsToAdd, d)
+    var endY = endD.getFullYear()
+    var endM = String(endD.getMonth() + 1).padStart(2, '0')
+    var endDay = String(endD.getDate()).padStart(2, '0')
+    return `${endY}-${endM}-${endDay}`
+  }, [checkInDate, durationMonths])
+
+  var formattedMonthlyCheckOut = useMemo(function() {
+    if (!calculatedMonthlyCheckOut) return ''
+    var parts = calculatedMonthlyCheckOut.split('-')
+    if (parts.length !== 3) return calculatedMonthlyCheckOut
+    var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }, [calculatedMonthlyCheckOut])
 
   var loadProperty = useCallback(function(silent = false) {
     if (!silent) setLoading(true)
@@ -145,8 +171,10 @@ export default function TenantPropertyDetails() {
       payload.check_out = checkOutDate
       payload.amount_total = total
     } else {
-      payload.duration_months = 1
-      payload.amount_total = room.price_monthly
+      var months = Math.max(1, parseInt(durationMonths, 10) || 1)
+      payload.duration_months = months
+      payload.check_out = calculatedMonthlyCheckOut || null
+      payload.amount_total = (room.price_monthly || 0) * months
     }
 
     createReservation(payload).then(function() {
@@ -401,141 +429,343 @@ export default function TenantPropertyDetails() {
         )}
       </div>
 
-      {selectedRoom && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={function() { setSelectedRoom(null) }}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden" onClick={function(e) { e.stopPropagation() }}>
-            <div className="p-5 border-b border-stone-100 flex items-center justify-between">
-              <h3 className="font-semibold text-stone-800 text-lg">Reserve Room {selectedRoom.room_number}</h3>
-              <button className="p-1 rounded-lg hover:bg-stone-100" onClick={function() { setSelectedRoom(null) }}><X size={18} className="text-stone-400" /></button>
+      {/* Room Reservation Modal (Landscape & Mobile-Optimized Layout) */}
+      {selectedRoom && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto overscroll-contain" onClick={function() { setSelectedRoom(null) }}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[96vh] flex flex-col md:flex-row overflow-hidden border border-stone-200 dark:border-stone-800 mt-2 sm:mt-0 overscroll-contain" onClick={function(e) { e.stopPropagation() }}>
+            
+            {/* Left Column: Room Photo & Property Info (Desktop md: and above) */}
+            <div className="hidden md:flex md:w-5/12 bg-stone-50 dark:bg-stone-950/40 p-5 flex-col justify-between border-r border-stone-200/80 dark:border-stone-800 overflow-y-auto">
+              <div className="space-y-3.5">
+                {/* Image Carousel */}
+                {selectedRoom.image_urls && selectedRoom.image_urls.length > 0 ? (
+                  <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-800 w-full group cursor-pointer shadow-sm border border-stone-200/60 dark:border-white/5" onClick={() => setFullScreenImgIdx(popupImgIdx)}>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors z-10 flex items-center justify-center">
+                      <div className="bg-black/60 text-white rounded-full px-3 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm flex items-center gap-1.5 text-xs font-semibold shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                        <span>Click to Zoom</span>
+                      </div>
+                    </div>
+                    <img src={selectedRoom.image_urls[popupImgIdx]} alt="Room Photo" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    {selectedRoom.image_urls.length > 1 && (
+                      <>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setPopupImgIdx(i => i === 0 ? selectedRoom.image_urls.length - 1 : i - 1) }}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all z-20">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setPopupImgIdx(i => (i + 1) % selectedRoom.image_urls.length) }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all z-20">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 bg-black/50 px-2 py-0.5 rounded-full z-20">
+                          {selectedRoom.image_urls.map((_, i) => (
+                            <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === popupImgIdx ? 'bg-white w-3' : 'bg-white/40'}`} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-40 rounded-2xl bg-stone-100 dark:bg-stone-800 flex flex-col items-center justify-center text-stone-400 gap-1 border border-stone-200/60 dark:border-white/5">
+                    <BedDouble size={28} />
+                    <span className="text-xs font-semibold">No room photo</span>
+                  </div>
+                )}
+
+                {/* Property & Room Overview */}
+                <div className="bg-white dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-200/70 dark:border-stone-800 shadow-sm space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 flex items-center justify-center text-lg flex-shrink-0">
+                      🏠
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">{property.name}</p>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">{property.address}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Room</span>
+                      <span className="font-extrabold text-stone-800 dark:text-stone-100">Room {selectedRoom.room_number}</span>
+                      <span className="text-[11px] text-stone-400 font-medium ml-1.5">(Floor {selectedRoom.floor})</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Rate</span>
+                      <span className="font-extrabold text-teal-700 dark:text-teal-300 text-sm">{formatCurrency(selectedRoom.price_monthly)}</span>
+                      <span className="text-[10px] text-stone-400 font-medium">/mo</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 mb-1.5">Room Amenities</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedRoom.amenities.map(function(a) {
+                        return <span key={a} className="text-[10px] px-2 py-0.5 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 font-semibold rounded-full border border-teal-200/50 dark:border-teal-800/40">{a}</span>
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {selectedRoom.notes && (
+                  <div>
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 mb-0.5">Room Notes</p>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-300 italic">{selectedRoom.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-xl mt-3">
+                <p className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight">
+                  ℹ️ Request will be sent to the homeowner for approval before payment.
+                </p>
+              </div>
             </div>
 
-            {/* Image Carousel */}
-            {selectedRoom.image_urls && selectedRoom.image_urls.length > 0 && (
-              <div className="relative h-48 bg-stone-100 w-full group cursor-pointer" onClick={() => setFullScreenImgIdx(popupImgIdx)}>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10 flex items-center justify-center">
-                  <div className="bg-black/50 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                  </div>
-                </div>
-                <img src={selectedRoom.image_urls[popupImgIdx]} alt="Room Photo" className="w-full h-full object-cover" />
-                {selectedRoom.image_urls.length > 1 && (
-                  <>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setPopupImgIdx(i => i === 0 ? selectedRoom.image_urls.length - 1 : i - 1) }}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all z-20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setPopupImgIdx(i => (i + 1) % selectedRoom.image_urls.length) }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all z-20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </button>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/40 px-2 py-1 rounded-full z-20">
-                      {selectedRoom.image_urls.map((_, i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === popupImgIdx ? 'bg-white' : 'bg-white/40'}`} />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="p-5 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl">
-                <div className="w-12 h-12 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-2xl">🏠</div>
-                <div>
-                  <p className="text-[13px] font-semibold text-stone-800">{property.name}</p>
-                  <p className="text-[11px] text-stone-500">{property.address}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 bg-stone-50 rounded-lg flex flex-col justify-center">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400">Room</p>
-                  <p className="text-[14px] font-semibold text-stone-800">Room {selectedRoom.room_number}</p>
-                  <p className="text-[11px] text-stone-400">Floor {selectedRoom.floor}</p>
-                </div>
-                <div className="p-3 bg-stone-50 rounded-lg flex flex-col gap-2">
-                  {property.accepts_long_term && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400">Monthly Rent</p>
-                      <p className="text-[14px] font-semibold text-[--teal]">{formatCurrency(selectedRoom.price_monthly)}</p>
-                    </div>
-                  )}
-                  {property.accepts_transient && selectedRoom.price_daily > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400 text-teal-600">Daily Rate</p>
-                      <p className="text-[14px] font-semibold text-teal-600">{formatCurrency(selectedRoom.price_daily)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Booking Dates section */}
-              <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-3">
-                {property.accepts_long_term && property.accepts_transient && (
+            {/* Right Column: Booking Dates, Duration, Cost Summary & Actions */}
+            <div className="w-full md:w-7/12 p-4 sm:p-6 flex flex-col justify-between overflow-y-auto bg-white dark:bg-stone-900">
+              <div className="space-y-3 sm:space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Stay Type</label>
-                    <div className="flex bg-stone-200/50 p-1 rounded-lg">
-                      <button type="button" onClick={() => setStayType('long_term')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${stayType === 'long_term' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-500 hover:text-stone-700'}`}>Long-term (Monthly)</button>
-                      <button type="button" onClick={() => setStayType('transient')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${stayType === 'transient' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-500 hover:text-stone-700'}`}>Short-term (Daily)</button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className={stayType === 'long_term' ? 'col-span-2' : ''}>
-                    <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Check-in Date</label>
-                    <Input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} min={new Date().toISOString().split('T')[0]} required className="bg-white" />
-                  </div>
-                  {stayType === 'transient' && (
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-stone-400 font-medium block mb-1.5">Check-out Date</label>
-                      <Input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} min={checkInDate || new Date().toISOString().split('T')[0]} required className="bg-white" />
-                    </div>
-                  )}
-                </div>
-
-                {stayType === 'transient' && checkInDate && checkOutDate && new Date(checkOutDate) > new Date(checkInDate) && (
-                  <div className="pt-2 border-t border-stone-200 flex justify-between items-center">
-                    <p className="text-xs text-stone-500">Total for {Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24))} day(s)</p>
-                    <p className="font-bold text-teal-700">
-                      {formatCurrency(selectedRoom.price_daily * Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)))}
+                    <h3 className="font-extrabold text-stone-900 dark:text-stone-100 text-base sm:text-lg">
+                      Room {selectedRoom.room_number} Details
+                    </h3>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                      Floor {selectedRoom.floor} · {property.name}
                     </p>
                   </div>
-                )}
-              </div>
-              {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-2">Room Amenities</p>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedRoom.amenities.map(function(a) {
-                      return <span key={a} className="text-[10px] px-2 py-1 bg-[#E1F5EE] text-[#0F6E56] rounded-full">{a}</span>
-                    })}
+                  <button 
+                    className="p-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer text-stone-400 hover:text-stone-700 dark:hover:text-stone-200" 
+                    onClick={function() { setSelectedRoom(null) }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Compact Mobile Room Preview Banner */}
+                <div className="md:hidden flex items-center gap-3 p-2.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/70 dark:border-stone-800">
+                  {selectedRoom.image_urls && selectedRoom.image_urls.length > 0 ? (
+                    <div 
+                      className="relative w-16 h-16 rounded-xl overflow-hidden bg-stone-200 flex-shrink-0 cursor-pointer group shadow-sm border border-stone-200"
+                      onClick={() => setFullScreenImgIdx(popupImgIdx)}
+                    >
+                      <img src={selectedRoom.image_urls[popupImgIdx]} alt="Room" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[9px] text-white font-bold">Zoom</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-teal-50 dark:bg-teal-950 flex items-center justify-center text-teal-700 flex-shrink-0">
+                      <BedDouble size={24} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+                        Room {selectedRoom.room_number} <span className="font-normal text-stone-400 text-[11px]">(Floor {selectedRoom.floor})</span>
+                      </p>
+                      <span className="text-xs font-black text-teal-700 dark:text-teal-400">
+                        {formatCurrency(selectedRoom.price_monthly)}/mo
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate mt-0.5">
+                      🏠 {property.name}
+                    </p>
                   </div>
                 </div>
-              )}
-              {selectedRoom.notes && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Notes</p>
-                  <p className="text-[12px] text-stone-600 italic">{selectedRoom.notes}</p>
+
+                {/* Mobile Room Amenities & Notes right below preview banner */}
+                {( (selectedRoom.amenities && selectedRoom.amenities.length > 0) || selectedRoom.notes ) && (
+                  <div className="md:hidden p-2.5 rounded-2xl bg-teal-50/50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900/40 space-y-1.5">
+                    {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
+                      <div>
+                        <span className="text-[9px] uppercase font-bold tracking-wider text-teal-800 dark:text-teal-300 block mb-1">Room Amenities</span>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedRoom.amenities.map(function(a) {
+                            return <span key={a} className="text-[10px] px-2 py-0.5 bg-white dark:bg-stone-800 text-teal-800 dark:text-teal-200 font-semibold rounded-full border border-teal-200 dark:border-teal-700">{a}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {selectedRoom.notes && (
+                      <p className="text-[11px] text-stone-600 dark:text-stone-300 italic pt-0.5">
+                        📝 {selectedRoom.notes}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Form fields */}
+                <div className="space-y-3">
+                  {/* Stay Type Toggle (if applicable) */}
+                  {property.accepts_long_term && property.accepts_transient && (
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold block mb-1">Stay Type</label>
+                      <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
+                        <button type="button" onClick={() => setStayType('long_term')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${stayType === 'long_term' ? 'bg-white dark:bg-stone-700 shadow-sm text-teal-700 dark:text-teal-200' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400'}`}>Long-term (Monthly)</button>
+                        <button type="button" onClick={() => setStayType('transient')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${stayType === 'transient' ? 'bg-white dark:bg-stone-700 shadow-sm text-teal-700 dark:text-teal-200' : 'text-stone-500 hover:text-stone-700 dark:text-stone-400'}`}>Short-term (Daily)</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dates Grid */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold block mb-1">Check-in Date</label>
+                      <Input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} min={new Date().toISOString().split('T')[0]} required className="bg-white dark:bg-stone-800 h-9 text-xs" />
+                    </div>
+                    {stayType === 'transient' ? (
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold block mb-1">Check-out Date</label>
+                        <Input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} min={checkInDate || new Date().toISOString().split('T')[0]} required className="bg-white dark:bg-stone-800 h-9 text-xs" />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold block mb-1 flex items-center justify-between">
+                          <span>Contract End</span>
+                          <span className="text-[9px] text-teal-600 font-normal lowercase">(auto)</span>
+                        </label>
+                        <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-100 text-xs font-bold flex items-center justify-between h-9 shadow-inner">
+                          <span className="truncate">{formattedMonthlyCheckOut || '—'}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 font-bold">{durationMonths} {durationMonths === 1 ? 'mo' : 'mos'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stay Duration Selector (Long-term) */}
+                  {stayType === 'long_term' && (
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">
+                          Lease Duration
+                        </label>
+                        <span className="text-xs font-black text-teal-700 dark:text-teal-400">
+                          {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { label: '1 mo', value: 1, desc: 'Monthly' },
+                          { label: '3 mos', value: 3, desc: 'Quarter' },
+                          { label: '6 mos', value: 6, desc: 'Semester' },
+                          { label: '12 mos', value: 12, desc: '1 Year' },
+                        ].map((preset) => (
+                          <button
+                            key={preset.value}
+                            type="button"
+                            onClick={() => setDurationMonths(preset.value)}
+                            className={`py-1.5 px-1.5 sm:px-2 rounded-xl text-xs font-bold transition-all border text-center flex flex-col items-center justify-center cursor-pointer ${
+                              durationMonths === preset.value
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-sm ring-2 ring-teal-500/20'
+                                : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-teal-400'
+                            }`}
+                          >
+                            <span>{preset.label}</span>
+                            <span className={`text-[9px] font-normal ${durationMonths === preset.value ? 'text-teal-100' : 'text-stone-400'}`}>{preset.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] text-stone-500 font-medium">Custom duration:</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setDurationMonths(Math.max(1, (parseInt(durationMonths, 10) || 1) - 1))}
+                            className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-sm flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={durationMonths}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10)
+                              if (!isNaN(val)) setDurationMonths(Math.min(24, Math.max(1, val)))
+                              else if (e.target.value === '') setDurationMonths('')
+                            }}
+                            onBlur={() => {
+                              if (!durationMonths || durationMonths < 1) setDurationMonths(1)
+                            }}
+                            className="w-12 text-center py-1 text-xs font-bold rounded-lg bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setDurationMonths(Math.min(24, (parseInt(durationMonths, 10) || 1) + 1))}
+                            className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-sm flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            +
+                          </button>
+                          <span className="text-[11px] text-stone-500 font-semibold">months</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary Box */}
+                  {stayType === 'long_term' && (
+                    <div className="p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900/40 space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-stone-600 dark:text-stone-400 font-medium">Monthly Rent:</span>
+                        <span className="font-bold text-stone-900 dark:text-stone-100">{formatCurrency(selectedRoom.price_monthly)} / mo</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-stone-600 dark:text-stone-400 font-medium">Contract Duration:</span>
+                        <span className="font-bold text-stone-900 dark:text-stone-100">{durationMonths} {durationMonths === 1 ? 'month' : 'months'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs pt-1.5 border-t border-teal-200/60 dark:border-teal-800/60">
+                        <span className="text-teal-900 dark:text-teal-200 font-bold">Total Contract Value:</span>
+                        <span className="font-black text-sm text-teal-700 dark:text-teal-300">
+                          {formatCurrency((selectedRoom.price_monthly || 0) * (parseInt(durationMonths, 10) || 1))}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-stone-500 dark:text-stone-400 italic pt-0.5 leading-tight">
+                        💡 Rent is billed monthly ({formatCurrency(selectedRoom.price_monthly)}/mo). You only pay month-by-month.
+                      </p>
+                    </div>
+                  )}
+
+                  {stayType === 'transient' && checkInDate && checkOutDate && new Date(checkOutDate) > new Date(checkInDate) && (
+                    <div className="p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900/40 flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-stone-600 dark:text-stone-400">Total for {Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24))} day(s)</p>
+                        <p className="text-[10px] text-stone-400">{formatCurrency(selectedRoom.price_daily)} / day</p>
+                      </div>
+                      <p className="font-black text-base text-teal-700 dark:text-teal-300">
+                        {formatCurrency(selectedRoom.price_daily * Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)))}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-[11px] text-amber-700">Your reservation request will be sent to the homeowner for approval. You will be notified once it is reviewed.</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 pb-1 border-t border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900 sticky bottom-0 z-10 flex gap-2.5 mt-3">
+                <Button variant="ghost" className="flex-1" onClick={function() { setSelectedRoom(null) }} disabled={booking}>Cancel</Button>
+                {storeUser?.accountStatus === 'suspended' ? (
+                  <div className="flex-1 flex items-center justify-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700 text-center">
+                    ⏸️ Reservations paused — account under review
+                  </div>
+                ) : (
+                  <Button className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md shadow-teal-900/20" onClick={function() { handleReserveRoom(selectedRoom) }} disabled={booking || !selectedRoom.is_available}>
+                    {booking ? 'Submitting…' : 'Confirm Reservation'}
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="p-5 border-t border-stone-100 flex gap-3">
-              <Button variant="ghost" className="flex-1" onClick={function() { setSelectedRoom(null) }} disabled={booking}>Cancel</Button>
-              {storeUser?.accountStatus === 'suspended' ? (
-                <div className="flex-1 flex items-center justify-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700 text-center">
-                  ⏸️ Reservations paused — account under review
-                </div>
-              ) : (
-                <Button className="flex-1" onClick={function() { handleReserveRoom(selectedRoom) }} disabled={booking || !selectedRoom.is_available}>
-                  {booking ? 'Submitting…' : 'Confirm Reservation'}
-                </Button>
-              )}
-            </div>
+
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Lightbox / Full screen gallery */}
       {selectedRoom && fullScreenImgIdx !== null && selectedRoom.image_urls && createPortal(

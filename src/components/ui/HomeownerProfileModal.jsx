@@ -1,3 +1,4 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { X, Mail, Phone, MapPin, Maximize2, ShieldCheck, Star, ChevronRight } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'

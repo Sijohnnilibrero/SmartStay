@@ -32,6 +32,20 @@ const AMENITY_OPTIONS = [
   { label: 'Backup Power', color: 'amber', icon: '🔋' },
 ]
 
+const MONTHLY_PRICE_PRESETS = [
+  { label: '< ₱2.5k', min: '', max: '2500' },
+  { label: '₱2.5k–4k', min: '2500', max: '4000' },
+  { label: '₱4k–6k', min: '4000', max: '6000' },
+  { label: '₱6k+', min: '6000', max: '' },
+]
+
+const DAILY_PRICE_PRESETS = [
+  { label: '< ₱500', min: '', max: '500' },
+  { label: '₱500–1k', min: '500', max: '1000' },
+  { label: '₱1k–2k', min: '1000', max: '2000' },
+  { label: '₱2k+', min: '2000', max: '' },
+]
+
 export default function TenantSearch() {
   const navigate = useNavigate()
   const { fetchProperties } = useAuthStore()
@@ -41,6 +55,8 @@ export default function TenantSearch() {
   const [minRating, setMinRating] = useState(0)
   const [stayType, setStayType] = useState('Any')
   const [amenities, setAmenities] = useState([])
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
   const [sortBy, setSortBy] = useState('rating_desc') // Default: Highest Rated / Satisfaction
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
@@ -66,8 +82,9 @@ export default function TenantSearch() {
     if (minRating > 0) count++
     if (stayType !== 'Any') count++
     if (amenities.length > 0) count += amenities.length
+    if (minPrice !== '' || maxPrice !== '') count++
     return count
-  }, [municipality, minRating, stayType, amenities])
+  }, [municipality, minRating, stayType, amenities, minPrice, maxPrice])
 
   const hasActiveFilters = useMemo(() => {
     return query.trim() !== '' || activeFilterCount > 0
@@ -79,6 +96,8 @@ export default function TenantSearch() {
     setMinRating(0)
     setStayType('Any')
     setAmenities([])
+    setMinPrice('')
+    setMaxPrice('')
     setSortBy('rating_desc')
   }
 
@@ -161,7 +180,50 @@ export default function TenantSearch() {
         })
       }
 
-      if (matchesQuery && matchesLocation && matchesRating && matchesStay && matchesAmenities) {
+      // Check Price Range
+      let matchesPrice = true
+      const minP = minPrice !== '' ? parseFloat(minPrice) : null
+      const maxP = maxPrice !== '' ? parseFloat(maxPrice) : null
+
+      if (minP !== null || maxP !== null) {
+        let pricesToCheck = []
+        if (stayType === 'Transient (Daily)') {
+          pricesToCheck = (p.room_prices_daily && p.room_prices_daily.length > 0)
+            ? p.room_prices_daily
+            : (p.price_daily > 0 ? [p.price_daily] : [])
+        } else if (stayType === 'Long-term (Monthly)') {
+          pricesToCheck = (p.room_prices_monthly && p.room_prices_monthly.length > 0)
+            ? p.room_prices_monthly
+            : (p.price_monthly > 0 ? [p.price_monthly] : [])
+        } else {
+          // 'Any' stay type: check both monthly and daily
+          if (p.accepts_long_term) {
+            const mPrices = (p.room_prices_monthly && p.room_prices_monthly.length > 0)
+              ? p.room_prices_monthly
+              : (p.price_monthly > 0 ? [p.price_monthly] : [])
+            pricesToCheck.push(...mPrices)
+          }
+          if (p.accepts_transient) {
+            const dPrices = (p.room_prices_daily && p.room_prices_daily.length > 0)
+              ? p.room_prices_daily
+              : (p.price_daily > 0 ? [p.price_daily] : [])
+            pricesToCheck.push(...dPrices)
+          }
+        }
+
+        if (pricesToCheck.length > 0) {
+          const hasMatchingRoom = pricesToCheck.some(price => {
+            if (minP !== null && price < minP) return false
+            if (maxP !== null && price > maxP) return false
+            return true
+          })
+          if (!hasMatchingRoom) matchesPrice = false
+        } else {
+          if (minP !== null && minP > 0) matchesPrice = false
+        }
+      }
+
+      if (matchesQuery && matchesLocation && matchesRating && matchesStay && matchesAmenities && matchesPrice) {
         exact.push(p)
       } else {
         if (matchesQuery) {
@@ -174,7 +236,7 @@ export default function TenantSearch() {
       exactMatches: sortList(exact),
       otherOptions: sortList(other),
     }
-  }, [allProperties, query, municipality, minRating, stayType, amenities, sortList])
+  }, [allProperties, query, municipality, minRating, stayType, amenities, minPrice, maxPrice, sortList])
 
   return (
     <div className="page-enter">
@@ -295,6 +357,60 @@ export default function TenantSearch() {
 
           <div className="w-px h-3.5 bg-stone-300 dark:bg-white/10 mx-1" />
 
+          {/* Price Range Filter */}
+          <div className="flex items-center gap-1.5 bg-white dark:bg-stone-900 border border-stone-200 dark:border-white/10 rounded-xl px-2 py-1 shadow-xs">
+            <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400">₱ Price:</span>
+            <input
+              type="number"
+              placeholder="Min"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              className="w-14 text-[11px] bg-transparent border-none focus:outline-none text-stone-800 dark:text-stone-100 placeholder:text-stone-400 font-bold"
+            />
+            <span className="text-stone-300 dark:text-stone-600 text-xs">–</span>
+            <input
+              type="number"
+              placeholder="Max"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="w-14 text-[11px] bg-transparent border-none focus:outline-none text-stone-800 dark:text-stone-100 placeholder:text-stone-400 font-bold"
+            />
+            {(minPrice || maxPrice) && (
+              <button
+                type="button"
+                onClick={() => { setMinPrice(''); setMaxPrice(''); }}
+                className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-0.5 cursor-pointer"
+                title="Clear price filter"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Price Preset Chips */}
+          {(stayType === 'Transient (Daily)' ? DAILY_PRICE_PRESETS : MONTHLY_PRICE_PRESETS).map((p) => {
+            const isPresetActive = minPrice === p.min && maxPrice === p.max
+            return (
+              <FilterChip
+                key={p.label}
+                label={p.label}
+                color="teal"
+                active={isPresetActive}
+                onClick={() => {
+                  if (isPresetActive) {
+                    setMinPrice('')
+                    setMaxPrice('')
+                  } else {
+                    setMinPrice(p.min)
+                    setMaxPrice(p.max)
+                  }
+                }}
+              />
+            )
+          })}
+
+          <div className="w-px h-3.5 bg-stone-300 dark:bg-white/10 mx-1" />
+
           {/* Modern Value Amenities */}
           {AMENITY_OPTIONS.map((a) => (
             <FilterChip
@@ -336,6 +452,7 @@ export default function TenantSearch() {
                   key={p.id}
                   property={p}
                   idx={idx}
+                  stayType={stayType}
                   isBestMatch={hasActiveFilters}
                   onClick={() => navigate(`/tenant/property/${p.id}`)}
                   onClickRooms={() => navigate(`/tenant/property/${p.id}#rooms`)}
@@ -389,6 +506,7 @@ export default function TenantSearch() {
                   key={p.id}
                   property={p}
                   idx={idx + exactMatches.length}
+                  stayType={stayType}
                   isBestMatch={false}
                   onClick={() => navigate(`/tenant/property/${p.id}`)}
                   onClickRooms={() => navigate(`/tenant/property/${p.id}#rooms`)}
@@ -447,6 +565,69 @@ export default function TenantSearch() {
             {/* Modal Body */}
             <div className="p-3.5 space-y-3">
               
+              {/* Price Range */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    Price Range (₱)
+                  </label>
+                  {(minPrice || maxPrice) && (
+                    <button
+                      type="button"
+                      onClick={() => { setMinPrice(''); setMaxPrice(''); }}
+                      className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                    >
+                      Clear Price
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-bold">₱</span>
+                    <input
+                      type="number"
+                      placeholder="Min Price"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      className="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-bold">₱</span>
+                    <input
+                      type="number"
+                      placeholder="Max Price"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      className="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    />
+                  </div>
+                </div>
+                {/* Mobile Presets */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {(stayType === 'Transient (Daily)' ? DAILY_PRICE_PRESETS : MONTHLY_PRICE_PRESETS).map((p) => {
+                    const isPresetActive = minPrice === p.min && maxPrice === p.max
+                    return (
+                      <FilterChip
+                        key={p.label}
+                        label={p.label}
+                        color="teal"
+                        active={isPresetActive}
+                        onClick={() => {
+                          if (isPresetActive) {
+                            setMinPrice('')
+                            setMaxPrice('')
+                          } else {
+                            setMinPrice(p.min)
+                            setMaxPrice(p.max)
+                          }
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Stay Type */}
               <div className="space-y-1">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
@@ -533,7 +714,6 @@ export default function TenantSearch() {
                 <span>Apply Filters ({exactMatches.length + otherOptions.length})</span>
               </button>
             </div>
-
           </div>
         </div>,
         document.body
@@ -543,10 +723,57 @@ export default function TenantSearch() {
   )
 }
 
-function PropertyCard({ property: p, idx = 0, isBestMatch = false, onClick, onClickRooms }) {
+function PropertyCard({ property: p, idx = 0, isBestMatch = false, stayType = 'Any', onClick, onClickRooms }) {
   var availColor = (p.available_rooms || 0) === 0 ? 'coral' : (p.available_rooms || 0) <= 2 ? 'amber' : 'teal'
   var availLabel = (p.available_rooms || 0) === 0 ? 'No Available Rooms' : (p.available_rooms || 0) + ' rooms left'
   var imgSrc = p.image_url || PROPERTY_IMAGES[idx % PROPERTY_IMAGES.length]
+
+  // Calculate pricing display
+  let priceAmount = null
+  let pricePeriod = null
+  let isPrefixFrom = false
+
+  const isTransientFilter = stayType === 'Transient (Daily)'
+  const isMonthlyFilter = stayType === 'Long-term (Monthly)'
+
+  if (isTransientFilter) {
+    if (p.min_price_daily > 0) {
+      priceAmount = p.min_price_daily
+      pricePeriod = '/day'
+      isPrefixFrom = p.max_price_daily > p.min_price_daily
+    } else if (p.price_daily > 0) {
+      priceAmount = p.price_daily
+      pricePeriod = '/day'
+    }
+  } else if (isMonthlyFilter) {
+    if (p.min_price_monthly > 0) {
+      priceAmount = p.min_price_monthly
+      pricePeriod = '/mo'
+      isPrefixFrom = p.max_price_monthly > p.min_price_monthly
+    } else if (p.price_monthly > 0) {
+      priceAmount = p.price_monthly
+      pricePeriod = '/mo'
+    }
+  } else {
+    // Any / Default: prioritize long-term if available, else transient
+    if (p.accepts_long_term && (p.min_price_monthly > 0 || p.price_monthly > 0)) {
+      priceAmount = p.min_price_monthly || p.price_monthly
+      pricePeriod = '/mo'
+      isPrefixFrom = (p.max_price_monthly || p.price_monthly) > priceAmount
+    } else if (p.accepts_transient && (p.min_price_daily > 0 || p.price_daily > 0)) {
+      priceAmount = p.min_price_daily || p.price_daily
+      pricePeriod = '/day'
+      isPrefixFrom = (p.max_price_daily || p.price_daily) > priceAmount
+    } else if (p.min_price_monthly > 0 || p.price_monthly > 0) {
+      priceAmount = p.min_price_monthly || p.price_monthly
+      pricePeriod = '/mo'
+      isPrefixFrom = (p.max_price_monthly || p.price_monthly) > priceAmount
+    } else if (p.min_price_daily > 0 || p.price_daily > 0) {
+      priceAmount = p.min_price_daily || p.price_daily
+      pricePeriod = '/day'
+      isPrefixFrom = (p.max_price_daily || p.price_daily) > priceAmount
+    }
+  }
 
   return (
     <div
@@ -618,15 +845,13 @@ function PropertyCard({ property: p, idx = 0, isBestMatch = false, onClick, onCl
           {/* Price bottom-right */}
           <div className="absolute bottom-3 right-3">
             <span className="bg-white dark:bg-stone-950 text-teal-700 dark:text-teal-300 font-extrabold text-[12px] px-2.5 py-1 rounded-full shadow-lg border border-stone-200/80 dark:border-white/20 ring-1 ring-black/10 dark:ring-white/10 flex items-center gap-1">
-              {p.price_monthly && p.accepts_long_term ? (
+              {priceAmount ? (
                 <>
-                  <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(p.price_monthly)}</span>
-                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">/mo</span>
-                </>
-              ) : p.price_daily && p.accepts_transient ? (
-                <>
-                  <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(p.price_daily)}</span>
-                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">/day</span>
+                  {isPrefixFrom && (
+                    <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">From</span>
+                  )}
+                  <span className="text-teal-700 dark:text-teal-300 font-extrabold">{formatCurrency(priceAmount)}</span>
+                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-300">{pricePeriod}</span>
                 </>
               ) : (
                 <span className="text-stone-800 dark:text-stone-100 font-bold text-[11px] tracking-tight">Prices vary</span>

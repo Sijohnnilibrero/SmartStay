@@ -1,3 +1,4 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { X, MapPin, Mail, Phone, ShieldCheck, Star, ChevronRight, Maximize2 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
@@ -8,6 +9,7 @@ import UserReviewsModal from './UserReviewsModal'
 import { supabase } from '@/lib/supabase'
 
 export default function TenantProfileModal({ isOpen, onClose, tenantId }) {
+  useScrollLock(isOpen)
   const [profile, setProfile] = useState(null)
   const [reviewCount, setReviewCount] = useState(0)
   const [avgRating, setAvgRating] = useState(0)

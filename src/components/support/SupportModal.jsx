@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
 import { Button, Input, Badge } from '@/components/ui'
+import useScrollLock from '@/hooks/useScrollLock'
 import { 
   Headphones, 
   X, 
@@ -33,6 +34,7 @@ const STATUS_BADGES = {
 }
 
 export default function SupportModal({ isOpen, onClose, appealMode = false, statusReason = null }) {
+  useScrollLock(isOpen)
   const { user, submitSupportTicket, fetchUserSupportTickets } = useAuthStore()
   const { addToast } = useAppStore()
 

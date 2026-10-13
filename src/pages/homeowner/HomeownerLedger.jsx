@@ -3,7 +3,8 @@ import { Card, Button, Badge } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
-import { DollarSign, Eye, CheckCircle, XCircle, Clock, Search, Filter } from 'lucide-react'
+import { DollarSign, Eye, CheckCircle, XCircle, Clock, Search, Filter, PlusCircle, AlertTriangle, X } from 'lucide-react'
+import { formatCurrency, calculateNextDueDate } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImageViewerModal from '@/components/ui/ImageViewerModal'
 import NotificationBell from '@/components/layout/NotificationBell'
@@ -22,6 +23,12 @@ export default function HomeownerLedger() {
   
   const [filterTenant, setFilterTenant] = useState('all')
   const [filterProperty, setFilterProperty] = useState('all')
+
+  const [recordModalOpen, setRecordModalOpen] = useState(false)
+  const [recordTarget, setRecordTarget] = useState(null)
+  const [recordAmount, setRecordAmount] = useState('')
+  const [recordNotes, setRecordNotes] = useState('Cash payment received in person')
+  const [submittingPayment, setSubmittingPayment] = useState(false)
 
   const loadData = () => {
     setLoading(true)
@@ -78,6 +85,45 @@ export default function HomeownerLedger() {
     }
   }
 
+  const handleRecordOfflinePayment = async (e) => {
+    e.preventDefault()
+    if (!recordTarget || !recordAmount || parseFloat(recordAmount) <= 0) {
+      addToast('Please enter a valid payment amount.', 'error')
+      return
+    }
+
+    setSubmittingPayment(true)
+    try {
+      const amountVal = parseFloat(recordAmount)
+      const { data, error } = await supabase.from('transactions').insert({
+        reservation_id: recordTarget.id,
+        tenant_id: recordTarget.tenant_id,
+        owner_id: user.id,
+        property_id: recordTarget.property_id,
+        amount: amountVal,
+        payment_type: recordTarget.stay_type === 'transient' ? 'transient_rent' : 'monthly_rent',
+        payment_date: new Date().toISOString(),
+        status: 'verified',
+        receipt_url: null,
+        notes: recordNotes || 'Direct in-person payment recorded by homeowner'
+      }).select().single()
+
+      if (error) throw error
+
+      addToast(`Recorded payment of ₱${amountVal.toLocaleString()} successfully!`, 'success')
+      setRecordModalOpen(false)
+      setRecordTarget(null)
+      setRecordAmount('')
+      setRecordNotes('Cash payment received in person')
+      refreshData()
+    } catch (err) {
+      console.error(err)
+      addToast(err.message || 'Failed to record payment.', 'error')
+    } finally {
+      setSubmittingPayment(false)
+    }
+  }
+
   if (loading) return <div className="p-12 text-center text-stone-400">Loading ledger...</div>
 
   const totalEarningsThisMonth = transactions
@@ -91,18 +137,47 @@ export default function HomeownerLedger() {
 
   // -- active tenants logic --
   const activeTenantsBalances = reservations.map(res => {
-    const resTxs = transactions.filter(t => t.tenant_id === res.tenant_id && t.property_id === res.property_id && t.status === 'verified')
-    const totalPaid = resTxs.reduce((sum, t) => sum + t.amount, 0)
-    const totalDue = res.amount_total || 0 // simplifying: for transient it's total, for long term it's monthly
+    const resTxs = transactions.filter(t => (t.reservation_id === res.id || (t.tenant_id === res.tenant_id && t.property_id === res.property_id)) && t.status === 'verified')
+    const totalPaid = resTxs.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
     
-    // Naive logic: if they paid less than what is due currently, they owe
-    const isPaid = totalPaid >= totalDue
+    if (res.stay_type === 'long_term') {
+      const months = res.duration_months || 1
+      const monthlyRent = res.amount_total ? (res.amount_total / months) : 0
+      const dueInfo = calculateNextDueDate(res, resTxs)
+      
+      const isPaid = !dueInfo?.isOverdue && (dueInfo?.amountDue === 0 || totalPaid >= monthlyRent * Math.min(months, (dueInfo?.monthsPaid || 0) + 1))
+      const currentCycleDue = dueInfo ? dueInfo.amountDue : monthlyRent
 
-    return {
-      reservation: res,
-      totalPaid,
-      totalDue,
-      isPaid
+      return {
+        reservation: res,
+        totalPaid,
+        totalDue: currentCycleDue,
+        contractTotal: res.amount_total || (monthlyRent * months),
+        monthlyRent,
+        monthsPaid: dueInfo?.monthsPaid || 0,
+        totalMonths: months,
+        nextDueDateStr: dueInfo?.dateString,
+        isOverdue: dueInfo?.isOverdue || false,
+        isPaid
+      }
+    } else {
+      // Transient
+      const totalDue = res.amount_total || 0
+      const remainingDue = Math.max(0, totalDue - totalPaid)
+      const isPaid = totalPaid >= totalDue
+
+      return {
+        reservation: res,
+        totalPaid,
+        totalDue: remainingDue,
+        contractTotal: totalDue,
+        monthlyRent: null,
+        monthsPaid: null,
+        totalMonths: null,
+        nextDueDateStr: res.check_out,
+        isOverdue: false,
+        isPaid
+      }
     }
   })
 
@@ -179,7 +254,11 @@ export default function HomeownerLedger() {
                       <p className="text-[11px] text-stone-500 font-medium">{b.reservation.property_name}</p>
                     </div>
                   </div>
-                  {b.isPaid ? (
+                  {b.isOverdue ? (
+                    <Badge variant="coral" className="flex items-center gap-1 uppercase tracking-wider text-[9px] shadow-sm whitespace-nowrap px-2">
+                      <AlertTriangle size={10} /> Overdue
+                    </Badge>
+                  ) : b.isPaid ? (
                     <Badge variant="teal" className="flex items-center gap-1 uppercase tracking-wider text-[9px] shadow-sm whitespace-nowrap px-2">
                       <CheckCircle size={10} /> Paid
                     </Badge>
@@ -192,13 +271,44 @@ export default function HomeownerLedger() {
                 
                 <div className="grid grid-cols-2 gap-2 bg-stone-50 rounded-xl p-3 border border-stone-100">
                    <div>
-                     <p className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">Current Due</p>
-                     <p className="font-bold text-stone-800 text-sm">₱{b.totalDue.toLocaleString()}</p>
+                     <p className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
+                       {b.reservation.stay_type === 'transient' ? 'Balance Due' : 'This Month Due'}
+                     </p>
+                     <p className={`font-bold text-sm ${b.isPaid ? 'text-teal-700' : 'text-stone-800'}`}>
+                       {b.isPaid ? '₱0 (Current)' : `₱${b.totalDue.toLocaleString()}`}
+                     </p>
+                     {b.nextDueDateStr && !b.isPaid && (
+                       <p className="text-[9px] text-stone-400 mt-0.5">Due: {b.nextDueDateStr}</p>
+                     )}
                    </div>
                    <div>
                      <p className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">Total Paid</p>
                      <p className="font-bold text-teal-700 text-sm">₱{b.totalPaid.toLocaleString()}</p>
+                     {b.totalMonths && (
+                       <p className="text-[9px] text-stone-400 mt-0.5">
+                         Month {b.monthsPaid} of {b.totalMonths}
+                       </p>
+                     )}
                    </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-[11px] text-stone-500 border-t border-stone-100">
+                  <span>
+                    Contract: <strong className="text-stone-700">₱{b.contractTotal.toLocaleString()}</strong>
+                    {b.totalMonths && ` (${b.totalMonths} mos)`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecordTarget(b.reservation)
+                      setRecordAmount(b.totalDue > 0 ? b.totalDue : (b.monthlyRent || b.contractTotal))
+                      setRecordNotes('Cash payment received in person')
+                      setRecordModalOpen(true)
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:text-teal-800 hover:underline cursor-pointer"
+                  >
+                    <PlusCircle size={12} /> Record Cash
+                  </button>
                 </div>
               </Card>
             ))}
@@ -303,6 +413,87 @@ export default function HomeownerLedger() {
         imageUrl={viewImageUrl}
         onClose={() => setViewImageUrl(null)}
       />
+      {/* Record In-Person Payment Modal */}
+      {recordModalOpen && recordTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-stone-100 overflow-hidden">
+            <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+                  ₱
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-stone-800">Record Offline Payment</h3>
+                  <p className="text-[11px] text-stone-500">{recordTarget.tenant_name} • {recordTarget.property_name}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setRecordModalOpen(false); setRecordTarget(null); }}
+                className="text-stone-400 hover:text-stone-600 p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordOfflinePayment} className="p-5 space-y-4">
+              <div className="p-3 rounded-xl bg-teal-50/60 border border-teal-100 space-y-1">
+                <p className="text-[11px] text-teal-800 font-semibold">
+                  Recording an in-person cash or direct bank transfer payment will immediately mark it verified and update this tenant's balance.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 block mb-1">
+                  Payment Amount (₱) *
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="1"
+                  required
+                  value={recordAmount}
+                  onChange={(e) => setRecordAmount(e.target.value)}
+                  placeholder="e.g. 2500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 block mb-1">
+                  Payment Notes / Reference
+                </label>
+                <input
+                  type="text"
+                  value={recordNotes}
+                  onChange={(e) => setRecordNotes(e.target.value)}
+                  placeholder="e.g. Received cash at property"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-stone-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="flex-1"
+                  disabled={submittingPayment}
+                  onClick={() => { setRecordModalOpen(false); setRecordTarget(null); }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="flex-1"
+                  disabled={submittingPayment}
+                >
+                  {submittingPayment ? 'Recording...' : 'Save Payment'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }

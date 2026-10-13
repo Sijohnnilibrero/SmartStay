@@ -1,7 +1,9 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { useAppStore } from '@/store/useAppStore'
 
 export default function ConfirmModal() {
   const confirmState = useAppStore((s) => s.confirmState)
+  useScrollLock(confirmState.isOpen)
   const resolveConfirm = useAppStore((s) => s.resolveConfirm)
 
   if (!confirmState.isOpen) return null

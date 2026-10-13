@@ -341,18 +341,45 @@ export const useAuthStore = create(
           })
         }
 
-        const { data: rooms } = await supabase.from('rooms').select('property_id, price_daily, is_available').in('property_id', propIds)
+        const { data: rooms } = await supabase.from('rooms').select('property_id, price_monthly, price_daily, is_available').in('property_id', propIds)
         if (rooms) {
-          const priceDailyMap = {}
+          const roomStatsMap = {}
           rooms.forEach(r => {
-            if (r.is_available && r.price_daily > 0) {
-              if (!priceDailyMap[r.property_id] || r.price_daily < priceDailyMap[r.property_id]) {
-                priceDailyMap[r.property_id] = r.price_daily
+            if (!roomStatsMap[r.property_id]) {
+              roomStatsMap[r.property_id] = {
+                monthlyPrices: [],
+                dailyPrices: [],
+                availableMonthly: [],
+                availableDaily: [],
               }
             }
+            const pMonthly = parseFloat(r.price_monthly) || 0
+            const pDaily = parseFloat(r.price_daily) || 0
+            if (pMonthly > 0) {
+              roomStatsMap[r.property_id].monthlyPrices.push(pMonthly)
+              if (r.is_available) roomStatsMap[r.property_id].availableMonthly.push(pMonthly)
+            }
+            if (pDaily > 0) {
+              roomStatsMap[r.property_id].dailyPrices.push(pDaily)
+              if (r.is_available) roomStatsMap[r.property_id].availableDaily.push(pDaily)
+            }
           })
+
           data.forEach(p => {
-            p.price_daily = priceDailyMap[p.id] || 0
+            const stats = roomStatsMap[p.id] || { monthlyPrices: [], dailyPrices: [], availableMonthly: [], availableDaily: [] }
+            
+            const activeMonthly = stats.availableMonthly.length > 0 ? stats.availableMonthly : stats.monthlyPrices
+            const activeDaily = stats.availableDaily.length > 0 ? stats.availableDaily : stats.dailyPrices
+
+            p.min_price_monthly = activeMonthly.length > 0 ? Math.min(...activeMonthly) : (parseFloat(p.price_monthly) || 0)
+            p.max_price_monthly = activeMonthly.length > 0 ? Math.max(...activeMonthly) : (parseFloat(p.price_monthly) || 0)
+            p.min_price_daily = activeDaily.length > 0 ? Math.min(...activeDaily) : (parseFloat(p.price_daily) || 0)
+            p.max_price_daily = activeDaily.length > 0 ? Math.max(...activeDaily) : (parseFloat(p.price_daily) || 0)
+
+            p.price_monthly = p.min_price_monthly
+            p.price_daily = p.min_price_daily
+            p.room_prices_monthly = stats.monthlyPrices.length > 0 ? stats.monthlyPrices : (p.price_monthly > 0 ? [p.price_monthly] : [])
+            p.room_prices_daily = stats.dailyPrices.length > 0 ? stats.dailyPrices : (p.price_daily > 0 ? [p.price_daily] : [])
           })
         }
 
@@ -641,10 +668,36 @@ export const useAuthStore = create(
           ;(properties || []).forEach(p => propertiesMap[p.id] = p.name)
         }
 
+        // Auto-expire any awaiting_payment reservations that passed 24h deadline without receipt
+        const now = Date.now()
+        data.forEach(async (r) => {
+          if (r.status === 'awaiting_payment' && !r.payment_receipt_url) {
+            const baseTime = new Date(r.payment_deadline || r.updated_at || r.created_at).getTime()
+            const deadline = baseTime + 24 * 60 * 60 * 1000
+            if (now > deadline) {
+              try {
+                await supabase.from('reservations').update({
+                  status: 'cancelled',
+                  notes: (r.notes ? r.notes + ' | ' : '') + '[System] Expired: 24h payment deadline exceeded.'
+                }).eq('id', r.id)
+                if (r.room_id) {
+                  await supabase.from('rooms').update({ is_available: true, status: 'available' }).eq('id', r.room_id)
+                  if (r.property_id) await get().syncPropertyRooms(r.property_id)
+                }
+              } catch (e) {
+                console.error('Failed to auto-expire reservation:', e)
+              }
+            }
+          }
+        })
+
         return data.map(r => {
           const p = profilesDataMap[r.tenant_id] || {}
+          const baseTime = new Date(r.payment_deadline || r.updated_at || r.created_at).getTime()
+          const deadlinePassed = r.status === 'awaiting_payment' && !r.payment_receipt_url && (now > baseTime + 24 * 60 * 60 * 1000)
           return {
             ...r,
+            status: deadlinePassed ? 'cancelled' : r.status,
             tenant_name: p.full_name || 'Unknown Tenant',
             tenant_avatar: p.avatar_url || null,
             tenant_email: p.email || null,
@@ -705,6 +758,9 @@ export const useAuthStore = create(
         }
 
         const updateData = { status }
+        if (status === 'awaiting_payment') {
+          updateData.updated_at = new Date().toISOString()
+        }
         if (status === 'completed') {
           updateData.ended_at = new Date().toISOString()
         }
@@ -747,6 +803,157 @@ export const useAuthStore = create(
         }
         
         return data
+      },
+
+
+      expireReservation: async (id) => {
+        const { data: res } = await supabase.from('reservations').select('room_id, property_id, notes, status, payment_receipt_url').eq('id', id).single()
+        if (!res || res.status !== 'awaiting_payment' || res.payment_receipt_url) return
+        
+        const { data, error } = await supabase.from('reservations').update({
+          status: 'cancelled',
+          notes: (res.notes ? res.notes + ' | ' : '') + '[System] Expired: 24h payment deadline exceeded.'
+        }).eq('id', id).select().single()
+        if (error) throw error
+
+        if (res.room_id) {
+          await supabase.from('rooms').update({ is_available: true, status: 'available' }).eq('id', res.room_id)
+          if (res.property_id) await get().syncPropertyRooms(res.property_id)
+        }
+        return data
+      },
+
+
+      requestLeaseRenewal: async (reservationId, months, notes) => {
+        const user = get().user
+        if (!user) throw new Error('Not authenticated')
+        
+        const { data: res, error: fetchErr } = await supabase.from('reservations').select('*').eq('id', reservationId).single()
+        if (fetchErr || !res) throw new Error('Reservation not found')
+
+        const cleanNotes = (res.notes || '').replace(/\[RENEWAL:.*?\]/g, '').trim()
+        const renewalTag = '[RENEWAL:' + JSON.stringify({
+          status: 'pending',
+          months: months,
+          notes: notes || '',
+          date: new Date().toISOString()
+        }) + ']'
+        const updatedNotes = cleanNotes ? cleanNotes + ' | ' + renewalTag : renewalTag
+
+        let updatedData = null
+        try {
+          const { data, error } = await supabase.from('reservations').update({
+            renewal_status: 'pending',
+            renewal_months: months,
+            renewal_notes: notes || '',
+            renewal_requested_at: new Date().toISOString(),
+            notes: updatedNotes
+          }).eq('id', reservationId).select().single()
+          if (error) throw error
+          updatedData = data
+        } catch (colErr) {
+          // Fallback if columns don't exist yet
+          const { data, error } = await supabase.from('reservations').update({
+            notes: updatedNotes
+          }).eq('id', reservationId).select().single()
+          if (error) throw error
+          updatedData = data
+        }
+
+        // Notify landlord
+        if (res.owner_id) {
+          try {
+            await supabase.from('app_notifications').insert({
+              user_id: res.owner_id,
+              title: 'Lease Extension Request',
+              body: (user.full_name || 'Your tenant') + ' requested a ' + months + '-month lease extension.',
+              type: 'reservation_renewal',
+            })
+          } catch (notifErr) {
+            console.warn('Renewal notification failed:', notifErr)
+          }
+        }
+
+        return updatedData
+      },
+
+      respondLeaseRenewal: async (reservationId, approve = true, rejectionReason = '') => {
+        const { data: res, error: fetchErr } = await supabase.from('reservations').select('*').eq('id', reservationId).single()
+        if (fetchErr || !res) throw new Error('Reservation not found')
+
+        // Parse renewal data
+        let renewalMonths = res.renewal_months || 0
+        if (!renewalMonths && res.notes && res.notes.includes('[RENEWAL:')) {
+          try {
+            const match = res.notes.match(/\[RENEWAL:({.*?})\]/)
+            if (match && match[1]) {
+              const parsed = JSON.parse(match[1])
+              renewalMonths = parsed.months || 0
+            }
+          } catch (e) {}
+        }
+        if (!renewalMonths) renewalMonths = 1
+
+        const cleanNotes = (res.notes || '').replace(/\[RENEWAL:.*?\]/g, '').trim()
+        let updatePayload = {}
+
+        if (approve) {
+          const currentMonths = res.duration_months || 1
+          const newMonths = currentMonths + renewalMonths
+          const monthlyRent = res.amount_total ? (res.amount_total / currentMonths) : 0
+          const newAmountTotal = res.amount_total + (monthlyRent * renewalMonths)
+
+          let newCheckOut = res.check_out
+          if (res.check_in) {
+            const d = new Date(res.check_in)
+            d.setMonth(d.getMonth() + newMonths)
+            newCheckOut = d.toISOString().split('T')[0]
+          }
+
+          updatePayload = {
+            duration_months: newMonths,
+            amount_total: newAmountTotal,
+            check_out: newCheckOut,
+            renewal_status: 'approved',
+            notes: cleanNotes ? cleanNotes + ' | [Lease Extended: +' + renewalMonths + ' mos]' : '[Lease Extended: +' + renewalMonths + ' mos]'
+          }
+        } else {
+          updatePayload = {
+            renewal_status: 'declined',
+            notes: cleanNotes ? cleanNotes + ' | [Renewal Request Declined' + (rejectionReason ? ': ' + rejectionReason : '') + ']' : '[Renewal Request Declined]'
+          }
+        }
+
+        let updatedData = null
+        try {
+          const { data, error } = await supabase.from('reservations').update(updatePayload).eq('id', reservationId).select().single()
+          if (error) throw error
+          updatedData = data
+        } catch (colErr) {
+          // Fallback if renewal_status column doesn't exist
+          delete updatePayload.renewal_status
+          const { data, error } = await supabase.from('reservations').update(updatePayload).eq('id', reservationId).select().single()
+          if (error) throw error
+          updatedData = data
+        }
+
+        // Notify tenant
+        if (res.tenant_id) {
+          try {
+            await supabase.from('app_notifications').insert({
+              user_id: res.tenant_id,
+              title: approve ? 'Lease Extension Approved 🎉' : 'Lease Extension Declined',
+              body: approve 
+                ? 'Your landlord approved your ' + renewalMonths + '-month lease extension! Your contract has been extended.'
+                : 'Your landlord declined your lease extension request' + (rejectionReason ? ': ' + rejectionReason : '.'),
+              type: 'reservation_renewal',
+            })
+          } catch (notifErr) {
+            console.warn('Notification failed:', notifErr)
+          }
+        }
+
+        return updatedData
       },
 
       deleteReservation: async (id) => {

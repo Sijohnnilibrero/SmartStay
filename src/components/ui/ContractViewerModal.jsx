@@ -1,9 +1,11 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Download } from 'lucide-react'
 import { ZoomableImage } from './ZoomableImage'
 
 export default function ContractViewerModal({ url, onClose }) {
+  useScrollLock(!!url)
 
   if (!url) return null
 

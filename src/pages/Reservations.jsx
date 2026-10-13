@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Card, Badge, Avatar, Button } from '@/components/ui'
+import { Card, Badge, Avatar, Button, PaymentCountdown, isPaymentExpired } from '@/components/ui'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, parseRenewalData } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { CheckCircle, XCircle, Trash2, Star, Upload } from 'lucide-react'
@@ -23,6 +23,7 @@ export default function Reservations() {
   var deleteReservation = useAuthStore(function (s) { return s.deleteReservation })
   var fetchProperties = useAuthStore(function (s) { return s.fetchProperties })
   var uploadPaymentReceipt = useAuthStore(function (s) { return s.uploadPaymentReceipt })
+  var expireReservation = useAuthStore(function (s) { return s.expireReservation })
   var uploadContract = useAuthStore(function (s) { return s.uploadContract })
   var addToast = useAppStore(function (s) { return s.addToast })
   var systemConfirm = useAppStore(function (s) { return s.systemConfirm })
@@ -226,6 +227,16 @@ export default function Reservations() {
           })}
         </div>
 
+
+        {/* Tenant Payment Deadline Alert Banner */}
+        {isTenant && reservations.some(r => r.status === 'awaiting_payment' && !r.payment_receipt_url) && (
+          <div className="space-y-2">
+            {reservations.filter(r => r.status === 'awaiting_payment' && !r.payment_receipt_url).map(r => (
+              <PaymentCountdown key={'banner-countdown-' + r.id} reservation={r} onExpire={() => expireReservation(r.id)} />
+            ))}
+          </div>
+        )}
+
         <Card className="p-0 overflow-hidden">
           {loading ? (
             <div className="text-center py-12 text-stone-400">Loading reservations…</div>
@@ -286,7 +297,22 @@ export default function Reservations() {
                           })()}
                         </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-[12px] font-semibold text-[--teal] whitespace-nowrap">{formatCurrency(r.amount_total)}</td>
-                        <td className="px-3 py-2 sm:px-4 sm:py-3"><Badge variant={STATUS_BADGE[r.status] || 'gray'} className="text-[9px] sm:text-[10px] truncate">{r.status.replace('_', ' ')}</Badge></td>
+                        <td className="px-3 py-2 sm:px-4 sm:py-3">
+                          <div className="flex flex-col gap-1 items-start">
+                            <Badge variant={STATUS_BADGE[r.status] || 'gray'} className="text-[9px] sm:text-[10px] truncate">{r.status.replace('_', ' ')}</Badge>
+                            {(() => {
+                              const ren = parseRenewalData(r)
+                              if (ren.status === 'pending') {
+                                return (
+                                  <span className="text-[8px] sm:text-[9px] text-amber-800 bg-amber-50 border border-amber-300 px-1 py-0.5 rounded font-semibold whitespace-nowrap">
+                                    + {ren.months}m renewal req.
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
+                          </div>
+                        </td>
                         <td className="px-3 py-2 sm:px-4 sm:py-3">
                           <div className="flex items-center gap-1 flex-wrap">
                             {(isAdmin || isOwner) && r.status === 'pending' && (

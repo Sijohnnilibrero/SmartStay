@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, Badge, Button, Avatar } from '@/components/ui'
-import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { MapPin, Calendar, CreditCard, BedDouble, Phone, Mail, CheckCircle2, ArrowRight, FileText, AlertTriangle, Clock } from 'lucide-react'
+import { formatCurrency, parseRenewalData } from '@/lib/utils'
 import ContractViewerModal from '@/components/ui/ContractViewerModal'
+import { RenewalRequestModal } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 
 export default function MyRoom() {
@@ -14,6 +15,7 @@ export default function MyRoom() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [viewContractUrl, setViewContractUrl] = useState(null)
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
   const wasHiddenRef = useRef(false)
 
   const loadRoom = useCallback(function(silent = false) {
@@ -123,6 +125,9 @@ export default function MyRoom() {
     ? formatCurrency(room?.price_daily || 0)
     : formatCurrency(reservation?.amount_total / (reservation?.duration_months || 1))
 
+  const renewalData = parseRenewalData(reservation)
+  const isPendingRenewal = renewalData.status === 'pending'
+
   return (
     <>
     <div className="page-enter flex flex-col h-screen">
@@ -211,9 +216,70 @@ export default function MyRoom() {
 
           {/* Lease Summary */}
           <Card className="p-0 overflow-hidden">
-            <div className="p-3 sm:p-5 border-b border-stone-100">
-              <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">Lease Summary</h3>
+            <div className="p-3 sm:p-5 border-b border-stone-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-stone-800 text-[13px] sm:text-[14px]">Lease Summary</h3>
+                {isPendingRenewal && (
+                  <Badge variant="amber">Extension Pending</Badge>
+                )}
+                {renewalData.status === 'approved' && (
+                  <Badge variant="teal">Lease Renewed</Badge>
+                )}
+              </div>
+              {!isPendingRenewal && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setShowRenewalModal(true)}
+                  className="text-xs text-[--teal] border-teal-200 hover:bg-teal-50 flex items-center gap-1.5 py-1 px-2.5 h-auto font-medium"
+                >
+                  <Clock size={13} />
+                  <span>Extend Lease</span>
+                </Button>
+              )}
             </div>
+
+            {/* Pending renewal banner */}
+            {isPendingRenewal && (
+              <div className="m-3 sm:m-5 mb-0 p-3 sm:p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Clock size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs sm:text-sm font-bold text-amber-900">
+                      Extension Request Pending (+{renewalData.months} {renewalData.months === 1 ? 'Month' : 'Months'})
+                    </p>
+                    <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">
+                      Awaiting Landlord
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-amber-800 mt-1 leading-relaxed">
+                    You submitted a request to extend your lease by {renewalData.months} {renewalData.months === 1 ? 'month' : 'months'}.
+                    {renewalData.notes ? ` Note: "${renewalData.notes}"` : ''}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Declined notice if recently declined */}
+            {renewalData.status === 'declined' && (
+              <div className="m-3 sm:m-5 mb-0 p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-stone-600">
+                  <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />
+                  <span>Your previous lease extension request was declined by the landlord.</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRenewalModal(true)}
+                  className="text-xs text-[--teal] hover:underline p-0 h-auto font-medium"
+                >
+                  Request Again
+                </Button>
+              </div>
+            )}
+
             <div className="p-3 sm:p-5 space-y-1 sm:space-y-3">
               <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-stone-50">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] text-stone-500">
@@ -292,6 +358,15 @@ export default function MyRoom() {
         </div>
       </div>
     </div>
+
+    <RenewalRequestModal
+      isOpen={showRenewalModal}
+      onClose={() => setShowRenewalModal(false)}
+      reservation={reservation}
+      room={room}
+      property={property}
+      onSuccess={() => loadRoom(true)}
+    />
   </>
   )
 }

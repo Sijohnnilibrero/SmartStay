@@ -100,3 +100,38 @@ export function calculateNextDueDate(reservation, transactions) {
     monthsPaid
   }
 }
+
+/**
+ * Parses lease renewal metadata from reservation columns or fallback structured note.
+ */
+export function parseRenewalData(reservation) {
+  if (!reservation) return { status: null, months: 0, notes: '', requestedAt: null }
+  
+  if (reservation.renewal_status) {
+    return {
+      status: reservation.renewal_status,
+      months: reservation.renewal_months || 0,
+      notes: reservation.renewal_notes || '',
+      requestedAt: reservation.renewal_requested_at || null
+    }
+  }
+
+  if (reservation.notes && reservation.notes.includes('[RENEWAL:')) {
+    try {
+      const match = reservation.notes.match(/\[RENEWAL:({.*?})\]/)
+      if (match && match[1]) {
+        const parsed = JSON.parse(match[1])
+        return {
+          status: parsed.status || null,
+          months: parsed.months || 0,
+          notes: parsed.notes || '',
+          requestedAt: parsed.date || null
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return { status: null, months: 0, notes: '', requestedAt: null }
+}

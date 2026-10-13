@@ -1,9 +1,11 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Star } from 'lucide-react'
 import { Button } from './index'
 
 export default function ReviewModal({ isOpen, onClose, targetUser, reservationId, onSubmit }) {
+  useScrollLock(isOpen)
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')

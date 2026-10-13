@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Badge } from '@/components/ui'
+import { Card, Button, Badge, PaymentCountdown } from '@/components/ui'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 import { supabase } from '@/lib/supabase'
@@ -44,7 +44,7 @@ export default function MyPayments() {
       // Txs are already scoped by RLS. But let's be sure it's the tenant's view.
       setTransactions(txs.filter(t => t.tenant_id === user.id))
       // Get approved/ongoing reservations to log payments against
-      setReservations(resps.filter(r => r.tenant_id === user.id && ['approved', 'confirmed'].includes(r.status)))
+      setReservations(resps.filter(r => r.tenant_id === user.id && ['approved', 'awaiting_payment', 'confirmed'].includes(r.status)))
     }).catch(err => {
       console.error('FETCH ERROR:', err)
       addToast(`Failed to load transactions: ${err.message || err.details || JSON.stringify(err)}`, 'error')
@@ -60,7 +60,7 @@ export default function MyPayments() {
       fetchReservations()
     ]).then(([txs, resps]) => {
       setTransactions(txs.filter(t => t.tenant_id === user.id))
-      setReservations(resps.filter(r => r.tenant_id === user.id && ['approved', 'confirmed'].includes(r.status)))
+      setReservations(resps.filter(r => r.tenant_id === user.id && ['approved', 'awaiting_payment', 'confirmed'].includes(r.status)))
     }).catch(err => console.error('Silent refresh error:', err))
   }
 
@@ -231,6 +231,14 @@ export default function MyPayments() {
           </div>
         </div>
       )}
+
+
+      {/* Awaiting Payment Expiration Banners */}
+      {reservations.filter(r => r.status === 'awaiting_payment' && !r.payment_receipt_url).map(res => (
+        <div key={'awaiting-' + res.id} className="space-y-1">
+          <PaymentCountdown reservation={res} onExpire={() => refreshData()} />
+        </div>
+      ))}
 
       {/* Due Date Banners */}
       {reservations.map(res => {

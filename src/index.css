@@ -406,3 +406,11 @@ nav a, nav span { color: inherit; }
 }
 
 
+
+
+/* Prevent background scrolling when any modal is open */
+body.modal-open,
+body.modal-open main {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}

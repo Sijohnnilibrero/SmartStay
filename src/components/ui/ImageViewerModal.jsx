@@ -1,8 +1,10 @@
+import useScrollLock from '@/hooks/useScrollLock'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { ZoomableImage } from './ZoomableImage'
 
 export default function ImageViewerModal({ isOpen, imageUrl, onClose }) {
+  useScrollLock(isOpen && !!imageUrl)
   if (!isOpen || !imageUrl) return null
 
   return createPortal(

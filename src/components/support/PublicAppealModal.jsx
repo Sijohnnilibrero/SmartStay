@@ -4,8 +4,10 @@ import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/store/useAppStore'
 import { Button, Input } from '@/components/ui'
 import { Headphones, X, Send, ShieldAlert, Mail, Phone, CheckCircle2 } from 'lucide-react'
+import useScrollLock from '@/hooks/useScrollLock'
 
 export default function PublicAppealModal({ isOpen, onClose, defaultEmail = '', accountStatus = 'banned' }) {
+  useScrollLock(isOpen)
   const { addToast } = useAppStore()
 
   const [email, setEmail] = useState(defaultEmail)
